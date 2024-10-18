@@ -45,7 +45,7 @@ contract MockReceiver is IOAppComposer {
         address addr = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (address));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
         bytes32 senderAsBytes = OFTComposeMsgCodec.composeFrom(_message);
- 
+
         storedAddress = addr;
         storedAmount = amount;
         storedSender = address(uint160(uint256(senderAsBytes)));

@@ -30,15 +30,11 @@ contract SubmitSendWithCompose is BaseScript {
             amountLD: amount,
             minAmountLD: 0,
             extraOptions: options,
-            composeMsg: '',
-            oftCmd: ''
+            composeMsg: "",
+            oftCmd: ""
         });
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        IOFT(oft).send{value: fee.nativeFee}(
-            sendParam,
-            fee,
-            payable(vm.addr(privateKey))
-        );
+        IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(vm.addr(privateKey)));
     }
 
     function addressToBytes32(address _addr) public pure returns (bytes32) {

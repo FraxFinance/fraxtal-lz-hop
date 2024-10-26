@@ -12,25 +12,23 @@ contract SubmitSendWithCompose is BaseScript {
     using OptionsBuilder for bytes;
 
     address oft = 0x909DBdE1eBE906Af95660033e478D59EFe831fED; // Base FRAX OFT
-    address swapMock = 0xbA5797448733D4691A1f20b26c5Cf5CE02E52a57; // Fraxtal MockReceiver
+    address swapMock = 0xEdC5087033c8C0561919E6eD7DCA32b40538929f; // Fraxtal MockReceiver
     uint256 amount = 1e15;
     string baseRpc = "https://base-rpc.publicnode.com";
 
-    function run() external {
-        address token = IOFT(oft).token();
-        IERC20(token).approve(oft, type(uint256).max);
-
+    function run() external broadcaster {
         // https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
-        // bytes memory options = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 1_000_000, 0);
-        bytes memory options = OptionsBuilder.newOptions();
-        bytes memory composeMsg = abi.encode(swapMock);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 1_000_000, 0);
+        // bytes memory options = OptionsBuilder.newOptions();
+        /// @dev: fails when second argument too high
+        bytes memory composeMsg = abi.encode(0xb0E1650A9760e0f383174af042091fc544b8356f, uint256(1e16));
         SendParam memory sendParam = SendParam({
             dstEid: uint32(30255), // fraxtal
             to: addressToBytes32(swapMock),
             amountLD: amount,
             minAmountLD: 0,
             extraOptions: options,
-            composeMsg: "",
+            composeMsg: composeMsg,
             oftCmd: ""
         });
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);

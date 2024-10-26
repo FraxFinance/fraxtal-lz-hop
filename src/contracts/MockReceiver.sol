@@ -90,8 +90,8 @@ contract MockReceiver is IOAppComposer {
             }
         } catch {
             // reset approval - swap failed
-            IERC20(lzFrax).approve(lzFraxPool, 0);
-            IERC20(_oApp).transfer(recipient, amount);
+            IERC20(lzToken).approve(curve, 0);
+            IERC20(lzToken).transfer(recipient, amount);
         }
     }
 }

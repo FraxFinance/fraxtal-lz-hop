@@ -74,7 +74,7 @@ contract MockReceiver is IOAppComposer {
             nToken = FraxtalL2.FRAX;
             lzToken = lzFrax;
             curve = lzFraxCurve;
-        else if (_oApp == lzSFrax) {
+        } else if (_oApp == lzSFrax) {
             nToken = FraxtalL2.SFRAX;
             lzToken = lzSFrax;
             curve = lzSFraxCurve;

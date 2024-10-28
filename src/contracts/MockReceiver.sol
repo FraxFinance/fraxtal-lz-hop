@@ -54,7 +54,7 @@ contract MockReceiver is IOAppComposer {
         bytes calldata /*Executor Data*/
     ) external payable override {
         require(msg.sender == endpoint, "!endpoint");
-        
+
         address nToken; // "native" token
         address lzToken; // "LayerZero" token
         address curve; // curve.fi pool
@@ -69,23 +69,23 @@ contract MockReceiver is IOAppComposer {
         } else {
             revert InvalidOApp();
         }
-        
+
         // Extract the composed message from the delivered message using the MsgCodec
-        (address recipient, uint256 amountOutMin) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (address, uint256));
+        (address recipient, uint256 amountOutMin) = abi.decode(
+            OFTComposeMsgCodec.composeMsg(_message),
+            (address, uint256)
+        );
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        
+
         IERC20(lzToken).approve(curve, amount);
-        try ICurve(curve).exchange({
-            i: int128(1),
-            j: int128(0),
-            _dx: amount,
-            _min_dy: amountOutMin
-        }) returns (uint256 amountOut) {
+        try ICurve(curve).exchange({ i: int128(1), j: int128(0), _dx: amount, _min_dy: amountOutMin }) returns (
+            uint256 amountOut
+        ) {
             if (nToken == FraxtalL2.WFRXETH) {
                 // unwrap then send
                 IWETH(nToken).withdraw(amountOut);
-                (bool success,) = recipient.call{value: amountOut}("");
-                 if (!success) revert FailedEthTransfer();
+                (bool success, ) = recipient.call{ value: amountOut }("");
+                if (!success) revert FailedEthTransfer();
             } else {
                 // simple send the now-native token
                 IERC20(nToken).transfer(recipient, amountOut);

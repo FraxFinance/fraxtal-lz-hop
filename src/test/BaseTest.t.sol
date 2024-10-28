@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import "frax-std/FraxTest.sol";
-import "../contracts/Counter.sol";
 import "./Helpers.sol";
 
 import { Mainnet } from "src/contracts/chain-constants/Mainnet.sol";
@@ -12,8 +11,6 @@ import { FraxtalTestnetL1 } from "src/contracts/chain-constants/FraxtalTestnetL1
 import { FraxtalTestnetL2 } from "src/contracts/chain-constants/FraxtalTestnetL2.sol";
 
 contract BaseTest is FraxTest {
-    Counter public counter;
-
     address timelock = Mainnet.TIMELOCK_ADDRESS;
     // Fraxtal / Fraxtal Testnet L1 & L2 addresses
     address public PROXY_ADMIN;

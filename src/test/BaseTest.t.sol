@@ -11,7 +11,6 @@ import { FraxtalTestnetL1 } from "src/contracts/chain-constants/FraxtalTestnetL1
 import { FraxtalTestnetL2 } from "src/contracts/chain-constants/FraxtalTestnetL2.sol";
 
 contract BaseTest is FraxTest {
-
     address timelock = Mainnet.TIMELOCK_ADDRESS;
     // Fraxtal / Fraxtal Testnet L1 & L2 addresses
     address public PROXY_ADMIN;

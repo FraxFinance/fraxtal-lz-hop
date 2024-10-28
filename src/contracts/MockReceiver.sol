@@ -10,7 +10,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { FraxtalL2 } from "src/contracts/chain-constants/FraxtalL2.sol";
 
 interface ICurve {
-    function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external;
+    function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
 }
 
 interface IWETH {
@@ -36,6 +36,8 @@ contract MockReceiver is IOAppComposer {
         endpoint = _endpoint;
     }
 
+    receive() external payable {}
+
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.
     ///      This method expects the encoded compose message to contain the swap amount and recipient address.
@@ -60,7 +62,7 @@ contract MockReceiver is IOAppComposer {
             nToken = FraxtalL2.FRAX;
             lzToken = lzFrax;
             curve = lzFraxCurve;
-        } else if (_oApp == lzfrxEth) {
+        } else if (_oApp == lzFrxEth) {
             nToken = FraxtalL2.WFRXETH;
             lzToken = lzFrxEth;
             curve = lzFrxEthCurve;
@@ -82,8 +84,8 @@ contract MockReceiver is IOAppComposer {
             if (nToken == FraxtalL2.WFRXETH) {
                 // unwrap then send
                 IWETH(nToken).withdraw(amountOut);
-                (bool success,) = recipient.call{value: amountOut}(new bytes(0));
-                if (!success) revert FailedEthTransfer();
+                (bool success,) = recipient.call{value: amountOut}("");
+                 if (!success) revert FailedEthTransfer();
             } else {
                 // simple send the now-native token
                 IERC20(nToken).transfer(recipient, amountOut);

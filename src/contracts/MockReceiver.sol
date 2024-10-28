@@ -27,8 +27,20 @@ contract MockReceiver is IOAppComposer {
     address public lzFrax = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
     address public lzFraxCurve = 0x53f8F4e154F68C2D29a0D06BD50f82bCf1bd95dB;
 
+    address public lzSFrax = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;
+    address public lzSFraxCurve = 0xd2866eF5A94E741Ec8EDE5FF8e3A1f9C59c5e298;
+
     address public lzFrxEth = 0x43eDD7f3831b08FE70B7555ddD373C8bF65a9050;
     address public lzFrxEthCurve = 0x50842664DfBD876249D0113671d72dB168FBE4d0;
+
+    address public lzSFrxEth = 0x3Ec3849C33291a9eF4c5dB86De593EB4A37fDe45;
+    address public lzSFrxEthCurve = 0xe5F61df936d50302962d5B914537Ff3cB63b3526;
+
+    address public lzFxs = 0x64445f0aecC51E94aD52d8AC56b7190e764E561a;
+    address public lzFxsCurve = 0xBc383485068Ffd275D7262Bef65005eE7a5A1870;
+
+    address public lzFpi = 0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927;
+    address public lzFpiCurve = 0x7FaA69f8fEbe38bBfFbAE3252DE7D1491F0c6157;
 
     /// @dev Initializes the contract.
     /// @param _endpoint LayerZero Endpoint address
@@ -62,10 +74,26 @@ contract MockReceiver is IOAppComposer {
             nToken = FraxtalL2.FRAX;
             lzToken = lzFrax;
             curve = lzFraxCurve;
+        else if (_oApp == lzSFrax) {
+            nToken = FraxtalL2.SFRAX;
+            lzToken = lzSFrax;
+            curve = lzSFraxCurve;
         } else if (_oApp == lzFrxEth) {
             nToken = FraxtalL2.WFRXETH;
             lzToken = lzFrxEth;
             curve = lzFrxEthCurve;
+        } else if (_oApp == lzSFrxEth) {
+            nToken = FraxtalL2.SFRXETH;
+            lzToken = lzSFrxEth;
+            curve = lzSFrxEthCurve;
+        } else if (_oApp == lzFxs) {
+            nToken = FraxtalL2.FXS;
+            lzToken = lzFxs;
+            curve = lzFxsCurve;
+        } else if (_oApp == lzFpi) {
+            nToken = FraxtalL2.FPI;
+            lzToken = lzFpi;
+            curve = lzFpiCurve;
         } else {
             revert InvalidOApp();
         }

@@ -19,6 +19,7 @@ interface ICurve {
 
 interface IWETH {
     function withdraw(uint256 wad) external;
+    function deposit() external payable;
 }
 
 // Simplified version of https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
@@ -133,6 +134,24 @@ contract MockReceiver is IOAppComposer {
         }
     }
 
+    /// @notice Quote the send cost of ETH required
+    function quoteSendNativeFee(
+        address _oApp,
+        uint32 _dstEid,
+        bytes32 _to,
+        uint256 _amountLD,
+        uint256 _amountLDMin
+    ) external view returns (uint256) {
+        SendParam memory sendParam = _generateSendParam({
+            _dstEid: _dstEid,
+            _to: _to,
+            _amountLD: _amountLD,
+            _amountLDMin: _amountLDMin
+        });
+        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
+        return fee.nativeFee;
+    }
+
     /// @notice swap native token on curve and send OFT to another chain
     /// @param _oApp Address of the upgradeable OFT
     /// @param _dstEid Destination EID
@@ -147,14 +166,25 @@ contract MockReceiver is IOAppComposer {
         uint256 _amount,
         uint256 _amountOutMin,
         uint256 _amountLDMin
-    ) external {
+    ) external payable {
         (
             address nToken,
             address curve
         ) = _getRespectiveTokens(_oApp);
 
+        
         // transfer from sender to here
-        IERC20(nToken).transferFrom(msg.sender, address(this), _amount);
+        uint256 msgValue;
+        if (nToken == FraxtalL2.WFRXETH) {
+            // wrap amount to swap
+            IWETH(nToken).deposit{value: _amount}();
+            // subtract amount wrapped from msg.value (remaining is to be paid through IOFT(_oApp.send()) )
+            msgValue = msg.value - _amount;
+        } else {
+            // Simple token pull
+            IERC20(nToken).transferFrom(msg.sender, address(this), _amount);
+            msgValue = msg.value;
+        }
 
         // Swap
         IERC20(nToken).approve(curve, _amount);
@@ -166,23 +196,9 @@ contract MockReceiver is IOAppComposer {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: amountOut,
-            _amountLDMin: _amountLDMin
+            _amountLDMin: _amountLDMin,
+            _msgValue: msgValue
         });
-    }
-
-    function _swap(
-        bool _isNToken,
-        address _token,
-        address _curve,
-        uint256 _amount,
-        uint256 _amountOutMin
-    ) internal returns (uint256) {
-        // approval first
-        IERC20(_token).approve(_curve, _amount);
-        
-        // swap
-        (int128 i, int128 j) = _isNToken ? (int128(0), int128(1)) : (int128(1), int128(0));
-        return ICurve(_curve).exchange({ i: i, j: j, _dx: _amount, _min_dy: _amountOutMin});
     }
 
     function _send(
@@ -190,19 +206,40 @@ contract MockReceiver is IOAppComposer {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD,
-        uint256 _amountLDMin
+        uint256 _amountLDMin,
+        uint256 _msgValue
     ) internal {
-        bytes memory options = OptionsBuilder.newOptions();
-        SendParam memory sendParam = SendParam({
-            dstEid: _dstEid,
-            to: _to,
-            amountLD: _amountLD,
-            minAmountLD: _amountLDMin,
-            extraOptions: options,
-            composeMsg: "",
-            oftCmd: ""
+        // generate arguments
+        SendParam memory sendParam = _generateSendParam({
+            _dstEid: _dstEid,
+            _to: _to,
+            _amountLD: _amountLD,
+            _amountLDMin: _amountLDMin
         });
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
+        require(_msgValue >= fee.nativeFee);
+
+        // Send the oft 
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(msg.sender));
+
+        // refund any extra sent ETH
+        if (_msgValue > fee.nativeFee) {
+            (bool success, ) = address(msg.sender).call{value: _msgValue - fee.nativeFee}("");
+            if (!success) revert FailedEthTransfer();
+        }
+    }
+
+    function _generateSendParam(
+        uint32 _dstEid,
+        bytes32 _to,
+        uint256 _amountLD,
+        uint256 _amountLDMin
+    ) internal pure returns (SendParam memory sendParam) {
+        bytes memory options = OptionsBuilder.newOptions();
+        sendParam.dstEid = _dstEid;
+        sendParam.to = _to;
+        sendParam.amountLD = _amountLD;
+        sendParam.minAmountLD = _amountLDMin;
+        sendParam.extraOptions = options;
     }
 }

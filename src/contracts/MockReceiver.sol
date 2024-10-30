@@ -59,10 +59,7 @@ contract MockReceiver is IOAppComposer {
     /// @dev ie. a send of FRAX would have the _oApp address of the FRAX OFT
     /// @return nToken "Native token" (pre-compiled proxy address)
     /// @return curve (Address of curve.fi pool for nToken/lzToken)
-    function _getRespectiveTokens(address _oApp) internal view returns (
-        address nToken,
-        address curve
-    ) {
+    function _getRespectiveTokens(address _oApp) internal view returns (address nToken, address curve) {
         if (_oApp == fraxOft) {
             nToken = FraxtalL2.FRAX;
             curve = fraxCurve;
@@ -114,8 +111,9 @@ contract MockReceiver is IOAppComposer {
 
         // try swap
         IERC20(_oApp).approve(curve, amount);
-        try ICurve(curve).exchange({i: int128(1), j: int128(0), _dx: amount, _min_dy: amountOutMin }) returns (uint256 amountOut)
-        {
+        try ICurve(curve).exchange({ i: int128(1), j: int128(0), _dx: amount, _min_dy: amountOutMin }) returns (
+            uint256 amountOut
+        ) {
             if (nToken == FraxtalL2.WFRXETH) {
                 // unwrap then send
                 IWETH(nToken).withdraw(amountOut);
@@ -167,17 +165,13 @@ contract MockReceiver is IOAppComposer {
         uint256 _amountOutMin,
         uint256 _amountLDMin
     ) external payable {
-        (
-            address nToken,
-            address curve
-        ) = _getRespectiveTokens(_oApp);
+        (address nToken, address curve) = _getRespectiveTokens(_oApp);
 
-        
         // transfer from sender to here
         uint256 msgValue;
         if (nToken == FraxtalL2.WFRXETH) {
             // wrap amount to swap
-            IWETH(nToken).deposit{value: _amount}();
+            IWETH(nToken).deposit{ value: _amount }();
             // subtract amount wrapped from msg.value (remaining is to be paid through IOFT(_oApp.send()) )
             msgValue = msg.value - _amount;
         } else {
@@ -188,7 +182,12 @@ contract MockReceiver is IOAppComposer {
 
         // Swap
         IERC20(nToken).approve(curve, _amount);
-        uint256 amountOut = ICurve(curve).exchange({i: int128(0), j: int128(1), _dx: _amount, _min_dy: _amountOutMin });
+        uint256 amountOut = ICurve(curve).exchange({
+            i: int128(0),
+            j: int128(1),
+            _dx: _amount,
+            _min_dy: _amountOutMin
+        });
 
         // Send OFT to destination chain
         _send({
@@ -219,12 +218,12 @@ contract MockReceiver is IOAppComposer {
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
         require(_msgValue >= fee.nativeFee);
 
-        // Send the oft 
+        // Send the oft
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(msg.sender));
 
         // refund any extra sent ETH
         if (_msgValue > fee.nativeFee) {
-            (bool success, ) = address(msg.sender).call{value: _msgValue - fee.nativeFee}("");
+            (bool success, ) = address(msg.sender).call{ value: _msgValue - fee.nativeFee }("");
             if (!success) revert FailedEthTransfer();
         }
     }

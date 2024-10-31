@@ -138,13 +138,13 @@ contract MockReceiver is IOAppComposer {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD,
-        uint256 _amountLDMin
+        uint256 _minAmountLD
     ) external view returns (uint256) {
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _amountLDMin: _amountLDMin
+            _minAmountLD: _minAmountLD
         });
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
         return fee.nativeFee;
@@ -155,15 +155,13 @@ contract MockReceiver is IOAppComposer {
     /// @param _dstEid Destination EID
     /// @param _to  Bytes32 representation of recipient ( ie. for EVM: bytes32(uint256(uint160(addr))) )
     /// @param _amount Amount of OFT to send
-    /// @param _amountOutMin Minimum amount allowed to receive from the Curve.fi swap
-    /// @param _amountLDMin Minimum amount allowed to receive from the LZ send
+    /// @param _minAmountLD Minimum amount allowed to receive after LZ send (includes curve.fi swap slippage)
     function swapAndSend(
         address _oApp,
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amount,
-        uint256 _amountOutMin,
-        uint256 _amountLDMin
+        uint256 _minAmountLD
     ) external payable {
         (address nToken, address curve) = _getRespectiveTokens(_oApp);
 
@@ -182,12 +180,8 @@ contract MockReceiver is IOAppComposer {
 
         // Swap
         IERC20(nToken).approve(curve, _amount);
-        uint256 amountOut = ICurve(curve).exchange({
-            i: int128(0),
-            j: int128(1),
-            _dx: _amount,
-            _min_dy: _amountOutMin
-        });
+        /// @dev: can have amountOut as 0 as net slippage is checked via _minAmountLD in _send()
+        uint256 amountOut = ICurve(curve).exchange({ i: int128(0), j: int128(1), _dx: _amount, _min_dy: 0 });
 
         // Send OFT to destination chain
         _send({
@@ -195,7 +189,7 @@ contract MockReceiver is IOAppComposer {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: amountOut,
-            _amountLDMin: _amountLDMin,
+            _minAmountLD: _minAmountLD,
             _msgValue: msgValue
         });
     }
@@ -205,7 +199,7 @@ contract MockReceiver is IOAppComposer {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD,
-        uint256 _amountLDMin,
+        uint256 _minAmountLD,
         uint256 _msgValue
     ) internal {
         // generate arguments
@@ -213,7 +207,7 @@ contract MockReceiver is IOAppComposer {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _amountLDMin: _amountLDMin
+            _minAmountLD: _minAmountLD
         });
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
         require(_msgValue >= fee.nativeFee);
@@ -232,13 +226,13 @@ contract MockReceiver is IOAppComposer {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD,
-        uint256 _amountLDMin
+        uint256 _minAmountLD
     ) internal pure returns (SendParam memory sendParam) {
         bytes memory options = OptionsBuilder.newOptions();
         sendParam.dstEid = _dstEid;
         sendParam.to = _to;
         sendParam.amountLD = _amountLD;
-        sendParam.minAmountLD = _amountLDMin;
+        sendParam.minAmountLD = _minAmountLD;
         sendParam.extraOptions = options;
     }
 }

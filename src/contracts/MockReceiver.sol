@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import { IOAppCore } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
@@ -23,34 +23,76 @@ interface IWETH {
 }
 
 // Simplified version of https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
-contract MockReceiver is IOAppComposer {
+contract MockReceiver is IOAppComposer, Initializable {
     error InvalidOApp();
     error FailedEthTransfer();
 
-    address public immutable endpoint;
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.MockReceiver")) - 1))
+    bytes32 private constant MockReceiverStorageLocation =
+        0xcccecfe20bdc879dd2c4066c8efdc75a9ac7e0c7b3cb009c3bfb30c9e281e34d;
+    struct MockReceiverStorage {
+        address endpoint;
+        // Note: each curve pool is "native" token / "layerzero" token with "a" factor of 1400
+        // All OFTs can be referenced at https://github.com/FraxFinance/frax-oft-upgradeable?tab=readme-ov-file#proxy-upgradeable-ofts
 
-    address public fraxOft = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
-    address public fraxCurve = 0x53f8F4e154F68C2D29a0D06BD50f82bCf1bd95dB;
+        address fraxOft;
+        address fraxCurve;
+        address sFraxOft;
+        address sFraxCurve;
+        address frxEthOft;
+        address frxEthCurve;
+        address sFrxEthOft;
+        address sFrxEthCurve;
+        address fxsOft;
+        address fxsCurve;
+        address fpiOft;
+        address fpiCurve;
+    }
 
-    address public sFraxOft = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;
-    address public sFraxCurve = 0xd2866eF5A94E741Ec8EDE5FF8e3A1f9C59c5e298;
-
-    address public frxEthOft = 0x43eDD7f3831b08FE70B7555ddD373C8bF65a9050;
-    address public frxEthCurve = 0x50842664DfBD876249D0113671d72dB168FBE4d0;
-
-    address public sFrxEthOft = 0x3Ec3849C33291a9eF4c5dB86De593EB4A37fDe45;
-    address public sFrxEthCurve = 0xe5F61df936d50302962d5B914537Ff3cB63b3526;
-
-    address public fxsOft = 0x64445f0aecC51E94aD52d8AC56b7190e764E561a;
-    address public fxsCurve = 0xBc383485068Ffd275D7262Bef65005eE7a5A1870;
-
-    address public fpiOft = 0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927;
-    address public fpiCurve = 0x7FaA69f8fEbe38bBfFbAE3252DE7D1491F0c6157;
+    function _getMockReceiverStorage() private pure returns (MockReceiverStorage storage $) {
+        assembly {
+            $.slot := MockReceiverStorageLocation
+        }
+    }
+    constructor() {
+        _disableInitializers();
+    }
 
     /// @dev Initializes the contract.
-    /// @param _endpoint LayerZero Endpoint address
-    constructor(address _endpoint) {
-        endpoint = _endpoint;
+    function initialize(
+        address _endpoint,
+        address _fraxOft,
+        address _sFraxOft,
+        address _frxEthOft,
+        address _sFrxEthOft,
+        address _fxsOft,
+        address _fpiOft
+    ) external initializer {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        $.endpoint = _endpoint;
+        $.fraxOft = _fraxOft;
+        $.sFraxOft = _sFraxOft;
+        $.frxEthOft = _frxEthOft;
+        $.sFrxEthOft = _sFrxEthOft;
+        $.fxsOft = _fxsOft;
+        $.fpiOft = _fpiOft;
+    }
+
+    function initialize2(
+        address _fraxCurve,
+        address _sFraxCurve,
+        address _frxEthCurve,
+        address _sFrxEthCurve,
+        address _fxsCurve,
+        address _fpiCurve
+    ) external reinitializer(2) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        $.fraxCurve = _fraxCurve;
+        $.sFraxCurve = _sFraxCurve;
+        $.frxEthCurve = _frxEthCurve;
+        $.sFrxEthCurve = _sFrxEthCurve;
+        $.fxsCurve = _fxsCurve;
+        $.fpiCurve = _fpiCurve;
     }
 
     receive() external payable {}
@@ -60,24 +102,25 @@ contract MockReceiver is IOAppComposer {
     /// @return nToken "Native token" (pre-compiled proxy address)
     /// @return curve (Address of curve.fi pool for nToken/lzToken)
     function _getRespectiveTokens(address _oApp) internal view returns (address nToken, address curve) {
-        if (_oApp == fraxOft) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        if (_oApp == $.fraxOft) {
             nToken = FraxtalL2.FRAX;
-            curve = fraxCurve;
-        } else if (_oApp == sFraxOft) {
+            curve = $.fraxCurve;
+        } else if (_oApp == $.sFraxOft) {
             nToken = FraxtalL2.SFRAX;
-            curve = sFraxCurve;
-        } else if (_oApp == frxEthOft) {
+            curve = $.sFraxCurve;
+        } else if (_oApp == $.frxEthOft) {
             nToken = FraxtalL2.WFRXETH;
-            curve = frxEthCurve;
-        } else if (_oApp == sFrxEthOft) {
+            curve = $.frxEthCurve;
+        } else if (_oApp == $.sFrxEthOft) {
             nToken = FraxtalL2.SFRXETH;
-            curve = sFrxEthCurve;
-        } else if (_oApp == fxsOft) {
+            curve = $.sFrxEthCurve;
+        } else if (_oApp == $.fxsOft) {
             nToken = FraxtalL2.FXS;
-            curve = fxsCurve;
-        } else if (_oApp == fpiOft) {
+            curve = $.fxsCurve;
+        } else if (_oApp == $.fpiOft) {
             nToken = FraxtalL2.FPI;
-            curve = fpiCurve;
+            curve = $.fpiCurve;
         } else {
             revert InvalidOApp();
         }
@@ -98,7 +141,7 @@ contract MockReceiver is IOAppComposer {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        require(msg.sender == endpoint, "!endpoint");
+        require(msg.sender == endpoint(), "!endpoint");
 
         (address nToken, address curve) = _getRespectiveTokens(_oApp);
 
@@ -234,5 +277,70 @@ contract MockReceiver is IOAppComposer {
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _minAmountLD;
         sendParam.extraOptions = options;
+    }
+
+    function endpoint() public view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.endpoint;
+    }
+
+    function fraxOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fraxOft;
+    }
+
+    function fraxCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fraxCurve;
+    }
+
+    function sFraxOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.sFraxOft;
+    }
+
+    function sFraxCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.sFraxCurve;
+    }
+
+    function frxEthOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.frxEthOft;
+    }
+
+    function frxEthCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.frxEthCurve;
+    }
+
+    function sFrxEthOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.sFrxEthOft;
+    }
+
+    function sFrxEthCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.sFrxEthCurve;
+    }
+
+    function fxsOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fxsOft;
+    }
+
+    function fxsCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fxsCurve;
+    }
+
+    function fpiOft() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fpiOft;
+    }
+
+    function fpiCurve() external view returns (address) {
+        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        return $.fpiCurve;
     }
 }

@@ -15,6 +15,7 @@ import { FraxtalL2 } from "src/contracts/chain-constants/FraxtalL2.sol";
 
 interface ICurve {
     function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
+    function get_balances() external view returns (uint256[] memory);
 }
 
 interface IWETH {
@@ -175,24 +176,6 @@ contract MockReceiver is IOAppComposer, Initializable {
         }
     }
 
-    /// @notice Quote the send cost of ETH required
-    function quoteSendNativeFee(
-        address _oApp,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD,
-        uint256 _minAmountLD
-    ) external view returns (uint256) {
-        SendParam memory sendParam = _generateSendParam({
-            _dstEid: _dstEid,
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _minAmountLD
-        });
-        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
-        return fee.nativeFee;
-    }
-
     /// @notice swap native token on curve and send OFT to another chain
     /// @param _oApp Address of the upgradeable OFT
     /// @param _dstEid Destination EID
@@ -277,6 +260,43 @@ contract MockReceiver is IOAppComposer, Initializable {
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _minAmountLD;
         sendParam.extraOptions = options;
+    }
+
+    /// @notice Quote the send cost of ETH required
+    function quoteSendNativeFee(
+        address _oApp,
+        uint32 _dstEid,
+        bytes32 _to,
+        uint256 _amountLD,
+        uint256 _minAmountLD
+    ) external view returns (uint256) {
+        SendParam memory sendParam = _generateSendParam({
+            _dstEid: _dstEid,
+            _to: _to,
+            _amountLD: _amountLD,
+            _minAmountLD: _minAmountLD
+        });
+        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
+        return fee.nativeFee;
+    }
+
+    /// @notice Estimate how much token is required to rebalance the pool to the expected ratio
+    /// @dev Calculated by the delta of current token balance to the balance at the expected ratio
+    /// @dev returns (address(0), 0) if the pool is currently within range
+    function estimateAmountToRebalance(address _oApp) external view returns (address token, uint256 amountIn) {
+        (address nToken, address curve) = _getRespectiveTokens(_oApp);
+        uint256[] memory balances = ICurve(curve).get_balances();
+        (uint256 nBalance, uint256 lzBalance) = (balances[0], balances[1]);
+        uint256 totalBalance = nBalance + lzBalance;
+        uint256 minDesiredBalance = (totalBalance * 4) / 10;
+
+        if (nBalance < minDesiredBalance) {
+            token = nToken;
+            amountIn = minDesiredBalance - nBalance;
+        } else if (lzBalance < minDesiredBalance) {
+            token = _oApp;
+            amountIn = minDesiredBalance - lzBalance;
+        } // else returns (address(0), 0)
     }
 
     function endpoint() public view returns (address) {

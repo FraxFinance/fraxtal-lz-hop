@@ -23,7 +23,6 @@ interface IWETH {
     function deposit() external payable;
 }
 
-// Simplified version of https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
 contract MockReceiver is IOAppComposer, Initializable {
     error InvalidOApp();
     error FailedEthTransfer();
@@ -130,6 +129,7 @@ contract MockReceiver is IOAppComposer, Initializable {
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.
     ///      This method expects the encoded compose message to contain the swap amount and recipient address.
+    /// @dev source: https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
     /// @param _oApp The address of the originating OApp.
     /// @param /*_guid*/ The globally unique identifier of the message (unused in this mock).
     /// @param _message The encoded message content in the format of the OFTComposeMsgCodec.
@@ -280,21 +280,29 @@ contract MockReceiver is IOAppComposer, Initializable {
         return fee.nativeFee;
     }
 
-    /// @notice Estimate how much token is required to rebalance the pool to the expected ratio
-    /// @dev Calculated by the delta of current token balance to the balance at the expected ratio
+    /// @notice Estimate how much token is required to rebalance the pool to the desired ratio
+    /// @dev Calculated by the delta of current token balance to the balance at the desired ratio
     /// @dev returns (address(0), 0) if the pool is currently within range
-    function estimateAmountToRebalance(address _oApp) external view returns (address token, uint256 amountIn) {
+    /// @param _oApp Address of OFT
+    /// @param _minDesiredPct Minimum desired percent of the pool, with basis points. ie. 4000 means rebalance
+    ///                         to a ratio of 40/60
+    /// @return tokenIn Address of token to swap into the pool
+    /// @return amountIn Amount of token
+    function estimateAmountToRebalance(
+        address _oApp,
+        uint256 _minDesiredPct
+    ) external view returns (address tokenIn, uint256 amountIn) {
         (address nToken, address curve) = _getRespectiveTokens(_oApp);
         uint256[] memory balances = ICurve(curve).get_balances();
         (uint256 nBalance, uint256 lzBalance) = (balances[0], balances[1]);
         uint256 totalBalance = nBalance + lzBalance;
-        uint256 minDesiredBalance = (totalBalance * 4) / 10;
+        uint256 minDesiredBalance = (totalBalance * _minDesiredPct) / 10_000;
 
         if (nBalance < minDesiredBalance) {
-            token = nToken;
+            tokenIn = nToken;
             amountIn = minDesiredBalance - nBalance;
         } else if (lzBalance < minDesiredBalance) {
-            token = _oApp;
+            tokenIn = _oApp;
             amountIn = minDesiredBalance - lzBalance;
         } // else returns (address(0), 0)
     }

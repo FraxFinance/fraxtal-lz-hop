@@ -33,8 +33,10 @@
   "dependencies": {
     "@fraxfinance/layerzero-v2-upgradeable": "github:fraxfinance/LayerZero-v2-upgradeable",
     "@layerzerolabs/lz-evm-protocol-v2": "^3.0.3",
+    "@layerzerolabs/lz-v2-utilities": "^3.0.11",
     "@layerzerolabs/oapp-evm": "^0.0.4",
     "@layerzerolabs/oft-evm": "^0.1.0",
+    "dotenv": "^16.4.5",
     "ds-test": "github:dapphub/ds-test",
     "forge-std": "github:foundry-rs/forge-std#e8a047e3f40f13fa37af6fe14e6e06283d9a060e",
     "frax-standard-solidity": "github:FraxFinance/frax-standard-solidity",

@@ -27,13 +27,16 @@ async function main() {
     const options = Options.newOptions().addExecutorComposeOption(0, 1_000_000, 0).toHex().toString();
     const amount = 10**13;
     const abiCoder = new ethers.utils.AbiCoder();
-    const composeMsg = abiCoder.encode(["address", "uint256"], [signer.address, 0]);
+    const recipient = signer.address;
+    const minAmountOut = 0;
+    const minAmountLD = 0;
+    const composeMsg = abiCoder.encode(["address", "uint256"], [recipient, minAmountOut]);
 
     const sendParam = [
         30255,
         to,
         amount.toString(),
-        "0",
+        minAmountLD.toString(),
         options,
         composeMsg,
         '0x'

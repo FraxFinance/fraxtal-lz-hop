@@ -23,14 +23,14 @@ interface IWETH {
     function deposit() external payable;
 }
 
-contract MockReceiver is IOAppComposer, Initializable {
+contract LZCurveComposer is IOAppComposer, Initializable {
     error InvalidOApp();
     error FailedEthTransfer();
 
-    // keccak256(abi.encode(uint256(keccak256("frax.storage.MockReceiver")) - 1))
-    bytes32 private constant MockReceiverStorageLocation =
-        0xcccecfe20bdc879dd2c4066c8efdc75a9ac7e0c7b3cb009c3bfb30c9e281e34d;
-    struct MockReceiverStorage {
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.LZCurveComposer")) - 1))
+    bytes32 private constant LZCurveComposerStorageLocation =
+        0x907a4b366d5e5f18e135695c3ea756f3cd95a707ab3a6c8d7d99d1e1b612ce1e;
+    struct LZCurveComposerStorage {
         address endpoint;
         // Note: each curve pool is "native" token / "layerzero" token with "a" factor of 1400
         // All OFTs can be referenced at https://github.com/FraxFinance/frax-oft-upgradeable?tab=readme-ov-file#proxy-upgradeable-ofts
@@ -49,9 +49,9 @@ contract MockReceiver is IOAppComposer, Initializable {
         address fpiCurve;
     }
 
-    function _getMockReceiverStorage() private pure returns (MockReceiverStorage storage $) {
+    function _getLZCurveComposerStorage() private pure returns (LZCurveComposerStorage storage $) {
         assembly {
-            $.slot := MockReceiverStorageLocation
+            $.slot := LZCurveComposerStorageLocation
         }
     }
     constructor() {
@@ -68,7 +68,7 @@ contract MockReceiver is IOAppComposer, Initializable {
         address _fxsOft,
         address _fpiOft
     ) external initializer {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         $.endpoint = _endpoint;
         $.fraxOft = _fraxOft;
         $.sFraxOft = _sFraxOft;
@@ -86,7 +86,7 @@ contract MockReceiver is IOAppComposer, Initializable {
         address _fxsCurve,
         address _fpiCurve
     ) external reinitializer(2) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         $.fraxCurve = _fraxCurve;
         $.sFraxCurve = _sFraxCurve;
         $.frxEthCurve = _frxEthCurve;
@@ -102,7 +102,7 @@ contract MockReceiver is IOAppComposer, Initializable {
     /// @return nToken "Native token" (pre-compiled proxy address)
     /// @return curve (Address of curve.fi pool for nToken/lzToken)
     function _getRespectiveTokens(address _oApp) internal view returns (address nToken, address curve) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         if (_oApp == $.fraxOft) {
             nToken = FraxtalL2.FRAX;
             curve = $.fraxCurve;
@@ -308,67 +308,67 @@ contract MockReceiver is IOAppComposer, Initializable {
     }
 
     function endpoint() public view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.endpoint;
     }
 
     function fraxOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fraxOft;
     }
 
     function fraxCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fraxCurve;
     }
 
     function sFraxOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.sFraxOft;
     }
 
     function sFraxCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.sFraxCurve;
     }
 
     function frxEthOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.frxEthOft;
     }
 
     function frxEthCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.frxEthCurve;
     }
 
     function sFrxEthOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.sFrxEthOft;
     }
 
     function sFrxEthCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.sFrxEthCurve;
     }
 
     function fxsOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fxsOft;
     }
 
     function fxsCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fxsCurve;
     }
 
     function fpiOft() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fpiOft;
     }
 
     function fpiCurve() external view returns (address) {
-        MockReceiverStorage storage $ = _getMockReceiverStorage();
+        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
         return $.fpiCurve;
     }
 }

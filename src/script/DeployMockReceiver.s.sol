@@ -3,11 +3,11 @@ pragma solidity ^0.8.19;
 
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/FraxTest.sol";
-import { MockReceiver } from "../contracts/MockReceiver.sol";
+import { LZCurveComposer } from "../contracts/LZCurveComposer.sol";
 import { FraxProxy } from "../contracts/FraxProxy.sol";
 
-// Run this with source .env && forge script --broadcast --rpc-url $MAINNET_URL DeployMockReceiver.s.sol
-contract DeployMockReceiver is BaseScript {
+// Run this with source .env && forge script --broadcast --rpc-url $MAINNET_URL DeployLZCurveComposer.s.sol
+contract DeployLZCurveComposer is BaseScript {
     address endpoint = 0x1a44076050125825900e736c501f859c50fE728c; // fraxtal endpoint v2
 
     // All OFTs can be referenced at https://github.com/FraxFinance/frax-oft-upgradeable?tab=readme-ov-file#proxy-upgradeable-ofts
@@ -27,17 +27,17 @@ contract DeployMockReceiver is BaseScript {
     address fpiCurve = 0x7FaA69f8fEbe38bBfFbAE3252DE7D1491F0c6157;
 
     function run() public broadcaster {
-        address implementation = address(new MockReceiver());
+        address implementation = address(new LZCurveComposer());
         FraxProxy proxy = new FraxProxy(
             implementation,
             msg.sender,
             abi.encodeCall(
-                MockReceiver.initialize,
+                LZCurveComposer.initialize,
                 (endpoint, fraxOft, sFraxOft, frxEthOft, sFrxEthOft, fxsOft, fpiOft)
             )
         );
 
-        MockReceiver(payable(proxy)).initialize2({
+        LZCurveComposer(payable(proxy)).initialize2({
             _fraxCurve: fraxCurve,
             _sFraxCurve: sFraxCurve,
             _frxEthCurve: frxEthCurve,

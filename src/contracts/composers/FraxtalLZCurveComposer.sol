@@ -11,7 +11,7 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { FraxtalL2 } from "src/contracts/chain-constants/FraxtalL2.sol";
+import { FraxtalStorage, FraxtalL2 } from "src/contracts/FraxtalStorage.sol";
 
 interface ICurve {
     function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
@@ -23,35 +23,19 @@ interface IWETH {
     function deposit() external payable;
 }
 
-contract LZCurveComposer is IOAppComposer, Initializable {
-    error InvalidOApp();
+contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalStorage {
     error FailedEthTransfer();
 
-    // keccak256(abi.encode(uint256(keccak256("frax.storage.LZCurveComposer")) - 1))
-    bytes32 private constant LZCurveComposerStorageLocation =
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.FraxtalLZCurveComposer")) - 1))
+    bytes32 private constant FraxtalLZCurveComposerStorageLocation =
         0x907a4b366d5e5f18e135695c3ea756f3cd95a707ab3a6c8d7d99d1e1b612ce1e;
-    struct LZCurveComposerStorage {
+    struct FraxtalLZCurveComposerStorage {
         address endpoint;
-        // Note: each curve pool is "native" token / "layerzero" token with "a" factor of 1400
-        // All OFTs can be referenced at https://github.com/FraxFinance/frax-oft-upgradeable?tab=readme-ov-file#proxy-upgradeable-ofts
-
-        address fraxOft;
-        address fraxCurve;
-        address sFraxOft;
-        address sFraxCurve;
-        address frxEthOft;
-        address frxEthCurve;
-        address sFrxEthOft;
-        address sFrxEthCurve;
-        address fxsOft;
-        address fxsCurve;
-        address fpiOft;
-        address fpiCurve;
     }
 
-    function _getLZCurveComposerStorage() private pure returns (LZCurveComposerStorage storage $) {
+    function _getFraxtalLZCurveComposerStorage() private pure returns (FraxtalLZCurveComposerStorage storage $) {
         assembly {
-            $.slot := LZCurveComposerStorageLocation
+            $.slot := FraxtalLZCurveComposerStorageLocation
         }
     }
     constructor() {
@@ -59,72 +43,12 @@ contract LZCurveComposer is IOAppComposer, Initializable {
     }
 
     /// @dev Initializes the contract.
-    function initialize(
-        address _endpoint,
-        address _fraxOft,
-        address _sFraxOft,
-        address _frxEthOft,
-        address _sFrxEthOft,
-        address _fxsOft,
-        address _fpiOft
-    ) external initializer {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
+    function initialize(address _endpoint) external initializer {
+        FraxtalLZCurveComposerStorage storage $ = _getFraxtalLZCurveComposerStorage();
         $.endpoint = _endpoint;
-        $.fraxOft = _fraxOft;
-        $.sFraxOft = _sFraxOft;
-        $.frxEthOft = _frxEthOft;
-        $.sFrxEthOft = _sFrxEthOft;
-        $.fxsOft = _fxsOft;
-        $.fpiOft = _fpiOft;
-    }
-
-    function initialize2(
-        address _fraxCurve,
-        address _sFraxCurve,
-        address _frxEthCurve,
-        address _sFrxEthCurve,
-        address _fxsCurve,
-        address _fpiCurve
-    ) external reinitializer(2) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        $.fraxCurve = _fraxCurve;
-        $.sFraxCurve = _sFraxCurve;
-        $.frxEthCurve = _frxEthCurve;
-        $.sFrxEthCurve = _sFrxEthCurve;
-        $.fxsCurve = _fxsCurve;
-        $.fpiCurve = _fpiCurve;
     }
 
     receive() external payable {}
-
-    /// @dev Using the _oApp address (as provided by the endpoint), return the respective tokens
-    /// @dev ie. a send of FRAX would have the _oApp address of the FRAX OFT
-    /// @return nToken "Native token" (pre-compiled proxy address)
-    /// @return curve (Address of curve.fi pool for nToken/lzToken)
-    function _getRespectiveTokens(address _oApp) internal view returns (address nToken, address curve) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        if (_oApp == $.fraxOft) {
-            nToken = FraxtalL2.FRAX;
-            curve = $.fraxCurve;
-        } else if (_oApp == $.sFraxOft) {
-            nToken = FraxtalL2.SFRAX;
-            curve = $.sFraxCurve;
-        } else if (_oApp == $.frxEthOft) {
-            nToken = FraxtalL2.WFRXETH;
-            curve = $.frxEthCurve;
-        } else if (_oApp == $.sFrxEthOft) {
-            nToken = FraxtalL2.SFRXETH;
-            curve = $.sFrxEthCurve;
-        } else if (_oApp == $.fxsOft) {
-            nToken = FraxtalL2.FXS;
-            curve = $.fxsCurve;
-        } else if (_oApp == $.fpiOft) {
-            nToken = FraxtalL2.FPI;
-            curve = $.fpiCurve;
-        } else {
-            revert InvalidOApp();
-        }
-    }
 
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.
@@ -308,67 +232,7 @@ contract LZCurveComposer is IOAppComposer, Initializable {
     }
 
     function endpoint() public view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
+        FraxtalLZCurveComposerStorage storage $ = _getFraxtalLZCurveComposerStorage();
         return $.endpoint;
-    }
-
-    function fraxOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fraxOft;
-    }
-
-    function fraxCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fraxCurve;
-    }
-
-    function sFraxOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.sFraxOft;
-    }
-
-    function sFraxCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.sFraxCurve;
-    }
-
-    function frxEthOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.frxEthOft;
-    }
-
-    function frxEthCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.frxEthCurve;
-    }
-
-    function sFrxEthOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.sFrxEthOft;
-    }
-
-    function sFrxEthCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.sFrxEthCurve;
-    }
-
-    function fxsOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fxsOft;
-    }
-
-    function fxsCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fxsCurve;
-    }
-
-    function fpiOft() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fpiOft;
-    }
-
-    function fpiCurve() external view returns (address) {
-        LZCurveComposerStorage storage $ = _getLZCurveComposerStorage();
-        return $.fpiCurve;
     }
 }

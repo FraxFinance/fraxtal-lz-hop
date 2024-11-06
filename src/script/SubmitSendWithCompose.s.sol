@@ -13,7 +13,7 @@ contract SubmitSendWithCompose is BaseScript {
 
     // address oft = 0x909DBdE1eBE906Af95660033e478D59EFe831fED; // Base FRAX OFT
     address oft = 0xF010a7c8877043681D59AD125EbF575633505942; // Base frxETH OFT
-    address composerProxy = 0xF7c1a390f77B294c107Ca4204BffdC1a9Fae72F9; // Fraxtal LZCurveComposer proxy
+    address composerProxy = 0xF7c1a390f77B294c107Ca4204BffdC1a9Fae72F9; // FraxtalLZCurveComposer proxy
     uint256 amount = 1e13;
     string baseRpc = "https://base-rpc.publicnode.com";
 

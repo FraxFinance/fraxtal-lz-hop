@@ -7,14 +7,18 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, OFTReceipt, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { FraxtalStorage } from "src/contracts/FraxtalStorage.sol";
+import { FraxtalStorage, FraxtalL2 } from "src/contracts/FraxtalStorage.sol";
 
 interface ICurve {
     function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
     function get_balances() external view returns (uint256[] memory);
 }
 
-contract LZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
+interface IFerry {
+    function embarkWithRecipient(uint256 amount, address recipient) external;
+}
+
+contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
     using OptionsBuilder for bytes;
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.LZCurveAmoStorage")) - 1));
@@ -22,6 +26,7 @@ contract LZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         0x34cfa87765bced8684ef975fad48f7c370ba6aca6fca817512efcf044977addf;
     struct LZCurveAmoStorage {
         address ethereumComposer;
+        address fraxtalLzCurveAmo;
     }
     function _getLZCurveAmoStorage() private pure returns (LZCurveAmoStorage storage $) {
         assembly {
@@ -37,9 +42,10 @@ contract LZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
-    function setEthereumComposer(address _ethereumComposer) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setStorage(address _ethereumComposer, address _fraxtalLzCurveAmo) external onlyRole(DEFAULT_ADMIN_ROLE) {
         LZCurveAmoStorage storage $ = _getLZCurveAmoStorage();
         $.ethereumComposer = _ethereumComposer;
+        $.fraxtalLzCurveAmo = _fraxtalLzCurveAmo;
     }
 
     // todo: AC
@@ -78,10 +84,33 @@ contract LZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
     }
 
     // TODO: AC
-    function sendToFerry(address _oApp, uint256 _amount) external {}
+    function sendToFerry(address _oApp, uint256 _amount) external {
+        (address nToken, ) = _getRespectiveTokens(_oApp);
+        address ferry;
+        if (nToken == FraxtalL2.FRAX) {
+            ferry = FraxtalL2.FRAXFERRY_ETHEREUM_FRAX;
+        } else if (nToken == FraxtalL2.SFRAX) {
+            ferry = FraxtalL2.FRAXFERRY_ETHEREUM_SFRAX;
+            // } else if (nToken == FraxtalL2.FRXETH) {
+            // TODO: no ferry for wfrxETH
+            // TODO: is nToken going to be frxeth here or wfrxeth?
+        } else if (nToken == FraxtalL2.SFRXETH) {
+            ferry = FraxtalL2.FRAXFERRY_ETHEREUM_SFRXETH;
+        } else if (nToken == FraxtalL2.FXS) {
+            ferry = FraxtalL2.FRAXFERRY_ETHEREUM_FXS;
+        } else if (nToken == FraxtalL2.FPI) {
+            ferry = FraxtalL2.FRAXFERRY_ETHEREUM_FPI;
+        }
+        IFerry(ferry).embarkWithRecipient({ amount: _amount, recipient: fraxtalLzCurveAmo() });
+    }
 
     function ethereumComposer() public view returns (address) {
         LZCurveAmoStorage storage $ = _getLZCurveAmoStorage();
         return $.ethereumComposer;
+    }
+
+    function fraxtalLzCurveAmo() public view returns (address) {
+        LZCurveAmoStorage storage $ = _getLZCurveAmoStorage();
+        return $.fraxtalLzCurveAmo;
     }
 }

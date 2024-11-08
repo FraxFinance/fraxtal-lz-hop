@@ -85,6 +85,8 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
         (address l2Token, ) = _getRespectiveTokens(_oApp);
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
 
+        // approve and send
+        IERC20(l1Token).approve($.l1Bridge, amount);
         try
             IL1Bridge($.l1Bridge).depositERC20To({
                 _l1Token: l1Token,
@@ -97,24 +99,9 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
         {
             counterA += 1;
         } catch {
+            IERC20(l1Token).approve($.l1Bridge, 0);
             counterB += 1;
         }
-    }
-
-    // TODO: ac
-    function sendToFraxtalViaLayerZero(address _oApp, uint256 _amount) external {
-        bytes memory options = OptionsBuilder.newOptions();
-        SendParam memory sendParam = SendParam({
-            dstEid: uint32(30255), // fraxtal
-            to: bytes32(uint256(uint160(lzCurveAmo()))),
-            amountLD: _amount,
-            minAmountLD: 0,
-            extraOptions: options,
-            composeMsg: "",
-            oftCmd: ""
-        });
-        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
-        IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
     function endpoint() external view returns (address) {

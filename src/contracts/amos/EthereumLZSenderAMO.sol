@@ -24,7 +24,6 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         address fraxOft;
         address sFraxOft;
         address sFrxEthOft;
-        address frxEthOft;
         address fxsOft;
         address fpiOft;
     }
@@ -44,7 +43,6 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         address _fraxOft,
         address _sFraxOft,
         address _sFrxEthOft,
-        address _frxEthOft,
         address _fxsOft,
         address _fpiOft
     ) external initializer {
@@ -53,7 +51,6 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         $.fraxOft = _fraxOft;
         $.sFraxOft = _sFraxOft;
         $.sFrxEthOft = _sFrxEthOft;
-        $.frxEthOft = _frxEthOft;
         $.fxsOft = _fxsOft;
         $.fpiOft = _fpiOft;
     }
@@ -64,13 +61,12 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         sendToFraxtal($.fraxOft);
         sendToFraxtal($.sFraxOft);
         sendToFraxtal($.sFrxEthOft);
-        sendToFraxtal($.frxEthOft);
         sendToFraxtal($.fxsOft);
         sendToFraxtal($.fpiOft);
     }
 
-    function sendToFraxtal(address _oft) internal {
-        address token = IOFT(_oft).token();
+    function sendToFraxtal(address _oApp) internal {
+        address token = IOFT(_oApp).token();
         uint256 amount = IERC20(token).balanceOf(address(this));
         if (amount == 0) return;
 
@@ -85,11 +81,11 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
             composeMsg: "",
             oftCmd: ""
         });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
+        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
 
         // approve and send
-        IERC20(token).approve(_oft, amount);
-        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+        IERC20(token).approve(_oApp, amount);
+        IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
     function lzCurveAmo() public view returns (address) {

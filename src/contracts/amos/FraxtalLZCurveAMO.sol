@@ -91,9 +91,6 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
             ferry = FraxtalL2.FRAXFERRY_ETHEREUM_FRAX;
         } else if (nToken == FraxtalL2.SFRAX) {
             ferry = FraxtalL2.FRAXFERRY_ETHEREUM_SFRAX;
-            // } else if (nToken == FraxtalL2.FRXETH) {
-            // TODO: no ferry for wfrxETH
-            // TODO: is nToken going to be frxeth here or wfrxeth?
         } else if (nToken == FraxtalL2.SFRXETH) {
             ferry = FraxtalL2.FRAXFERRY_ETHEREUM_SFRXETH;
         } else if (nToken == FraxtalL2.FXS) {

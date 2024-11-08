@@ -82,15 +82,8 @@ contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalStorage 
         try ICurve(curve).exchange({ i: int128(1), j: int128(0), _dx: amount, _min_dy: amountOutMin }) returns (
             uint256 amountOut
         ) {
-            if (nToken == FraxtalL2.WFRXETH) {
-                // unwrap then send
-                IWETH(nToken).withdraw(amountOut);
-                (bool success, ) = recipient.call{ value: amountOut }("");
-                if (!success) revert FailedEthTransfer();
-            } else {
-                // simple send the now-native token
-                IERC20(nToken).transfer(recipient, amountOut);
-            }
+            // simple send the now-native token
+            IERC20(nToken).transfer(recipient, amountOut);
         } catch {
             // reset approval - swap failed
             IERC20(_oApp).approve(curve, 0);
@@ -116,17 +109,8 @@ contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalStorage 
         (address nToken, address curve) = _getRespectiveTokens(_oApp);
 
         // transfer from sender to here
-        uint256 msgValue;
-        if (nToken == FraxtalL2.WFRXETH) {
-            // wrap amount to swap
-            IWETH(nToken).deposit{ value: _amount }();
-            // subtract amount wrapped from msg.value (remaining is to be paid through IOFT(_oApp.send()) )
-            msgValue = msg.value - _amount;
-        } else {
-            // Simple token pull
-            IERC20(nToken).transferFrom(msg.sender, address(this), _amount);
-            msgValue = msg.value;
-        }
+        uint256 msgValue = msg.value;
+        IERC20(nToken).transferFrom(msg.sender, address(this), _amount);
 
         // Swap
         IERC20(nToken).approve(curve, _amount);

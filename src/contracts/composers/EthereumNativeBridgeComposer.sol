@@ -36,7 +36,7 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
     struct EthereumNativeBridgeComposerStorage {
         address endpoint;
         address l1Bridge;
-        address lzCurveAmo;
+        address fraxtalLzCurveAmo;
     }
 
     function _getEthereumNativeBridgeComposerStorage()
@@ -55,11 +55,11 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
     }
 
     /// @dev Initializes the contract.
-    function initialize(address _endpoint, address _l1Bridge, address _lzCurveAmo) external initializer {
+    function initialize(address _endpoint, address _l1Bridge, address _fraxtalLzCurveAmo) external initializer {
         EthereumNativeBridgeComposerStorage storage $ = _getEthereumNativeBridgeComposerStorage();
         $.endpoint = _endpoint;
         $.l1Bridge = _l1Bridge;
-        $.lzCurveAmo = _lzCurveAmo;
+        $.fraxtalLzCurveAmo = _fraxtalLzCurveAmo;
     }
 
     /// @notice Handles incoming composed messages from LayerZero.
@@ -91,7 +91,7 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
             IL1Bridge($.l1Bridge).depositERC20To({
                 _l1Token: l1Token,
                 _l2Token: l2Token,
-                _to: $.lzCurveAmo,
+                _to: $.fraxtalLzCurveAmo,
                 _amount: amount,
                 _minGasLimit: uint32(200_000),
                 _extraData: ""
@@ -114,8 +114,8 @@ contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalSt
         return $.l1Bridge;
     }
 
-    function lzCurveAmo() public view returns (address) {
+    function fraxtalLzCurveAmo() public view returns (address) {
         EthereumNativeBridgeComposerStorage storage $ = _getEthereumNativeBridgeComposerStorage();
-        return $.lzCurveAmo;
+        return $.fraxtalLzCurveAmo;
     }
 }

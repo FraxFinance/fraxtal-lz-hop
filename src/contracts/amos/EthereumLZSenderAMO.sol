@@ -20,7 +20,7 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         0xae71d745ae90af64f9f5e208d9e8dce64cca865b5246e2309de5b63cca6b882a;
 
     struct EthereumLZSenderAmoStorage {
-        address lzCurveAmo;
+        address fraxtalLzCurveAmo;
         address fraxOft;
         address sFraxOft;
         address sFrxEthOft;
@@ -39,7 +39,7 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
     }
 
     function initialize(
-        address _lzCurveAmo,
+        address _fraxtalLzCurveAmo,
         address _fraxOft,
         address _sFraxOft,
         address _sFrxEthOft,
@@ -47,7 +47,7 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         address _fpiOft
     ) external initializer {
         EthereumLZSenderAmoStorage storage $ = _getEthereumLZSenderAmoStorage();
-        $.lzCurveAmo = _lzCurveAmo;
+        $.fraxtalLzCurveAmo = _fraxtalLzCurveAmo;
         $.fraxOft = _fraxOft;
         $.sFraxOft = _sFraxOft;
         $.sFrxEthOft = _sFrxEthOft;
@@ -74,7 +74,7 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         bytes memory options = OptionsBuilder.newOptions();
         SendParam memory sendParam = SendParam({
             dstEid: uint32(30255), // fraxtal
-            to: bytes32(uint256(uint160(lzCurveAmo()))),
+            to: bytes32(uint256(uint160(fraxtalLzCurveAmo()))),
             amountLD: amount,
             minAmountLD: amount,
             extraOptions: options,
@@ -88,8 +88,8 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
-    function lzCurveAmo() public view returns (address) {
+    function fraxtalLzCurveAmo() public view returns (address) {
         EthereumLZSenderAmoStorage storage $ = _getEthereumLZSenderAmoStorage();
-        return $.lzCurveAmo;
+        return $.fraxtalLzCurveAmo;
     }
 }

@@ -26,7 +26,7 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         0x34cfa87765bced8684ef975fad48f7c370ba6aca6fca817512efcf044977addf;
     struct LZCurveAmoStorage {
         address ethereumComposer;
-        address fraxtalLzCurveAmo;
+        address ethereumLzSenderAmo;
     }
     function _getLZCurveAmoStorage() private pure returns (LZCurveAmoStorage storage $) {
         assembly {
@@ -42,10 +42,10 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
-    function setStorage(address _ethereumComposer, address _fraxtalLzCurveAmo) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setStorage(address _ethereumComposer, address _ethereumLzSenderAmo) external onlyRole(DEFAULT_ADMIN_ROLE) {
         LZCurveAmoStorage storage $ = _getLZCurveAmoStorage();
         $.ethereumComposer = _ethereumComposer;
-        $.fraxtalLzCurveAmo = _fraxtalLzCurveAmo;
+        $.ethereumLzSenderAmo = _ethereumLzSenderAmo;
     }
 
     // todo: AC
@@ -98,7 +98,7 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         } else if (nToken == FraxtalL2.FPI) {
             ferry = FraxtalL2.FRAXFERRY_ETHEREUM_FPI;
         }
-        IFerry(ferry).embarkWithRecipient({ amount: _amount, recipient: fraxtalLzCurveAmo() });
+        IFerry(ferry).embarkWithRecipient({ amount: _amount, recipient: ethereumLzSenderAmo() });
     }
 
     function ethereumComposer() public view returns (address) {
@@ -106,8 +106,8 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         return $.ethereumComposer;
     }
 
-    function fraxtalLzCurveAmo() public view returns (address) {
+    function ethereumLzSenderAmo() public view returns (address) {
         LZCurveAmoStorage storage $ = _getLZCurveAmoStorage();
-        return $.fraxtalLzCurveAmo;
+        return $.ethereumLzSenderAmo;
     }
 }

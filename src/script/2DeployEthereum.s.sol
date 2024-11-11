@@ -9,7 +9,6 @@ import { FraxProxy } from "../contracts/FraxProxy.sol";
 
 // Run this with source .env && forge script --broadcast --rpc-url $MAINNET_URL DeployFraxtalL.s.sol
 contract DeployFraxtalL is BaseScript {
-
     address multisig = address(0); // TODO
 
     address endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
@@ -23,15 +22,25 @@ contract DeployFraxtalL is BaseScript {
     address fpiOft = 0x6Eca253b102D41B6B69AC815B9CC6bD47eF1979d;
 
     function run() public broadcaster {
-
         // deploy EthereumNativeBridgeComposer
         address implementation = address(new EthereumNativeBridgeComposer());
-        FraxProxy proxy = new FraxProxy(implementation, multisig, abi.encodeCall(EthereumNativeBridgeComposer.initialize, (endpoint, l1Bridge, fraxtalLzCurveAmo)));
+        FraxProxy proxy = new FraxProxy(
+            implementation,
+            multisig,
+            abi.encodeCall(EthereumNativeBridgeComposer.initialize, (endpoint, l1Bridge, fraxtalLzCurveAmo))
+        );
         console.log("EthereumNativeBridgeComposer @ ", address(proxy));
 
         // Deploy EthereumLZSenderAMO
         implementation = address(new EthereumLZSenderAMO());
-        proxy = new FraxProxy(implementation, multisig, abi.encodeCall(EthereumLZSenderAMO.initialize, (fraxtalLzCurveAmo, fraxOft, sFraxOft, sFrxEthOft, fxsOft, fpiOft)));
+        proxy = new FraxProxy(
+            implementation,
+            multisig,
+            abi.encodeCall(
+                EthereumLZSenderAMO.initialize,
+                (deployer, fraxtalLzCurveAmo, fraxOft, sFraxOft, sFrxEthOft, fxsOft, fpiOft)
+            )
+        );
         console.log("EthereumLZSenderAMO @ ", address(proxy));
     }
 }

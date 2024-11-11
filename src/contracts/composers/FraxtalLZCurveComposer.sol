@@ -11,19 +11,24 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { FraxtalStorage, FraxtalL2 } from "src/contracts/FraxtalStorage.sol";
+import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
 
-interface ICurve {
-    function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
-    function get_balances() external view returns (uint256[] memory);
-}
+import { ICurve } from "src/contracts/shared/ICurve.sol";
+import { IWETH } from "src/contracts/shared/IWETH.sol";
 
-interface IWETH {
-    function withdraw(uint256 wad) external;
-    function deposit() external payable;
-}
+// ====================================================================
+// |     ______                   _______                             |
+// |    / _____________ __  __   / ____(_____  ____ _____  ________   |
+// |   / /_  / ___/ __ `| |/_/  / /_  / / __ \/ __ `/ __ \/ ___/ _ \  |
+// |  / __/ / /  / /_/ _>  <   / __/ / / / / / /_/ / / / / /__/  __/  |
+// | /_/   /_/   \__,_/_/|_|  /_/   /_/_/ /_/\__,_/_/ /_/\___/\___/   |
+// |                                                                  |
+// ====================================================================
+// ====================== FraxtalLZCurveComposer ======================
+// ====================================================================
 
-contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalStorage {
+/// @author Frax Finance: https://github.com/FraxFinance
+contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalConstants {
     error FailedEthTransfer();
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.FraxtalLZCurveComposer")) - 1))

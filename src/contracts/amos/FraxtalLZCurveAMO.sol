@@ -7,19 +7,28 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, OFTReceipt, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { FraxtalStorage, FraxtalL2 } from "src/contracts/FraxtalStorage.sol";
+import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
+import { FraxtalL2 } from "src/contracts/chain-constants/FraxtalL2.sol";
+import { ICurve } from "src/contracts/shared/ICurve.sol";
+import { IFerry } from "src/contracts/shared/IFerry.sol";
 
-interface ICurve {
-    function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256);
-    function get_balances() external view returns (uint256[] memory);
-}
+// ====================================================================
+// |     ______                   _______                             |
+// |    / _____________ __  __   / ____(_____  ____ _____  ________   |
+// |   / /_  / ___/ __ `| |/_/  / /_  / / __ \/ __ `/ __ \/ ___/ _ \  |
+// |  / __/ / /  / /_/ _>  <   / __/ / / / / / /_/ / / / / /__/  __/  |
+// | /_/   /_/   \__,_/_/|_|  /_/   /_/_/ /_/\__,_/_/ /_/\___/\___/   |
+// |                                                                  |
+// ====================================================================
+// ========================= FraxtalLZCurveAMO ========================
+// ====================================================================
 
-interface IFerry {
-    function embarkWithRecipient(uint256 amount, address recipient) external;
-}
-
-contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
+/// @author Frax Finance: https://github.com/FraxFinance
+contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalConstants {
     using OptionsBuilder for bytes;
+
+    bytes32 public constant EXCHANGE_ROLE = keccak256("EXCHANGE_ROLE");
+    bytes32 public constant SEND_ROLE = keccak256("SEND_ROLE");
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.LZCurveAmoStorage")) - 1));
     bytes32 private constant LZCurveAmoStorageLocation =
@@ -40,6 +49,8 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
 
     function initialize(address _owner) external initializer {
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(EXCHANGE_ROLE, _owner);
+        _grantRole(SEND_ROLE, _owner);
     }
 
     function setStorage(address _ethereumComposer, address _ethereumLzSenderAmo) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -48,8 +59,12 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         $.ethereumLzSenderAmo = _ethereumLzSenderAmo;
     }
 
-    // todo: AC
-    function exchange(address _oApp, bool _sell, uint256 _amountIn, uint256 _amountOutMin) external {
+    function exchange(
+        address _oApp,
+        bool _sell,
+        uint256 _amountIn,
+        uint256 _amountOutMin
+    ) external onlyRole(EXCHANGE_ROLE) {
         (address nToken, address curve) = _getRespectiveTokens(_oApp);
 
         uint256 amountOut;
@@ -66,8 +81,7 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         // TODO: now what
     }
 
-    // TODO: AC
-    function sendToAdapterAndBridgeBackNatively(address _oApp, uint256 _amount) external {
+    function sendToAdapterAndBridgeBackNatively(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 100_000, 0);
         bytes memory composeMsg = abi.encode(uint256(0));
         SendParam memory sendParam = SendParam({
@@ -83,8 +97,7 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalStorage {
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
-    // TODO: AC
-    function sendToFerry(address _oApp, uint256 _amount) external {
+    function sendToFerry(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
         (address nToken, ) = _getRespectiveTokens(_oApp);
         address ferry;
         if (nToken == FraxtalL2.FRAX) {

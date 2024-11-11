@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
@@ -10,10 +10,24 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { SendParam, OFTReceipt, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
-import { FraxtalStorage } from "src/contracts/FraxtalStorage.sol";
+import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
 
-contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
+// ====================================================================
+// |     ______                   _______                             |
+// |    / _____________ __  __   / ____(_____  ____ _____  ________   |
+// |   / /_  / ___/ __ `| |/_/  / /_  / / __ \/ __ `/ __ \/ ___/ _ \  |
+// |  / __/ / /  / /_/ _>  <   / __/ / / / / / /_/ / / / / /__/  __/  |
+// | /_/   /_/   \__,_/_/|_|  /_/   /_/_/ /_/\__,_/_/ /_/\___/\___/   |
+// |                                                                  |
+// ====================================================================
+// ======================= EthereumLZSenderAMO ========================
+// ====================================================================
+
+/// @author Frax Finance: https://github.com/FraxFinance
+contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
     using OptionsBuilder for bytes;
+
+    error FailedEthTransfer();
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.EthereumLZSenderAMO")) - 1));
     bytes32 private constant EthereumLZSenderAmoStorageLocation =
@@ -39,6 +53,7 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
     }
 
     function initialize(
+        address _owner,
         address _fraxtalLzCurveAmo,
         address _fraxOft,
         address _sFraxOft,
@@ -53,6 +68,8 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         $.sFrxEthOft = _sFrxEthOft;
         $.fxsOft = _fxsOft;
         $.fpiOft = _fpiOft;
+
+        _transferOwnership(_owner);
     }
 
     function sendAllToFraxtal() external {
@@ -86,6 +103,11 @@ contract EthereumLZSenderAMO is Initializable, FraxtalStorage {
         // approve and send
         IERC20(token).approve(_oApp, amount);
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+    }
+
+    function rescueEth(address to, uint256 amount) external payable onlyOwner {
+        (bool success, ) = to.call{ value: amount }("");
+        if (!success) revert FailedEthTransfer();
     }
 
     function fraxtalLzCurveAmo() public view returns (address) {

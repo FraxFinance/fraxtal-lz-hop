@@ -8,7 +8,6 @@ import { FraxProxy } from "../contracts/FraxProxy.sol";
 
 // Run this with source .env && forge script --broadcast --rpc-url $MAINNET_URL DeployFraxtalL.s.sol
 contract SetupFraxtal is BaseScript {
-
     FraxtalLZCurveAMO fraxtalLzCurveAmo = FraxtalLZCurveAMO(address(0)); // TODO
     address ethereumComposer = address(0); // TODO
     address ethereumLzSenderAmo = address(0); // TODO

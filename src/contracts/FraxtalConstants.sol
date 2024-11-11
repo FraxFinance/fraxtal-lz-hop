@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { FraxtalL2 } from "src/contracts/chain-constants/FraxtalL2.sol";
-
-contract FraxtalStorage {
+contract FraxtalConstants {
     error InvalidOApp();
+
+    /// @dev from FraxtalL2.sol
+    address public constant frax = 0xFc00000000000000000000000000000000000001;
+    address public constant sFrax = 0xfc00000000000000000000000000000000000008;
+    address public constant sFrxEth = 0xFC00000000000000000000000000000000000005;
+    address public constant fxs = 0xFc00000000000000000000000000000000000002;
+    address public constant fpi = 0xFc00000000000000000000000000000000000003;
 
     // Note: each curve pool is "native" token / "layerzero" token with "a" factor of 1400
     // All OFTs can be referenced at https://github.com/FraxFinance/frax-oft-upgradeable?tab=readme-ov-file#proxy-upgradeable-ofts
@@ -25,19 +30,19 @@ contract FraxtalStorage {
     /// @return curve (Address of curve.fi pool for nToken/lzToken)
     function _getRespectiveTokens(address _oApp) internal pure returns (address nToken, address curve) {
         if (_oApp == fraxOft) {
-            nToken = FraxtalL2.FRAX;
+            nToken = frax;
             curve = fraxCurve;
         } else if (_oApp == sFraxOft) {
-            nToken = FraxtalL2.SFRAX;
+            nToken = sFrax;
             curve = sFraxCurve;
         } else if (_oApp == sFrxEthOft) {
-            nToken = FraxtalL2.SFRXETH;
+            nToken = sFrxEth;
             curve = sFrxEthCurve;
         } else if (_oApp == fxsOft) {
-            nToken = FraxtalL2.FXS;
+            nToken = fxs;
             curve = fxsCurve;
         } else if (_oApp == fpiOft) {
-            nToken = FraxtalL2.FPI;
+            nToken = fpi;
             curve = fpiCurve;
         } else {
             revert InvalidOApp();

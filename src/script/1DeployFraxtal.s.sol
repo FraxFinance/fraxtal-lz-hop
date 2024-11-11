@@ -13,10 +13,13 @@ contract DeployFraxtalLZCurveComposer is BaseScript {
     address multisig = address(0); // TODO
 
     function run() public broadcaster {
-
         // deploy FraxtalLzCurveComposer
         address implementation = address(new FraxtalLZCurveComposer());
-        FraxProxy proxy = new FraxProxy(implementation, multisig, abi.encodeCall(FraxtalLZCurveComposer.initialize, (endpoint)));
+        FraxProxy proxy = new FraxProxy(
+            implementation,
+            multisig,
+            abi.encodeCall(FraxtalLZCurveComposer.initialize, (endpoint))
+        );
         console.log("FraxtalLZCurveComposer @ ", address(proxy));
 
         // deploy FraxtalLZCurveAmo

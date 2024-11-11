@@ -10,20 +10,22 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { SendParam, OFTReceipt, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
-import { FraxtalStorage } from "src/contracts/FraxtalStorage.sol";
+import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
+import { IL1Bridge } from "src/contracts/shared/IL1Bridge.sol";
 
-interface IL1Bridge {
-    function depositERC20To(
-        address _l1Token,
-        address _l2Token,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    ) external;
-}
+// ====================================================================
+// |     ______                   _______                             |
+// |    / _____________ __  __   / ____(_____  ____ _____  ________   |
+// |   / /_  / ___/ __ `| |/_/  / /_  / / __ \/ __ `/ __ \/ ___/ _ \  |
+// |  / __/ / /  / /_/ _>  <   / __/ / / / / / /_/ / / / / /__/  __/  |
+// | /_/   /_/   \__,_/_/|_|  /_/   /_/_/ /_/\__,_/_/ /_/\___/\___/   |
+// |                                                                  |
+// ====================================================================
+// ==================== EthereumNativeBridgeComposer ==================
+// ====================================================================
 
-contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalStorage {
+/// @author Frax Finance: https://github.com/FraxFinance
+contract EthereumNativeBridgeComposer is IOAppComposer, Initializable, FraxtalConstants {
     using OptionsBuilder for bytes;
 
     uint256 public counterA;

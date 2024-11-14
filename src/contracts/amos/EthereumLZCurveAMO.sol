@@ -11,6 +11,7 @@ import { SendParam, OFTReceipt, MessagingFee, IOFT } from "@fraxfinance/layerzer
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
+import { IL1Bridge } from "src/contracts/shared/IL1Bridge.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -20,20 +21,21 @@ import { FraxtalConstants } from "src/contracts/FraxtalConstants.sol";
 // | /_/   /_/   \__,_/_/|_|  /_/   /_/_/ /_/\__,_/_/ /_/\___/\___/   |
 // |                                                                  |
 // ====================================================================
-// ======================= EthereumLZSenderAMO ========================
+// ======================= EthereumLZCurveAMO ========================
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
+contract EthereumLZCurveAMO is OwnableUpgradeable, FraxtalConstants {
     using OptionsBuilder for bytes;
 
     error FailedEthTransfer();
 
-    // keccak256(abi.encode(uint256(keccak256("frax.storage.EthereumLZSenderAMO")) - 1));
-    bytes32 private constant EthereumLZSenderAmoStorageLocation =
-        0xae71d745ae90af64f9f5e208d9e8dce64cca865b5246e2309de5b63cca6b882a;
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.EthereumLZCurveAMO")) - 1));
+    bytes32 private constant EthereumLZCurveAmoStorageLocation =
+        0x9457c09651b1abd0043ec778e295270b24c7b02014c9a6e064fec36091d1f6ce;
 
-    struct EthereumLZSenderAmoStorage {
+    struct EthereumLZCurveAmoStorage {
+        address l1Bridge;
         address fraxtalLzCurveAmo;
         address fraxOft;
         address sFraxOft;
@@ -42,9 +44,9 @@ contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
         address fpiOft;
     }
 
-    function _getEthereumLZSenderAmoStorage() private pure returns (EthereumLZSenderAmoStorage storage $) {
+    function _getEthereumLZCurveAmoStorage() private pure returns (EthereumLZCurveAmoStorage storage $) {
         assembly {
-            $.slot := EthereumLZSenderAmoStorageLocation
+            $.slot := EthereumLZCurveAmoStorageLocation
         }
     }
 
@@ -54,6 +56,7 @@ contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
 
     function initialize(
         address _owner,
+        address _l1Bridge,
         address _fraxtalLzCurveAmo,
         address _fraxOft,
         address _sFraxOft,
@@ -61,7 +64,8 @@ contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
         address _fxsOft,
         address _fpiOft
     ) external initializer {
-        EthereumLZSenderAmoStorage storage $ = _getEthereumLZSenderAmoStorage();
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
+        $.l1Bridge = _l1Bridge;
         $.fraxtalLzCurveAmo = _fraxtalLzCurveAmo;
         $.fraxOft = _fraxOft;
         $.sFraxOft = _sFraxOft;
@@ -72,23 +76,44 @@ contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
         _transferOwnership(_owner);
     }
 
-    function sendAllToFraxtal() external {
-        EthereumLZSenderAmoStorage storage $ = _getEthereumLZSenderAmoStorage();
-
-        sendToFraxtal($.fraxOft);
-        sendToFraxtal($.sFraxOft);
-        sendToFraxtal($.sFrxEthOft);
-        sendToFraxtal($.fxsOft);
-        sendToFraxtal($.fpiOft);
+    function _validateOft(address _oApp) internal view {
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
+        require(
+            _oApp == $.fraxOft ||
+                _oApp == $.sFraxOft ||
+                _oApp == $.sFrxEthOft ||
+                _oApp == $.fxsOft ||
+                _oApp == $.fpiOft,
+            "Invalid OFT"
+        );
     }
 
-    function sendToFraxtal(address _oApp) internal {
+    function _getL2Token(address _oApp) internal view returns (address) {
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
+        if (_oApp == $.fraxOft) {
+            return FraxtalConstants.frax;
+        } else if (_oApp == $.sFraxOft) {
+            return FraxtalConstants.sFrax;
+        } else if (_oApp == $.sFrxEthOft) {
+            return FraxtalConstants.sFrxEth;
+        } else if (_oApp == $.fxsOft) {
+            return FraxtalConstants.fxs;
+        } else {
+            /// @dev assume _oApp is one of these tokens as _validateOft is called prior and would revert
+            return FraxtalConstants.fpi;
+        }
+    }
+
+    function sendViaLz(address _oApp, uint256 _amount) external {
+        // reverts if invalid OFT
+        _validateOft(_oApp);
+
         address token = IOFT(_oApp).token();
-        uint256 amount = IERC20(token).balanceOf(address(this));
-        if (amount == 0) return;
 
         // craft tx
         bytes memory options = OptionsBuilder.newOptions();
+        // round amount to prevent dust lost
+        uint256 amount = (_amount / 1e13) * 1e13;
         SendParam memory sendParam = SendParam({
             dstEid: uint32(30255), // fraxtal
             to: bytes32(uint256(uint160(fraxtalLzCurveAmo()))),
@@ -105,13 +130,37 @@ contract EthereumLZSenderAMO is OwnableUpgradeable, FraxtalConstants {
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
+    function sendViaNativeBridge(address _oApp, uint256 _amount) external {
+        // reverts if invalid OFT
+        _validateOft(_oApp);
+
+        address token = IOFT(_oApp).token();
+
+        // approve and send
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
+        IERC20(token).approve($.l1Bridge, _amount);
+        IL1Bridge($.l1Bridge).depositERC20To({
+            _l1Token: token,
+            _l2Token: _getL2Token(_oApp),
+            _to: $.fraxtalLzCurveAmo,
+            _amount: _amount,
+            _minGasLimit: uint32(200_000),
+            _extraData: ""
+        });
+    }
+
     function rescueEth(address to, uint256 amount) external payable onlyOwner {
         (bool success, ) = to.call{ value: amount }("");
         if (!success) revert FailedEthTransfer();
     }
 
     function fraxtalLzCurveAmo() public view returns (address) {
-        EthereumLZSenderAmoStorage storage $ = _getEthereumLZSenderAmoStorage();
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
         return $.fraxtalLzCurveAmo;
+    }
+
+    function l1Bridge() public view returns (address) {
+        EthereumLZCurveAmoStorage storage $ = _getEthereumLZCurveAmoStorage();
+        return $.l1Bridge;
     }
 }

@@ -81,23 +81,22 @@ contract FraxtalLZCurveAMO is AccessControlUpgradeable, FraxtalConstants {
         // TODO: now what
     }
 
-    function sendToAdapterAndBridgeBackNatively(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
+    function sendViaLz(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 100_000, 0);
-        bytes memory composeMsg = abi.encode(uint256(0));
         SendParam memory sendParam = SendParam({
             dstEid: uint32(30101), // Ethereum
             to: bytes32(uint256(uint160(ethereumComposer()))),
             amountLD: _amount,
             minAmountLD: 0,
             extraOptions: options,
-            composeMsg: composeMsg,
+            composeMsg: "",
             oftCmd: ""
         });
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 
-    function sendToFerry(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
+    function sendViaFerry(address _oApp, uint256 _amount) external onlyRole(SEND_ROLE) {
         (address nToken, ) = _getRespectiveTokens(_oApp);
         address ferry;
         if (nToken == FraxtalL2.FRAX) {

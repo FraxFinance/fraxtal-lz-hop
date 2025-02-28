@@ -6,14 +6,21 @@ import abi from "./OFT-abi.json";
 dotenv.config();
 const PK: string = process.env.PK!;
 
-const receiverProxy = "0xF7c1a390f77B294c107Ca4204BffdC1a9Fae72F9"; // fraxtal MockReceiver
-const oft = "0x909DBdE1eBE906Af95660033e478D59EFe831fED"; // frax
+const fraxtalMintRedeemHop = "0x"; // TODO
+
+const sourceRpc = 'https://mainnet.base.org';
+const fraxtalRpc = 'https://rpc.frax.com';
+
+const dstEid = 30332; // sonic
+
+const frxUsdOft = "0x80Eede496655FB9047dd39d9f418d5483ED600df";
+const sfrxUsdOft = '0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0';
+
 
 async function main() {
-    const url = 'https://mainnet.base.org';
-    const provider = new ethers.providers.JsonRpcProvider(url);
+    const provider = new ethers.providers.JsonRpcProvider(sourceRpc);
     const signer = new ethers.Wallet(PK, provider);
-    const contract = new ethers.Contract(oft, abi, signer);
+    const contract = new ethers.Contract(frxUsdOft, abi, signer);
 
     // basic send
     // https://layerzeroscan.com/tx/0x227f96abde1c4a93514f8cc663e30cbed1ecb6d1d4008c7cdbf0f3de0261eb40
@@ -21,16 +28,14 @@ async function main() {
     // const options = Options.newOptions().toHex().toString();
     // composeMsg = '0x';
 
-    // Send with atomic curve swap
-    // https://layerzeroscan.com/tx/0xab618d33c30660b28a623e821775ee71b34f2d597181c6cfb5966c849c112676
-    const to = ethers.utils.zeroPad(receiverProxy, 32);
-    const options = Options.newOptions().addExecutorComposeOption(0, 1_000_000, 0).toHex().toString();
-    const amount = 10**13;
+    // Send with Mint Redeem Hop
+    const to = ethers.utils.zeroPad(fraxtalMintRedeemHop, 32);
+    const options = Options.newOptions().addExecutorComposeOption(0, 200_000, 0).toHex().toString();
+    const amount = 20 * 10**18;
     const abiCoder = new ethers.utils.AbiCoder();
-    const recipient = signer.address;
-    const minAmountOut = 0;
+    const recipient = ethers.utils.zeroPad(signer.address, 32);
     const minAmountLD = 0;
-    const composeMsg = abiCoder.encode(["address", "uint256"], [recipient, minAmountOut]);
+    const composeMsg = abiCoder.encode(["bytes32", "uint32"], [recipient, dstEid]);
 
     const sendParam = [
         30255,

@@ -82,34 +82,39 @@ contract FraxtalMintRedeemHop is Ownable, IOAppComposer {
         if (paused) revert HopPaused();
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (bytes32  recipient, uint32 _dstEid) = abi.decode(
+        (bytes32 recipient, uint32 _dstEid) = abi.decode(
             OFTComposeMsgCodec.composeMsg(_message),
             (bytes32, uint32)
         );
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
 
+        // Approve the redeemer contract
+        IERC20(IOFT(_oApp).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+        
+        // Redeem frxUsd => sfrxUsd or vice versa
+        IOFT newOApp;
         if (_oApp == address(frxUSDOAPP)) {
-            IERC20(IOFT(_oApp).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+            newOApp = sfrxUSDOAPP;
             uint256 amountOut = fraxtalERC4626MintRedeemer.deposit(amount, address(this));
-            IERC20(sfrxUSDOAPP.token()).approve(address(sfrxUSDOAPP), amountOut);
-            _send({
-                _oApp: address(sfrxUSDOAPP),
-                _dstEid: _dstEid,
-                _to: recipient,
-                _amountLD: amountOut
-            });
         } else if (_oApp == address(sfrxUSDOAPP)) {
-            IERC20(IOFT(_oApp).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
-            uint256 amountOut =fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
-            IERC20(frxUSDOAPP.token()).approve(address(frxUSDOAPP), amountOut);
-            _send({
-                _oApp: address(frxUSDOAPP),
-                _dstEid: _dstEid,
-                _to: recipient,
-                _amountLD: amountOut
-            });
+            newOApp = frxUSDOAPP;
+            uint256 amountOut = fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
         } else {
             revert InvalidOApp();
+        }
+
+        if (_dstEid == 30255) {
+            // Skip send if the dstEid is Fraxtal
+            // TODO: can recipient be incorrectly cast and cause a loss of funds?
+            IERC20(newOApp.token()).transfer(address(uint160(uint256(recipient))), amount);
+        } else {
+            IERC20(newOApp.token()).approve(address(newOApp), amount);
+            _send({
+                _oApp: address(newOApp),
+                _dstEid: _dstEid,
+                _to: recipient,
+                _amountLD: amount
+            });
         }
     }
 

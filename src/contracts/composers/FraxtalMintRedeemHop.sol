@@ -27,7 +27,7 @@ contract FraxtalMintRedeemHop is Ownable, IOAppComposer {
     IOFT constant public sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);
     address constant endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
     bool public paused = false;
-    uint256 public gasConvertionRate = 2800E18;
+    uint256 public gasConvertionRate;
     uint256 public maxAllowedFee = 10e18;
 
     error InvalidOApp();
@@ -154,5 +154,18 @@ contract FraxtalMintRedeemHop is Ownable, IOAppComposer {
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _minAmountLD;
         sendParam.extraOptions = options;
+    }
+
+    function quote(uint32 _dstEid,
+        bytes32 _to,
+        uint256 _amountLD,
+        uint256 _minAmountLD) public view returns (MessagingFee memory fee) {
+        SendParam memory sendParam = _generateSendParam({
+            _dstEid: _dstEid,
+            _to: _to,
+            _amountLD: _amountLD,
+            _minAmountLD: _minAmountLD
+        });
+        fee = IOFT(frxUSDOAPP).quoteSend(sendParam, false);
     }
 }

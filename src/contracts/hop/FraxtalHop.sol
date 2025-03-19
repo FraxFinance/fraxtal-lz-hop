@@ -22,9 +22,12 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract FraxtalHop is Ownable, IOAppComposer {
-    address constant endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
+    address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;
+
+    event Hop(address oApp, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
 
     error InvalidOApp();
     error HopPaused();
@@ -75,7 +78,7 @@ contract FraxtalHop is Ownable, IOAppComposer {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        if (msg.sender != endpoint) revert NotEndpoint();
+        if (msg.sender != ENDPOINT) revert NotEndpoint();
         if (paused) revert HopPaused();
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         if (remoteHop[srcEid]==bytes32(0)) revert InvalidSourceChain();
@@ -94,6 +97,7 @@ contract FraxtalHop is Ownable, IOAppComposer {
             _to: recipient,
             _amountLD: amount
         });
+        emit Hop(_oApp, srcEid, _dstEid, recipient, amount);
     }
 
     function _send(

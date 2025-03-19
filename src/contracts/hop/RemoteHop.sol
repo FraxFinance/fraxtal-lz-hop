@@ -12,6 +12,7 @@ import { IOFT2 } from "./interfaces/IOFT2.sol";
 import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
 import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "./interfaces/IExecutor.sol";
+import { console } from "frax-std/FraxTest.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -33,6 +34,8 @@ contract RemoteHop is Ownable {
     address public immutable EXECUTOR;
     address public immutable DVN;
     address public immutable TREASURY;
+
+    event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
 
     error InvalidOApp();
     error HopPaused();
@@ -80,11 +83,13 @@ contract RemoteHop is Ownable {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD
-    ) external {
+    ) external payable {
         if (paused) revert HopPaused();
         if (_dstEid==30255) revert NotEndpoint();
         SafeERC20.safeTransferFrom(IERC20(oft), msg.sender, address(this), _amountLD);
         _sendViaFraxtal(oft, _dstEid, _to, _amountLD);
+
+        emit SendOFT(oft, msg.sender, _dstEid, _to, _amountLD);
     }
 
     function _sendViaFraxtal(
@@ -101,9 +106,13 @@ contract RemoteHop is Ownable {
             _minAmountLD: _amountLD
         });
         MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
-        if (fee.nativeFee + quoteHop(_oApp, _dstEid) > msg.value) revert InsufficientFee();
+        uint256 finalFee = fee.nativeFee + quoteHop(_oApp, _dstEid);
+        if (finalFee > msg.value) revert InsufficientFee();
         // Send the oft
         IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, address(this));
+
+        // Refund the excess
+        if (msg.value>finalFee) payable(msg.sender).transfer(msg.value - finalFee);
     }
 
     function _generateSendParam(
@@ -113,6 +122,7 @@ contract RemoteHop is Ownable {
         uint256 _minAmountLD
     ) internal view returns (SendParam memory sendParam) {
         bytes memory options = OptionsBuilder.newOptions();
+        options = OptionsBuilder.addExecutorLzComposeOption(options,0,1000000,0);
         sendParam.dstEid = 30255;
         sendParam.to = fraxtalHop;
         sendParam.amountLD = _amountLD;
@@ -136,9 +146,8 @@ contract RemoteHop is Ownable {
     }
 
     function quoteHop(address oft, uint32 _dstEid) public view returns (uint256 finalFee) {
-        bytes memory options = IOFT2(oft).combineOptions(_dstEid, 1, OptionsBuilder.newOptions());
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(_dstEid, 5, address(this), "");
-        options = hex"0100110100000000000000000000000000030d40";
+        bytes memory options = hex"010011010000000000000000000000000007A120";
         uint256 executorFee = IExecutor(EXECUTOR).getFee(_dstEid, address(this), 40, options);
         uint256 totalFee = dvnFee * noDNVs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), _dstEid, totalFee, false);

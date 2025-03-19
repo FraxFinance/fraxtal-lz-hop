@@ -71,10 +71,12 @@ number_underscore = "thousands"
 mainnet = "${MAINNET_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
 fraxtal = "${FRAXTAL_RPC_URL}"
-fraxtal_testnet = "${FRAXTAL_TESTNET_RPC_URL}"
+arbitrum = "${ARBITRUM_MAINNET_URL}"
+sonic = "${SONIC_MAINNET_URL}"
 
 [etherscan]
-mainnet = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" }
-polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${POLYGONSCAN_API_URL}" }
+#mainnet = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" }
+#polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${POLYGONSCAN_API_URL}" }
+arbitrum = { key = "${ARBISCAN_API_KEY}", url = "${ARBISCAN_API_URL}" , chain=42161}
+sonic = { key = "${SONICSCAN_API_KEY}", url = "${SONICSCAN_API_URL}" , chain=146}
 fraxtal = { key = "${FRAXSCAN_API_KEY}", url = "${FRAXSCAN_API_URL}", chain=252 }
-fraxtal_testnet = { key = "${FRAXSCAN_API_KEY}", url = "${FRAXSCAN_TESTNET_API_URL}", chain=2522 }

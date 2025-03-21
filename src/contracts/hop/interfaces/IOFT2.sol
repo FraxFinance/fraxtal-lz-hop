@@ -7,4 +7,6 @@ interface IOFT2 {
         uint16 _msgType,
         bytes calldata _extraOptions
     ) external view returns (bytes memory);
+
+    function decimalConversionRate() external view returns (uint256);
 }

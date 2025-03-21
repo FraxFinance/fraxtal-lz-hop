@@ -7,6 +7,7 @@ import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
+import { IOFT2 } from "./interfaces/IOFT2.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // ====================================================================
@@ -66,13 +67,13 @@ contract FraxtalHop is Ownable, IOAppComposer {
     /// @dev Decodes the message payload to perform a token swap.
     ///      This method expects the encoded compose message to contain the swap amount and recipient address.
     /// @dev source: https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
-    /// @param _oApp The address of the originating OApp/Token.
+    /// @param oft The address of the originating OApp/Token.
     /// @param /*_guid*/ The globally unique identifier of the message
     /// @param _message The encoded message content in the format of the OFTComposeMsgCodec.
     /// @param /*Executor*/ Executor address
     /// @param /*Executor Data*/ Additional data for checking for a specific executor
     function lzCompose(
-        address _oApp,
+        address oft,
         bytes32 /*_guid*/,
         bytes calldata _message,
         address /*Executor*/,
@@ -90,18 +91,18 @@ contract FraxtalHop is Ownable, IOAppComposer {
             (bytes32, uint32)
         );
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        SafeERC20.forceApprove(IERC20(IOFT(_oApp).token()),_oApp, amount);
+        SafeERC20.forceApprove(IERC20(IOFT(oft).token()),oft, amount);
         _send({
-            _oApp: address(_oApp),
+            oft: address(oft),
             _dstEid: _dstEid,
             _to: recipient,
             _amountLD: amount
         });
-        emit Hop(_oApp, srcEid, _dstEid, recipient, amount);
+        emit Hop(oft, srcEid, _dstEid, recipient, amount);
     }
 
     function _send(
-        address _oApp,
+        address oft,
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD
@@ -111,11 +112,11 @@ contract FraxtalHop is Ownable, IOAppComposer {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: _amountLD
+            _minAmountLD: removeDust(oft, _amountLD)
         });
-        MessagingFee memory fee = IOFT(_oApp).quoteSend(sendParam, false);
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         // Send the oft
-        IOFT(_oApp).send{ value: fee.nativeFee }(sendParam, fee, address(this));
+        IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
     }
 
     function _generateSendParam(
@@ -140,8 +141,13 @@ contract FraxtalHop is Ownable, IOAppComposer {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: _amountLD
+            _minAmountLD: removeDust(oft, _amountLD)
         });
         fee = IOFT(oft).quoteSend(sendParam, false);
     }
+
+    function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
+        uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
+        return (_amountLD / decimalConversionRate) * decimalConversionRate;
+    }    
 }

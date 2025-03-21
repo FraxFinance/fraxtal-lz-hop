@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import "./BaseTest.t.sol";
+import "../BaseTest.t.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { OFTMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
-import { FraxtalHop } from "../contracts/hop/FraxtalHop.sol";
-import { RemoteHop } from "../contracts/hop/RemoteHop.sol";
+import { FraxtalMintRedeemHop } from "src/contracts/hop/FraxtalMintRedeemHop.sol";
+import { RemoteMintRedeemHop } from "src/contracts/hop/RemoteMintRedeemHop.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract FraxtalHopTest is BaseTest {
-    FraxtalHop hop;
-    RemoteHop remoteHop;
+contract FraxtalMintRedeemHopTest2 is BaseTest {
+    FraxtalMintRedeemHop hop;
+    RemoteMintRedeemHop remoteHop;
     address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
     address constant EXECUTOR = 0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d;
     address constant DVN = 0xcCE466a522984415bC91338c232d98869193D46e;
@@ -23,8 +23,8 @@ contract FraxtalHopTest is BaseTest {
 
     function setUpFraxtal() public virtual {
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
-        hop = new FraxtalHop();
-        remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY);
+        hop = new FraxtalMintRedeemHop();
+        remoteHop = new RemoteMintRedeemHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, 30255);
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).transfer(1 ether);
@@ -32,8 +32,8 @@ contract FraxtalHopTest is BaseTest {
 
     function setupArbitrum() public {
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = new FraxtalHop();
-        remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, 0x31CAe3B7fB82d847621859fb1585353c5720660D, 0x2f55C492897526677C5B68fb199ea31E2c126416, 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70);
+        hop = new FraxtalMintRedeemHop();
+        remoteHop = new RemoteMintRedeemHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, 0x31CAe3B7fB82d847621859fb1585353c5720660D, 0x2f55C492897526677C5B68fb199ea31E2c126416, 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,30110);
     }
 
     function test_lzCompose() public {
@@ -59,9 +59,9 @@ contract FraxtalHopTest is BaseTest {
     function test_RemoteHop_quoteHop() public {
         setupArbitrum();
         address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
-        MessagingFee memory fee = remoteHop.quote(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        MessagingFee memory fee = remoteHop.quote(_oApp,OFTMsgCodec.addressToBytes32(address(this)),1e18);
         console.log(fee.nativeFee, fee.lzTokenFee);
-        uint256 quoteHop = remoteHop.quoteHop(_oApp,30332);
+        uint256 quoteHop = remoteHop.quoteHop();
         console.log(quoteHop);
     }
 
@@ -71,9 +71,9 @@ contract FraxtalHopTest is BaseTest {
         address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
         deal(_oApp, address(this), 1e18);
         IERC20(_oApp).approve(address(remoteHop), 1e18);
-        MessagingFee memory fee = remoteHop.quote(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        MessagingFee memory fee = remoteHop.quote(_oApp,OFTMsgCodec.addressToBytes32(address(this)),1e18);
         uint256 balance = payable(this).balance;
-        remoteHop.sendOFT{value:fee.nativeFee+0.1E18}(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        remoteHop.mintRedeem{value:fee.nativeFee+0.1E18}(_oApp,1e18);
         uint256 balance2 = payable(this).balance;
         assertEq(balance-balance2,fee.nativeFee);
     }    

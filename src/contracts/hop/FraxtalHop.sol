@@ -27,6 +27,7 @@ contract FraxtalHop is Ownable, IOAppComposer {
 
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;
+    mapping(bytes32 => bool) public messageProcessed;
 
     event Hop(address oApp, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
 
@@ -82,8 +83,19 @@ contract FraxtalHop is Ownable, IOAppComposer {
         if (msg.sender != ENDPOINT) revert NotEndpoint();
         if (paused) revert HopPaused();
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
-        if (remoteHop[srcEid]==bytes32(0)) revert InvalidSourceChain();
-        if (remoteHop[srcEid]!=OFTComposeMsgCodec.composeFrom(_message)) revert InvalidSourceHop();
+        {
+            bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
+            uint64 nonce = OFTComposeMsgCodec.nonce(_message);
+            bytes32 messageHash = keccak256(abi.encodePacked(srcEid, nonce, composeFrom));
+            // Avoid duplicated messages
+            if (!messageProcessed[messageHash]) {
+                messageProcessed[messageHash] = true;
+            } else {
+                return;
+            }
+            if (remoteHop[srcEid]==bytes32(0)) revert InvalidSourceChain();
+            if (remoteHop[srcEid]!=composeFrom) revert InvalidSourceHop();
+        }
 
         // Extract the composed message from the delivered message using the MsgCodec
         (bytes32  recipient, uint32 _dstEid) = abi.decode(
@@ -149,5 +161,11 @@ contract FraxtalHop is Ownable, IOAppComposer {
     function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
-    }    
+    }
+
+    // Owner functions
+    function setMessageProcessed(uint32 srcEid, uint64 nonce, bytes32 composeFrom) external onlyOwner {
+        bytes32 messageHash = keccak256(abi.encodePacked(srcEid, nonce, composeFrom));
+        messageProcessed[messageHash] = true;
+    }
 }

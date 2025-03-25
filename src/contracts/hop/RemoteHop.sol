@@ -12,7 +12,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
 import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "./interfaces/IExecutor.sol";
-import { console } from "frax-std/FraxTest.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -84,17 +83,17 @@ contract RemoteHop is Ownable {
     receive() external payable {}
 
     function sendOFT(
-        address oft,
+        address _oft,
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD
     ) external payable {
         if (paused) revert HopPaused();
         if (_dstEid==30255) revert NotEndpoint();
-        SafeERC20.safeTransferFrom(IERC20(oft), msg.sender, address(this), _amountLD);
-        _sendViaFraxtal(oft, _dstEid, _to, _amountLD);
-
-        emit SendOFT(oft, msg.sender, _dstEid, _to, _amountLD);
+        _amountLD = removeDust(_oft, _amountLD);
+        SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
+        _sendViaFraxtal(_oft, _dstEid, _to, _amountLD);
+        emit SendOFT(_oft, msg.sender, _dstEid, _to, _amountLD);
     }
 
     function _sendViaFraxtal(
@@ -108,12 +107,14 @@ contract RemoteHop is Ownable {
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(_oft, _amountLD)
+            _minAmountLD: _amountLD
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         uint256 finalFee = fee.nativeFee + quoteHop(_dstEid);
         if (finalFee > msg.value) revert InsufficientFee();
+
         // Send the oft
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
@@ -124,7 +125,8 @@ contract RemoteHop is Ownable {
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD,
-        uint256 _minAmountLD) internal view returns (SendParam memory sendParam) {
+        uint256 _minAmountLD
+    ) internal view returns (SendParam memory sendParam) {
         bytes memory options = OptionsBuilder.newOptions();
         options = OptionsBuilder.addExecutorLzComposeOption(options,0,1000000,0);
         sendParam.dstEid = 30255;
@@ -135,17 +137,18 @@ contract RemoteHop is Ownable {
         sendParam.composeMsg = abi.encode(_to, _dstEid);
     }
 
-    function quote(address oft, 
+    function quote(address _oft, 
         uint32 _dstEid,
         bytes32 _to,
         uint256 _amountLD) public view returns (MessagingFee memory fee) {
+        _amountLD = removeDust(_oft, _amountLD);
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(oft, _amountLD)
+            _minAmountLD: _amountLD
         });
-        fee = IOFT(oft).quoteSend(sendParam, false);
+        fee = IOFT(_oft).quoteSend(sendParam, false);
         fee.nativeFee += quoteHop(_dstEid);
     }
 

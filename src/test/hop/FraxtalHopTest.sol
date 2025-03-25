@@ -36,6 +36,12 @@ contract FraxtalHopTest is BaseTest {
         remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, 0x31CAe3B7fB82d847621859fb1585353c5720660D, 0x2f55C492897526677C5B68fb199ea31E2c126416, 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70);
     }
 
+    function setupEthereum() public {
+        vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
+        hop = new FraxtalHop();
+        remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, 0x173272739Bd7Aa6e4e214714048a9fE699453059, 0x589dEDbD617e0CBcB916A9223F4d1300c294236b, 0x5ebB3f2feaA15271101a927869B3A56837e73056);
+    }    
+
     function test_lzCompose() public {
         setUpFraxtal();
         address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
@@ -76,5 +82,28 @@ contract FraxtalHopTest is BaseTest {
         remoteHop.sendOFT{value:fee.nativeFee+0.1E18}(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
         uint256 balance2 = payable(this).balance;
         assertEq(balance-balance2,fee.nativeFee);
-    }    
+    }  
+
+    function test_RemoteHop_quoteHop2() public {
+        setupEthereum();
+        address _oApp = address(0x566a6442A5A6e9895B9dCA97cC7879D632c6e4B0);
+        MessagingFee memory fee = remoteHop.quote(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        console.log(fee.nativeFee, fee.lzTokenFee);
+        uint256 quoteHop = remoteHop.quoteHop(30332);
+        console.log(quoteHop);
+    }
+
+    // Send from Ethereum to Sonic
+    function test_RemoteHop_sendOFT2() public {
+        setupEthereum();
+        address _oApp = address(0x566a6442A5A6e9895B9dCA97cC7879D632c6e4B0);
+        IERC20 erc20 = IERC20(0xCAcd6fd266aF91b8AeD52aCCc382b4e165586E29);
+        deal(address(erc20), address(this), 1e18);
+        IERC20(erc20).approve(address(remoteHop), 1e18);
+        MessagingFee memory fee = remoteHop.quote(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        uint256 balance = payable(this).balance;
+        remoteHop.sendOFT{value:fee.nativeFee+0.1E18}(_oApp,30332,OFTMsgCodec.addressToBytes32(address(this)),1e18);
+        uint256 balance2 = payable(this).balance;
+        assertEq(balance-balance2,fee.nativeFee);
+    }          
 }

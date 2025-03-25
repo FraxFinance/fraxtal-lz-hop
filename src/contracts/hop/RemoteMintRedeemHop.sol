@@ -12,7 +12,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
 import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "./interfaces/IExecutor.sol";
-import { console } from "frax-std/FraxTest.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -88,14 +87,15 @@ contract RemoteMintRedeemHop is Ownable {
     receive() external payable {}
 
     function mintRedeem(
-        address oft,
+        address _oft,
         uint256 _amountLD
     ) external payable {
         if (paused) revert HopPaused();
-        SafeERC20.safeTransferFrom(IERC20(oft), msg.sender, address(this), _amountLD);
-        _mintRedeemViaFraxtal(oft, bytes32(uint256(uint160(msg.sender))), _amountLD);
+        _amountLD = removeDust(_oft, _amountLD);
+        SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
+        _mintRedeemViaFraxtal(_oft, bytes32(uint256(uint160(msg.sender))), _amountLD);
 
-        emit MintRedeem(oft, msg.sender, _amountLD);
+        emit MintRedeem(_oft, msg.sender, _amountLD);
     }
 
     function _mintRedeemViaFraxtal(
@@ -107,12 +107,14 @@ contract RemoteMintRedeemHop is Ownable {
         SendParam memory sendParam = _generateSendParam({
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(_oft, _amountLD)
+            _minAmountLD: _amountLD
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         uint256 finalFee = fee.nativeFee + quoteHop();
         if (finalFee > msg.value) revert InsufficientFee();
+
         // Send the oft
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
@@ -134,15 +136,16 @@ contract RemoteMintRedeemHop is Ownable {
         sendParam.composeMsg = abi.encode(_to, EID);
     }
 
-    function quote(address oft,
+    function quote(address _oft,
         bytes32 _to,
         uint256 _amountLD) public view returns (MessagingFee memory fee) {
+        _amountLD = removeDust(_oft, _amountLD);
         SendParam memory sendParam = _generateSendParam({
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(oft, _amountLD)
+            _minAmountLD: _amountLD
         });
-        fee = IOFT(oft).quoteSend(sendParam, false);
+        fee = IOFT(_oft).quoteSend(sendParam, false);
         fee.nativeFee += quoteHop();
     }
 

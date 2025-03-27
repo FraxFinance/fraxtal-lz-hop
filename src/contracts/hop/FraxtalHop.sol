@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
@@ -22,7 +22,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract FraxtalHop is Ownable, IOAppComposer {
+contract FraxtalHop is Ownable2Step, IOAppComposer {
     address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
     bool public paused = false;

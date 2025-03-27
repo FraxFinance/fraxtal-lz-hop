@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
@@ -25,7 +25,7 @@ import { IExecutor } from "./interfaces/IExecutor.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract RemoteMintRedeemHop is Ownable {
+contract RemoteMintRedeemHop is Ownable2Step {
     bool public paused = false;
     bytes32 public fraxtalHop;
     uint256 public noDNVs = 2;
@@ -35,8 +35,6 @@ contract RemoteMintRedeemHop is Ownable {
     address public immutable DVN;
     address public immutable TREASURY;
     uint32 public immutable EID;
-
-
 
     event MintRedeem(address oft, address indexed sender, uint256 amountLD);
 
@@ -151,8 +149,8 @@ contract RemoteMintRedeemHop is Ownable {
 
     function quoteHop() public view returns (uint256 finalFee) {
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(EID, 5, address(this), "");
-        bytes memory options = hex"010011010000000000000000000000000007A120";
-        uint256 executorFee = IExecutor(EXECUTOR).getFee(EID, address(this), 40, options);
+        bytes memory options = hex"01001101000000000000000000000000000493E0";
+        uint256 executorFee = IExecutor(EXECUTOR).getFee(EID, address(this), 36, options);
         uint256 totalFee = dvnFee * noDNVs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), EID, totalFee, false);
         finalFee = totalFee + treasuryFee;

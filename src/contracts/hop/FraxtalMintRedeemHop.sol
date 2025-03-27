@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
@@ -23,7 +23,7 @@ import { IFraxtalERC4626MintRedeemer } from "src/contracts/interfaces/IFraxtalER
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract FraxtalMintRedeemHop is Ownable, IOAppComposer {
+contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     IFraxtalERC4626MintRedeemer constant public fraxtalERC4626MintRedeemer = IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
     IOFT constant public frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
     IOFT constant public sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);    

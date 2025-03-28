@@ -43,7 +43,14 @@ contract RemoteMintRedeemHop is Ownable2Step {
     error NotEndpoint();
     error InsufficientFee();
 
-    constructor(bytes32 _fraxtalHop, uint256 _noDNVs, address _EXECUTOR, address _DVN, address _TREASURY, uint32 _EID) Ownable(msg.sender) {
+    constructor(
+        bytes32 _fraxtalHop,
+        uint256 _noDNVs,
+        address _EXECUTOR,
+        address _DVN,
+        address _TREASURY,
+        uint32 _EID
+    ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         noDNVs = _noDNVs;
         EXECUTOR = _EXECUTOR;
@@ -84,10 +91,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
     // receive ETH
     receive() external payable {}
 
-    function mintRedeem(
-        address _oft,
-        uint256 _amountLD
-    ) external payable {
+    function mintRedeem(address _oft, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
@@ -96,27 +100,19 @@ contract RemoteMintRedeemHop is Ownable2Step {
         emit MintRedeem(_oft, msg.sender, _amountLD);
     }
 
-    function _mintRedeemViaFraxtal(
-        address _oft,
-        bytes32 _to,
-        uint256 _amountLD
-    ) internal {
+    function _mintRedeemViaFraxtal(address _oft, bytes32 _to, uint256 _amountLD) internal {
         // generate arguments
-        SendParam memory sendParam = _generateSendParam({
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _amountLD
-        });
+        SendParam memory sendParam = _generateSendParam({ _to: _to, _amountLD: _amountLD, _minAmountLD: _amountLD });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         uint256 finalFee = fee.nativeFee + quoteHop();
         if (finalFee > msg.value) revert InsufficientFee();
 
         // Send the oft
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, _amountLD);
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value>finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
     }
 
     function _generateSendParam(
@@ -125,7 +121,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
         uint256 _minAmountLD
     ) internal view returns (SendParam memory sendParam) {
         bytes memory options = OptionsBuilder.newOptions();
-        options = OptionsBuilder.addExecutorLzComposeOption(options,0,1000000,0);
+        options = OptionsBuilder.addExecutorLzComposeOption(options, 0, 1000000, 0);
         sendParam.dstEid = 30255;
         sendParam.to = fraxtalHop;
         sendParam.amountLD = _amountLD;
@@ -134,15 +130,9 @@ contract RemoteMintRedeemHop is Ownable2Step {
         sendParam.composeMsg = abi.encode(_to, EID);
     }
 
-    function quote(address _oft,
-        bytes32 _to,
-        uint256 _amountLD) public view returns (MessagingFee memory fee) {
+    function quote(address _oft, bytes32 _to, uint256 _amountLD) public view returns (MessagingFee memory fee) {
         _amountLD = removeDust(_oft, _amountLD);
-        SendParam memory sendParam = _generateSendParam({
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _amountLD
-        });
+        SendParam memory sendParam = _generateSendParam({ _to: _to, _amountLD: _amountLD, _minAmountLD: _amountLD });
         fee = IOFT(_oft).quoteSend(sendParam, false);
         fee.nativeFee += quoteHop();
     }
@@ -154,11 +144,11 @@ contract RemoteMintRedeemHop is Ownable2Step {
         uint256 totalFee = dvnFee * noDNVs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), EID, totalFee, false);
         finalFee = totalFee + treasuryFee;
-        finalFee = finalFee * (10000 + hopFee) / 10000;
+        finalFee = (finalFee * (10000 + hopFee)) / 10000;
     }
 
     function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
-    }     
+    }
 }

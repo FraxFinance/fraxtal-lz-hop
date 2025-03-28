@@ -24,9 +24,10 @@ import { IFraxtalERC4626MintRedeemer } from "src/contracts/interfaces/IFraxtalER
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
-    IFraxtalERC4626MintRedeemer constant public fraxtalERC4626MintRedeemer = IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
-    IOFT constant public frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
-    IOFT constant public sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);    
+    IFraxtalERC4626MintRedeemer public constant fraxtalERC4626MintRedeemer =
+        IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
+    IOFT public constant frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+    IOFT public constant sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);
     address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
     bool public paused = false;
@@ -41,8 +42,7 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     error InvalidSourceChain();
     error InvalidSourceHop();
 
-    constructor() Ownable(msg.sender) {
-    }
+    constructor() Ownable(msg.sender) {}
 
     // Admin functions
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
@@ -97,21 +97,18 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
             } else {
                 return;
             }
-            if (remoteHop[srcEid]==bytes32(0)) revert InvalidSourceChain();
-            if (remoteHop[srcEid]!=composeFrom) revert InvalidSourceHop();
+            if (remoteHop[srcEid] == bytes32(0)) revert InvalidSourceChain();
+            if (remoteHop[srcEid] != composeFrom) revert InvalidSourceHop();
         }
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (bytes32  recipient, uint32 _dstEid) = abi.decode(
-            OFTComposeMsgCodec.composeMsg(_message),
-            (bytes32, uint32)
-        );
+        (bytes32 recipient, uint32 _dstEid) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        if (_oft==address(frxUSDOAPP)) {
+        if (_oft == address(frxUSDOAPP)) {
             IERC20(frxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
             amount = fraxtalERC4626MintRedeemer.deposit(amount, address(this));
             _oft = address(sfrxUSDOAPP);
-        } else if (_oft==address(sfrxUSDOAPP)) {
+        } else if (_oft == address(sfrxUSDOAPP)) {
             IERC20(sfrxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
             amount = fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
             _oft = address(frxUSDOAPP);
@@ -119,22 +116,12 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
             // Do not revert, but send back the token
         }
 
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, amount);
-        _send({
-            _oft: address(_oft),
-            _dstEid: _dstEid,
-            _to: recipient,
-            _amountLD: amount
-        });
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, amount);
+        _send({ _oft: address(_oft), _dstEid: _dstEid, _to: recipient, _amountLD: amount });
         emit Hop(_oft, srcEid, _dstEid, recipient, amount);
     }
 
-    function _send(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD
-    ) internal {
+    function _send(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
@@ -161,10 +148,12 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
         sendParam.extraOptions = options;
     }
 
-    function quote(address oft, 
+    function quote(
+        address oft,
         uint32 _dstEid,
         bytes32 _to,
-        uint256 _amountLD) public view returns (MessagingFee memory fee) {
+        uint256 _amountLD
+    ) public view returns (MessagingFee memory fee) {
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,
@@ -183,5 +172,5 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     function setMessageProcessed(uint32 srcEid, uint64 nonce, bytes32 composeFrom) external onlyOwner {
         bytes32 messageHash = keccak256(abi.encodePacked(srcEid, nonce, composeFrom));
         messageProcessed[messageHash] = true;
-    }    
+    }
 }

@@ -15,11 +15,18 @@ contract DeployRemoteHopSonic is BaseScript {
     address constant TREASURY = 0x4514FC667a944752ee8A29F544c1B20b1A315f25;
     uint32 constant EID = 30332;
 
-    function run() public broadcaster { 
+    function run() public broadcaster {
         RemoteHop remoteHop = new RemoteHop(bytes32(uint256(uint160(FRAXTAL_HOP))), 2, EXECUTOR, DVN, TREASURY);
         console.log("RemoteHop deployed at:", address(remoteHop));
 
-        RemoteMintRedeemHop remoteMintRedeemHop = new RemoteMintRedeemHop(bytes32(uint256(uint160(FRAXTAL_MINTREDEEM_HOP))), 2, EXECUTOR, DVN, TREASURY,EID);
+        RemoteMintRedeemHop remoteMintRedeemHop = new RemoteMintRedeemHop(
+            bytes32(uint256(uint160(FRAXTAL_MINTREDEEM_HOP))),
+            2,
+            EXECUTOR,
+            DVN,
+            TREASURY,
+            EID
+        );
         console.log("RemoteMintRedeemHop deployed at:", address(remoteMintRedeemHop));
     }
 }

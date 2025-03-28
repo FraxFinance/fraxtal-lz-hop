@@ -43,7 +43,13 @@ contract RemoteHop is Ownable2Step {
     error NotEndpoint();
     error InsufficientFee();
 
-    constructor(bytes32 _fraxtalHop, uint256 _noDNVs, address _EXECUTOR, address _DVN, address _TREASURY) Ownable(msg.sender) {
+    constructor(
+        bytes32 _fraxtalHop,
+        uint256 _noDNVs,
+        address _EXECUTOR,
+        address _DVN,
+        address _TREASURY
+    ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         noDNVs = _noDNVs;
         EXECUTOR = _EXECUTOR;
@@ -87,26 +93,16 @@ contract RemoteHop is Ownable2Step {
     // receive ETH
     receive() external payable {}
 
-    function sendOFT(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD
-    ) external payable {
+    function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
-        if (_dstEid==30255) revert NotEndpoint();
+        if (_dstEid == 30255) revert NotEndpoint();
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         _sendViaFraxtal(_oft, _dstEid, _to, _amountLD);
         emit SendOFT(_oft, msg.sender, _dstEid, _to, _amountLD);
     }
 
-    function _sendViaFraxtal(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD
-    ) internal {
+    function _sendViaFraxtal(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
@@ -119,11 +115,11 @@ contract RemoteHop is Ownable2Step {
         if (finalFee > msg.value) revert InsufficientFee();
 
         // Send the oft
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, _amountLD);
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value>finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
     }
 
     function _generateSendParam(
@@ -133,7 +129,7 @@ contract RemoteHop is Ownable2Step {
         uint256 _minAmountLD
     ) internal view returns (SendParam memory sendParam) {
         bytes memory options = OptionsBuilder.newOptions();
-        options = OptionsBuilder.addExecutorLzComposeOption(options,0,1000000,0);
+        options = OptionsBuilder.addExecutorLzComposeOption(options, 0, 1000000, 0);
         sendParam.dstEid = 30255;
         sendParam.to = fraxtalHop;
         sendParam.amountLD = _amountLD;
@@ -142,10 +138,12 @@ contract RemoteHop is Ownable2Step {
         sendParam.composeMsg = abi.encode(_to, _dstEid);
     }
 
-    function quote(address _oft, 
+    function quote(
+        address _oft,
         uint32 _dstEid,
         bytes32 _to,
-        uint256 _amountLD) public view returns (MessagingFee memory fee) {
+        uint256 _amountLD
+    ) public view returns (MessagingFee memory fee) {
         _amountLD = removeDust(_oft, _amountLD);
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
@@ -160,12 +158,12 @@ contract RemoteHop is Ownable2Step {
     function quoteHop(uint32 _dstEid) public view returns (uint256 finalFee) {
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(_dstEid, 5, address(this), "");
         bytes memory options = executorOptions[_dstEid];
-        if (options.length==0) options = hex"01001101000000000000000000000000000493E0";
+        if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
         uint256 executorFee = IExecutor(EXECUTOR).getFee(_dstEid, address(this), 36, options);
         uint256 totalFee = dvnFee * noDNVs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), _dstEid, totalFee, false);
         finalFee = totalFee + treasuryFee;
-        finalFee = finalFee * (10000 + hopFee) / 10000;
+        finalFee = (finalFee * (10000 + hopFee)) / 10000;
     }
 
     function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {

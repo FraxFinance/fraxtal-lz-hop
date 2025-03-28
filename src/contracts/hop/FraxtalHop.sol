@@ -37,8 +37,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     error InvalidSourceChain();
     error InvalidSourceHop();
 
-    constructor() Ownable(msg.sender) {
-    }
+    constructor() Ownable(msg.sender) {}
 
     // Admin functions
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
@@ -93,32 +92,19 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
             } else {
                 return;
             }
-            if (remoteHop[srcEid]==bytes32(0)) revert InvalidSourceChain();
-            if (remoteHop[srcEid]!=composeFrom) revert InvalidSourceHop();
+            if (remoteHop[srcEid] == bytes32(0)) revert InvalidSourceChain();
+            if (remoteHop[srcEid] != composeFrom) revert InvalidSourceHop();
         }
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (bytes32  recipient, uint32 _dstEid) = abi.decode(
-            OFTComposeMsgCodec.composeMsg(_message),
-            (bytes32, uint32)
-        );
+        (bytes32 recipient, uint32 _dstEid) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()),_oft, amount);
-        _send({
-            _oft: address(_oft),
-            _dstEid: _dstEid,
-            _to: recipient,
-            _amountLD: amount
-        });
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, amount);
+        _send({ _oft: address(_oft), _dstEid: _dstEid, _to: recipient, _amountLD: amount });
         emit Hop(_oft, srcEid, _dstEid, recipient, amount);
     }
 
-    function _send(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD
-    ) internal {
+    function _send(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
@@ -145,10 +131,12 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
         sendParam.extraOptions = options;
     }
 
-    function quote(address oft, 
+    function quote(
+        address oft,
         uint32 _dstEid,
         bytes32 _to,
-        uint256 _amountLD) public view returns (MessagingFee memory fee) {
+        uint256 _amountLD
+    ) public view returns (MessagingFee memory fee) {
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,

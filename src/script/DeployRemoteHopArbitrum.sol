@@ -15,11 +15,18 @@ contract DeployRemoteHopArbitrum is BaseScript {
     address constant TREASURY = 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70;
     uint32 constant EID = 30110;
 
-    function run() public broadcaster { 
+    function run() public broadcaster {
         RemoteHop remoteHop = new RemoteHop(bytes32(uint256(uint160(FRAXTAL_HOP))), 2, EXECUTOR, DVN, TREASURY);
         console.log("RemoteHop deployed at:", address(remoteHop));
 
-        RemoteMintRedeemHop remoteMintRedeemHop = new RemoteMintRedeemHop(bytes32(uint256(uint160(FRAXTAL_MINTREDEEM_HOP))), 2, EXECUTOR, DVN, TREASURY,EID);
-        console.log("RemoteMintRedeemHop deployed at:", address(remoteMintRedeemHop));        
+        RemoteMintRedeemHop remoteMintRedeemHop = new RemoteMintRedeemHop(
+            bytes32(uint256(uint160(FRAXTAL_MINTREDEEM_HOP))),
+            2,
+            EXECUTOR,
+            DVN,
+            TREASURY,
+            EID
+        );
+        console.log("RemoteMintRedeemHop deployed at:", address(remoteMintRedeemHop));
     }
 }

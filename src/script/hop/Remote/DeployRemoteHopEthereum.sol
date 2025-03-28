@@ -7,13 +7,13 @@ import { RemoteHop } from "src/contracts/hop/RemoteHop.sol";
 import { RemoteMintRedeemHop } from "src/contracts/hop/RemoteMintRedeemHop.sol";
 import "src/Constants.sol" as Constants;
 
-contract DeployRemoteHopArbitrum is BaseScript {
+contract DeployRemoteHopSonic is BaseScript {
     address constant FRAXTAL_HOP = 0xFF43a3A07fC421d2f0A675B5b8764Fc012523600;
     address constant FRAXTAL_MINTREDEEM_HOP = 0x763a253d9C1CB4E57DbE2564e97D555bba0D83f0;
-    address constant EXECUTOR = 0x31CAe3B7fB82d847621859fb1585353c5720660D;
-    address constant DVN = 0x2f55C492897526677C5B68fb199ea31E2c126416;
-    address constant TREASURY = 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70;
-    uint32 constant EID = 30110;
+    address constant EXECUTOR = 0x173272739Bd7Aa6e4e214714048a9fE699453059;
+    address constant DVN = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b;
+    address constant TREASURY = 0x5ebB3f2feaA15271101a927869B3A56837e73056;
+    uint32 constant EID = 30101;
 
     function run() public broadcaster {
         RemoteHop remoteHop = new RemoteHop(bytes32(uint256(uint160(FRAXTAL_HOP))), 2, EXECUTOR, DVN, TREASURY);

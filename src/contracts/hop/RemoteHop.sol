@@ -95,7 +95,6 @@ contract RemoteHop is Ownable2Step {
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
-        if (_dstEid == 30255) revert NotEndpoint();
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         _sendViaFraxtal(_oft, _dstEid, _to, _amountLD);

@@ -101,6 +101,24 @@ contract FraxtalHopTest is BaseTest {
         assertEq(balance - balance2, fee.nativeFee);
     }
 
+    // Send from Arbitrum to Fraxtal
+    function test_RemoteHop_sendOFT_toFraxtal() public {
+        setupArbitrum();
+        address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
+        deal(_oApp, address(this), 1e18);
+        IERC20(_oApp).approve(address(remoteHop), 1e18);
+        MessagingFee memory fee = remoteHop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(this)), 1e18);
+        uint256 balance = payable(this).balance;
+        remoteHop.sendOFT{ value: fee.nativeFee + 0.1E18 }(
+            _oApp,
+            30255,
+            OFTMsgCodec.addressToBytes32(address(this)),
+            1e18
+        );
+        uint256 balance2 = payable(this).balance;
+        assertEq(balance - balance2, fee.nativeFee);
+    }    
+
     function test_RemoteHop_quoteHop2() public {
         setupEthereum();
         address _oApp = address(0x566a6442A5A6e9895B9dCA97cC7879D632c6e4B0);

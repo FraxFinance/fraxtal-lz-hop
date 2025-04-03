@@ -97,8 +97,23 @@ contract RemoteHop is Ownable2Step {
         if (paused) revert HopPaused();
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
-        _sendViaFraxtal(_oft, _dstEid, _to, _amountLD);
+        if (_dstEid == 30255) {
+            _sendToFraxtal(_oft, _to, _amountLD);
+        } else {
+            _sendViaFraxtal(_oft, _dstEid, _to, _amountLD);
+        }
         emit SendOFT(_oft, msg.sender, _dstEid, _to, _amountLD);
+    }
+
+    function _sendToFraxtal(address _oft, bytes32 _to, uint256 _amountLD) internal {
+        // Send the oft
+        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
+        SendParam memory sendParam = SendParam({ dstEid: 30255, to: _to, amountLD: _amountLD, minAmountLD: _amountLD, extraOptions: "", composeMsg: "", oftCmd: "" });
+        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
+        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
+
+         // Refund the excess
+        if (msg.value > fee.nativeFee) payable(msg.sender).transfer(msg.value - fee.nativeFee);
     }
 
     function _sendViaFraxtal(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
@@ -144,14 +159,19 @@ contract RemoteHop is Ownable2Step {
         uint256 _amountLD
     ) public view returns (MessagingFee memory fee) {
         _amountLD = removeDust(_oft, _amountLD);
-        SendParam memory sendParam = _generateSendParam({
-            _dstEid: _dstEid,
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _amountLD
-        });
-        fee = IOFT(_oft).quoteSend(sendParam, false);
-        fee.nativeFee += quoteHop(_dstEid);
+        if (_dstEid == 30255) {
+            SendParam memory sendParam = SendParam({ dstEid: 30255, to: _to, amountLD: _amountLD, minAmountLD: _amountLD, extraOptions: "", composeMsg: "", oftCmd: "" });
+            fee = IOFT(_oft).quoteSend(sendParam, false);
+        } else {
+            SendParam memory sendParam = _generateSendParam({
+                _dstEid: _dstEid,
+                _to: _to,
+                _amountLD: _amountLD,
+                _minAmountLD: _amountLD
+            });
+            fee = IOFT(_oft).quoteSend(sendParam, false);
+            fee.nativeFee += quoteHop(_dstEid);
+        }
     }
 
     function quoteHop(uint32 _dstEid) public view returns (uint256 finalFee) {

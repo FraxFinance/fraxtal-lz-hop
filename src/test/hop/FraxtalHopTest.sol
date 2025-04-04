@@ -117,7 +117,7 @@ contract FraxtalHopTest is BaseTest {
         );
         uint256 balance2 = payable(this).balance;
         assertEq(balance - balance2, fee.nativeFee);
-    }    
+    }
 
     function test_RemoteHop_quoteHop2() public {
         setupEthereum();

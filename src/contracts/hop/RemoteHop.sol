@@ -108,11 +108,19 @@ contract RemoteHop is Ownable2Step {
     function _sendToFraxtal(address _oft, bytes32 _to, uint256 _amountLD) internal {
         // Send the oft
         SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
-        SendParam memory sendParam = SendParam({ dstEid: 30255, to: _to, amountLD: _amountLD, minAmountLD: _amountLD, extraOptions: "", composeMsg: "", oftCmd: "" });
+        SendParam memory sendParam = SendParam({
+            dstEid: 30255,
+            to: _to,
+            amountLD: _amountLD,
+            minAmountLD: _amountLD,
+            extraOptions: "",
+            composeMsg: "",
+            oftCmd: ""
+        });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
-         // Refund the excess
+        // Refund the excess
         if (msg.value > fee.nativeFee) payable(msg.sender).transfer(msg.value - fee.nativeFee);
     }
 
@@ -160,7 +168,15 @@ contract RemoteHop is Ownable2Step {
     ) public view returns (MessagingFee memory fee) {
         _amountLD = removeDust(_oft, _amountLD);
         if (_dstEid == 30255) {
-            SendParam memory sendParam = SendParam({ dstEid: 30255, to: _to, amountLD: _amountLD, minAmountLD: _amountLD, extraOptions: "", composeMsg: "", oftCmd: "" });
+            SendParam memory sendParam = SendParam({
+                dstEid: 30255,
+                to: _to,
+                amountLD: _amountLD,
+                minAmountLD: _amountLD,
+                extraOptions: "",
+                composeMsg: "",
+                oftCmd: ""
+            });
             fee = IOFT(_oft).quoteSend(sendParam, false);
         } else {
             SendParam memory sendParam = _generateSendParam({

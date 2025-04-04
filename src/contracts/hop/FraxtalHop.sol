@@ -99,7 +99,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
         // Extract the composed message from the delivered message using the MsgCodec
         (bytes32 recipient, uint32 _dstEid) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        if (_dstEid==30255) {
+        if (_dstEid == 30255) {
             SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), address(uint160(uint256(recipient))), amount);
         } else {
             SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, amount);

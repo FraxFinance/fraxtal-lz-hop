@@ -29,6 +29,8 @@ bytecode_hash = "none"
 cbor_metadata = false
 # Contracts to track with --gas-report
 #gas_reports = [] 
+solc-version = '0.8.23'
+evm_version = 'paris'
 
 [fuzz]
 # Amount of runs per fuzz test
@@ -80,3 +82,4 @@ sonic = "${SONIC_MAINNET_URL}"
 arbitrum = { key = "${ARBISCAN_API_KEY}", url = "${ARBISCAN_API_URL}" , chain=42161}
 sonic = { key = "${SONICSCAN_API_KEY}", url = "${SONICSCAN_API_URL}" , chain=146}
 fraxtal = { key = "${FRAXSCAN_API_KEY}", url = "${FRAXSCAN_API_URL}", chain=252 }
+sei = {key = "${SEISCAN_API_KEY}", url = "https://seitrace.com/arctic-1/api", chain=1329}

@@ -6,7 +6,6 @@ import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contr
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 // Test contract to batch send (s)frxUSD from Fraxtal to chain X
 contract BatchSend is Ownable {
     address public constant frxUsd = 0xFc00000000000000000000000000000000000001;
@@ -33,33 +32,17 @@ contract BatchSend is Ownable {
         IERC20(sfrxUsd).approve(sfrxUsdLockbox, sfrxUsdAmount);
 
         // send tokens
-        _send({
-            _oft: frxUsdLockbox,
-            _amountLD: frxUsdAmount,
-            _dstEid: frxUsdDstEid
-        });
-        _send({
-            _oft: sfrxUsdLockbox,
-            _amountLD: sfrxUsdAmount,
-            _dstEid: sfrxUsdDstEid
-        });
+        _send({ _oft: frxUsdLockbox, _amountLD: frxUsdAmount, _dstEid: frxUsdDstEid });
+        _send({ _oft: sfrxUsdLockbox, _amountLD: sfrxUsdAmount, _dstEid: sfrxUsdDstEid });
     }
 
-    function _send(
-        address _oft,
-        uint256 _amountLD,
-        uint32 _dstEid
-    ) internal {
+    function _send(address _oft, uint256 _amountLD, uint32 _dstEid) internal {
         SendParam memory sendParam = _generateSendParam(_amountLD, _dstEid);
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        IOFT(_oft).send{value: fee.nativeFee}(sendParam, fee, address(this));
+        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
     }
 
-
-    function _generateSendParam(
-        uint256 _amountLD,
-        uint32 _dstEid
-    ) internal view returns (SendParam memory sendParam) {
+    function _generateSendParam(uint256 _amountLD, uint32 _dstEid) internal view returns (SendParam memory sendParam) {
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
         sendParam.dstEid = _dstEid;

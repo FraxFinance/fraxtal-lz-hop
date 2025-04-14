@@ -23,7 +23,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract FraxtalHop is Ownable2Step, IOAppComposer {
-    address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+    address public constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;
@@ -41,12 +41,12 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     constructor() Ownable(msg.sender) {}
 
     // Admin functions
-    function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
-        IERC20(tokenAddress).transfer(msg.sender, tokenAmount);
+    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
+        IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
-    function recoverETH(uint256 tokenAmount) external onlyOwner {
-        payable(msg.sender).transfer(tokenAmount);
+    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
+        payable(recipient).transfer(tokenAmount);
     }
 
     function setRemoteHop(uint32 _eid, address _remoteHop) external {

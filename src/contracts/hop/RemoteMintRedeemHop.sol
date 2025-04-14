@@ -76,7 +76,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
         fraxtalHop = _fraxtalHop;
     }
 
-    function setnumDVNs(uint256 _numDVNs) external onlyOwner {
+    function setNumDVNs(uint256 _numDVNs) external onlyOwner {
         numDVNs = _numDVNs;
     }
 

@@ -172,8 +172,9 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     }
 
     // Owner functions
-    function setMessageProcessed(uint32 srcEid, uint64 nonce, bytes32 composeFrom) external onlyOwner {
-        bytes32 messageHash = keccak256(abi.encodePacked(srcEid, nonce, composeFrom));
+    function setMessageProcessed(address oft, uint32 srcEid, uint64 nonce, bytes32 composeFrom) external onlyOwner {
+        bytes32 messageHash = keccak256(abi.encodePacked(oft, srcEid, nonce, composeFrom));
+        emit MessageHash(oft, srcEid, nonce, composeFrom);
         messageProcessed[messageHash] = true;
     }
 }

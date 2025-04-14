@@ -28,7 +28,7 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
         IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
     IOFT public constant frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
     IOFT public constant sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);
-    address constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+    address public constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;

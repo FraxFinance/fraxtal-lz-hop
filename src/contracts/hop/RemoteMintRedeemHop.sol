@@ -28,7 +28,7 @@ import { IExecutor } from "./interfaces/IExecutor.sol";
 contract RemoteMintRedeemHop is Ownable2Step {
     bool public paused = false;
     bytes32 public fraxtalHop;
-    uint256 public noDNVs = 2;
+    uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
 
     address public immutable EXECUTOR;
@@ -45,14 +45,14 @@ contract RemoteMintRedeemHop is Ownable2Step {
 
     constructor(
         bytes32 _fraxtalHop,
-        uint256 _noDNVs,
+        uint256 _numDVNs,
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
         uint32 _EID
     ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
-        noDNVs = _noDNVs;
+        numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;
         DVN = _DVN;
         TREASURY = _TREASURY;
@@ -76,8 +76,8 @@ contract RemoteMintRedeemHop is Ownable2Step {
         fraxtalHop = _fraxtalHop;
     }
 
-    function setNoDNVs(uint256 _noDNVs) external onlyOwner {
-        noDNVs = _noDNVs;
+    function setnumDVNs(uint256 _numDVNs) external onlyOwner {
+        numDVNs = _numDVNs;
     }
 
     function setHopFee(uint256 _hopFee) external onlyOwner {
@@ -141,7 +141,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(EID, 5, address(this), "");
         bytes memory options = hex"01001101000000000000000000000000000493E0";
         uint256 executorFee = IExecutor(EXECUTOR).getFee(EID, address(this), 36, options);
-        uint256 totalFee = dvnFee * noDNVs + executorFee;
+        uint256 totalFee = dvnFee * numDVNs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), EID, totalFee, false);
         finalFee = totalFee + treasuryFee;
         finalFee = (finalFee * (10000 + hopFee)) / 10000;

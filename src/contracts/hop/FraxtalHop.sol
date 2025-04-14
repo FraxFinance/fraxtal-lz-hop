@@ -30,6 +30,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     mapping(bytes32 => bool) public messageProcessed;
 
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
+    event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
     error InvalidOApp();
     error HopPaused();
@@ -85,7 +86,9 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
         {
             bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
             uint64 nonce = OFTComposeMsgCodec.nonce(_message);
-            bytes32 messageHash = keccak256(abi.encodePacked(srcEid, nonce, composeFrom));
+            bytes32 messageHash = keccak256(abi.encodePacked(_oft, srcEid, nonce, composeFrom));
+
+            emit MessageHash(_oft, srcEid, nonce, composeFrom);
             // Avoid duplicated messages
             if (!messageProcessed[messageHash]) {
                 messageProcessed[messageHash] = true;

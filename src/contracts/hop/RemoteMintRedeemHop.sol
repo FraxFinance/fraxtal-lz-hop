@@ -60,12 +60,12 @@ contract RemoteMintRedeemHop is Ownable2Step {
     }
 
     // Admin functions
-    function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
-        IERC20(tokenAddress).transfer(msg.sender, tokenAmount);
+    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
+        IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
-    function recoverETH(uint256 tokenAmount) external onlyOwner {
-        payable(msg.sender).transfer(tokenAmount);
+    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
+        payable(recipient).transfer(tokenAmount);
     }
 
     function setFraxtalHop(address _fraxtalHop) external {

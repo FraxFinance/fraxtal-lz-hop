@@ -8,8 +8,8 @@ import { RemoteMintRedeemHop } from "src/contracts/hop/RemoteMintRedeemHop.sol";
 import "src/Constants.sol" as Constants;
 
 contract DeployRemoteHopArbitrum is BaseScript {
-    address constant FRAXTAL_HOP = 0xFF43a3A07fC421d2f0A675B5b8764Fc012523600;
-    address constant FRAXTAL_MINTREDEEM_HOP = 0x763a253d9C1CB4E57DbE2564e97D555bba0D83f0;
+    address constant FRAXTAL_HOP = 0xEE30e79b54e9a341dcD5621AF1799e2af799b9B0;
+    address constant FRAXTAL_MINTREDEEM_HOP = 0xf8b29272Db8B482459596C60b37BBF0B8F86E892;
     address constant EXECUTOR = 0x31CAe3B7fB82d847621859fb1585353c5720660D;
     address constant DVN = 0x2f55C492897526677C5B68fb199ea31E2c126416;
     address constant TREASURY = 0x532410B245eB41f24Ed1179BA0f6ffD94738AE70;

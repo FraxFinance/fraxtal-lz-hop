@@ -4,7 +4,7 @@
       "hash": "0x4457e1a4aef7d5450975bdd68a368090db33e623cab3e845566008485213a42b",
       "transactionType": "CREATE",
       "contractName": "FraxtalHop",
-      "contractAddress": "0xff43a3a07fc421d2f0a675b5b8764fc012523600",
+      "contractAddress": "0xEE30e79b54e9a341dcD5621AF1799e2af799b9B0",
       "function": null,
       "arguments": null,
       "transaction": {
@@ -43,7 +43,7 @@
       "cumulativeGasUsed": "0x1fbf07",
       "logs": [
         {
-          "address": "0xff43a3a07fc421d2f0a675b5b8764fc012523600",
+          "address": "0xEE30e79b54e9a341dcD5621AF1799e2af799b9B0",
           "topics": [
             "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
             "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -68,7 +68,7 @@
       "effectiveGasPrice": "0x3e9",
       "from": "0xb0e1650a9760e0f383174af042091fc544b8356f",
       "to": null,
-      "contractAddress": "0xff43a3a07fc421d2f0a675b5b8764fc012523600",
+      "contractAddress": "0xEE30e79b54e9a341dcD5621AF1799e2af799b9B0",
       "l1BaseFeeScalar": "0xc350",
       "l1BlobBaseFee": "0xc79f940",
       "l1BlobBaseFeeScalar": "0x0",

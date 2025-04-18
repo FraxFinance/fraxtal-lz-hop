@@ -24,7 +24,21 @@ contract FraxtalHopTest is BaseTest {
     function setUpFraxtal() public virtual {
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
         hop = new FraxtalHop();
-        remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY);
+        remoteHop = new RemoteHop(
+            OFTMsgCodec.addressToBytes32(address(hop)),
+            2,
+            EXECUTOR,
+            DVN,
+            TREASURY,
+            RemoteHop.ApprovedOFTs({
+                frxUsd: 0x96A394058E2b84A89bac9667B19661Ed003cF5D4,
+                sfrxUsd: 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361,
+                frxEth: 0x9aBFE1F8a999B0011ecD6116649AEe8D575F5604,
+                sfrxEth: 0x999dfAbe3b1cc2EF66eB032Eea42FeA329bBa168,
+                fxs: 0xd86fBBd0c8715d2C1f40e451e5C3514e65E7576A,
+                fpi: 0x75c38D46001b0F8108c4136216bd2694982C20FC
+            })
+        );
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).transfer(1 ether);
@@ -38,7 +52,15 @@ contract FraxtalHopTest is BaseTest {
             2,
             0x31CAe3B7fB82d847621859fb1585353c5720660D,
             0x2f55C492897526677C5B68fb199ea31E2c126416,
-            0x532410B245eB41f24Ed1179BA0f6ffD94738AE70
+            0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
+            RemoteHop.ApprovedOFTs({
+                frxUsd: 0x96A394058E2b84A89bac9667B19661Ed003cF5D4,
+                sfrxUsd: 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361,
+                frxEth: 0x9aBFE1F8a999B0011ecD6116649AEe8D575F5604,
+                sfrxEth: 0x999dfAbe3b1cc2EF66eB032Eea42FeA329bBa168,
+                fxs: 0xd86fBBd0c8715d2C1f40e451e5C3514e65E7576A,
+                fpi: 0x75c38D46001b0F8108c4136216bd2694982C20FC
+            })
         );
     }
 
@@ -50,7 +72,15 @@ contract FraxtalHopTest is BaseTest {
             2,
             0x173272739Bd7Aa6e4e214714048a9fE699453059,
             0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
-            0x5ebB3f2feaA15271101a927869B3A56837e73056
+            0x5ebB3f2feaA15271101a927869B3A56837e73056,
+            RemoteHop.ApprovedOFTs({
+                frxUsd: 0x96A394058E2b84A89bac9667B19661Ed003cF5D4,
+                sfrxUsd: 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361,
+                frxEth: 0x9aBFE1F8a999B0011ecD6116649AEe8D575F5604,
+                sfrxEth: 0x999dfAbe3b1cc2EF66eB032Eea42FeA329bBa168,
+                fxs: 0xd86fBBd0c8715d2C1f40e451e5C3514e65E7576A,
+                fpi: 0x75c38D46001b0F8108c4136216bd2694982C20FC
+            })
         );
     }
 

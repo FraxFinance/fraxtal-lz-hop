@@ -25,6 +25,13 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 contract FraxtalHop is Ownable2Step, IOAppComposer {
     address public constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
+    address public constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
+    address public constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;
+    address public constant frxEthLockbox = 0x9aBFE1F8a999B0011ecD6116649AEe8D575F5604;
+    address public constant sfrxEthLockbox = 0x999dfAbe3b1cc2EF66eB032Eea42FeA329bBa168;
+    address public constant fxsLockbox = 0xd86fBBd0c8715d2C1f40e451e5C3514e65E7576A;
+    address public constant fpiLockbox = 0x75c38D46001b0F8108c4136216bd2694982C20FC;
+
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;
     mapping(bytes32 => bool) public messageProcessed;
@@ -32,7 +39,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InvalidSourceChain();
@@ -82,6 +89,17 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     ) external payable override {
         if (msg.sender != ENDPOINT) revert NotEndpoint();
         if (paused) revert HopPaused();
+        if (
+            _oft != frxUsdLockbox &&
+            _oft != sfrxUsdLockbox &&
+            _oft != frxEthLockbox &&
+            _oft != sfrxEthLockbox &&
+            _oft != fxsLockbox &&
+            _oft != fpiLockbox
+        ) {
+            revert InvalidOFT();
+        }
+
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         {
             bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);

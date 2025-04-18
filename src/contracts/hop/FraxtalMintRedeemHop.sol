@@ -26,8 +26,8 @@ import { IFraxtalERC4626MintRedeemer } from "src/contracts/interfaces/IFraxtalER
 contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     IFraxtalERC4626MintRedeemer public constant fraxtalERC4626MintRedeemer =
         IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
-    IOFT public constant frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
-    IOFT public constant sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);
+    address public constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
+    address public constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;
     address public constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
     bool public paused = false;
@@ -37,7 +37,7 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InvalidSourceChain();
@@ -87,6 +87,8 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     ) external payable override {
         if (msg.sender != ENDPOINT) revert NotEndpoint();
         if (paused) revert HopPaused();
+        if (_oft != frxUsdLockbox && _oft != sfrxUsdLockbox) revert InvalidOFT();
+
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         {
             bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
@@ -107,14 +109,14 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
         // Extract the composed message from the delivered message using the MsgCodec
         (bytes32 recipient, uint32 _dstEid) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        if (_oft == address(frxUSDOAPP)) {
-            IERC20(frxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+        if (_oft == frxUsdLockbox) {
+            IERC20(IOFT(frxUsdLockbox).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
             amount = fraxtalERC4626MintRedeemer.deposit(amount, address(this));
-            _oft = address(sfrxUSDOAPP);
-        } else if (_oft == address(sfrxUSDOAPP)) {
-            IERC20(sfrxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+            _oft = sfrxUsdLockbox;
+        } else if (_oft == sfrxUsdLockbox) {
+            IERC20(IOFT(sfrxUsdLockbox).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
             amount = fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
-            _oft = address(frxUSDOAPP);
+            _oft = frxUsdLockbox;
         } else {
             // Do not revert, but send back the token
         }

@@ -35,10 +35,12 @@ contract RemoteMintRedeemHop is Ownable2Step {
     address public immutable DVN;
     address public immutable TREASURY;
     uint32 public immutable EID;
+    address public immutable frxUsdOft;
+    address public immutable sfrxUsdOft;
 
     event MintRedeem(address oft, address indexed sender, uint256 amountLD);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
@@ -49,7 +51,9 @@ contract RemoteMintRedeemHop is Ownable2Step {
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
-        uint32 _EID
+        uint32 _EID,
+        address _frxUsdOft,
+        address _sfrxUsdOft
     ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
@@ -57,6 +61,8 @@ contract RemoteMintRedeemHop is Ownable2Step {
         DVN = _DVN;
         TREASURY = _TREASURY;
         EID = _EID;
+        frxUsdOft = _frxUsdOft;
+        sfrxUsdOft = _sfrxUsdOft;
     }
 
     // Admin functions
@@ -93,6 +99,8 @@ contract RemoteMintRedeemHop is Ownable2Step {
 
     function mintRedeem(address _oft, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
+        if (_oft != frxUsdOft && _oft != sfrxUsdOft) revert InvalidOFT();
+
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         _mintRedeemViaFraxtal(_oft, bytes32(uint256(uint160(msg.sender))), _amountLD);

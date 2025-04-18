@@ -35,26 +35,49 @@ contract RemoteHop is Ownable2Step {
     address public immutable EXECUTOR;
     address public immutable DVN;
     address public immutable TREASURY;
+    address public immutable frxUsdOft;
+    address public immutable sfrxUsdOft;
+    address public immutable frxEthOft;
+    address public immutable sfrxEthOft;
+    address public immutable fxsOft;
+    address public immutable fpiOft;
 
     event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
+
+    struct ApprovedOFTs {
+        address frxUsd;
+        address sfrxUsd;
+        address frxEth;
+        address sfrxEth;
+        address fxs;
+        address fpi;
+    }
 
     constructor(
         bytes32 _fraxtalHop,
         uint256 _numDVNs,
         address _EXECUTOR,
         address _DVN,
-        address _TREASURY
+        address _TREASURY,
+        ApprovedOFTs memory _approvedOfts
     ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;
         DVN = _DVN;
         TREASURY = _TREASURY;
+
+        frxUsdOft = _approvedOfts.frxUsd;
+        sfrxUsdOft = _approvedOfts.sfrxUsd;
+        frxEthOft = _approvedOfts.frxEth;
+        sfrxEthOft = _approvedOfts.sfrxEth;
+        fxsOft = _approvedOfts.fxs;
+        fpiOft = _approvedOfts.fpi;
     }
 
     // Admin functions
@@ -95,6 +118,17 @@ contract RemoteHop is Ownable2Step {
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
+        if (
+            _oft != frxUsdOft &&
+            _oft != sfrxUsdOft &&
+            _oft != frxEthOft &&
+            _oft != sfrxEthOft &&
+            _oft != fxsOft &&
+            _oft != fpiOft
+        ) {
+            revert InvalidOFT();
+        }
+
         _amountLD = removeDust(_oft, _amountLD);
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         if (_dstEid == 30255) {

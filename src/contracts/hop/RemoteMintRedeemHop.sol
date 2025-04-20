@@ -42,6 +42,8 @@ contract RemoteMintRedeemHop is Ownable2Step {
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
+    error RefundFailed();
+    error ZeroAmountSend();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -94,6 +96,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
     function mintRedeem(address _oft, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
         _amountLD = removeDust(_oft, _amountLD);
+        if (_amountLD == 0) revert ZeroAmountSend();
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         _mintRedeemViaFraxtal(_oft, bytes32(uint256(uint160(msg.sender))), _amountLD);
 
@@ -112,7 +115,10 @@ contract RemoteMintRedeemHop is Ownable2Step {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) {
+            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _generateSendParam(

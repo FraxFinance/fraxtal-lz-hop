@@ -42,6 +42,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
+    error RefundFailed();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -112,7 +113,9 @@ contract RemoteMintRedeemHop is Ownable2Step {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) {
+            (bool success, ) = address(msg.sender).call{value: msg.value - finalFee}("");
+            if (!success) revert RefundFailed();
     }
 
     function _generateSendParam(

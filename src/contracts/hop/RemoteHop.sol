@@ -123,7 +123,7 @@ contract RemoteHop is Ownable2Step {
 
         // Refund the excess
         if (msg.value > fee.nativeFee) {
-            (bool success, ) = address(msg.sender).call{value: msg.value - fee.nativeFee}("");
+            (bool success, ) = address(msg.sender).call{ value: msg.value - fee.nativeFee }("");
             if (!success) revert RefundFailed();
         }
     }
@@ -146,9 +146,9 @@ contract RemoteHop is Ownable2Step {
 
         // Refund the excess
         if (msg.value > finalFee) {
-            (bool success, ) = address(msg.sender).call{value: msg.value - finalFee}("");
+            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
             if (!success) revert RefundFailed();
-        };
+        }
     }
 
     function _generateSendParam(

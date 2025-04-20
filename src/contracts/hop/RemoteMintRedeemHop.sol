@@ -114,8 +114,9 @@ contract RemoteMintRedeemHop is Ownable2Step {
 
         // Refund the excess
         if (msg.value > finalFee) {
-            (bool success, ) = address(msg.sender).call{value: msg.value - finalFee}("");
+            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
             if (!success) revert RefundFailed();
+        }
     }
 
     function _generateSendParam(

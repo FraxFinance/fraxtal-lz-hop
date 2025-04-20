@@ -43,6 +43,7 @@ contract RemoteHop is Ownable2Step {
     error NotEndpoint();
     error InsufficientFee();
     error RefundFailed();
+    error ZeroAmountSend();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -97,6 +98,7 @@ contract RemoteHop is Ownable2Step {
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
         _amountLD = removeDust(_oft, _amountLD);
+        if (_amountLD == 0) revert ZeroAmountSend();
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         if (_dstEid == 30255) {
             _sendToFraxtal(_oft, _to, _amountLD);

@@ -37,6 +37,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     error NotEndpoint();
     error InvalidSourceChain();
     error InvalidSourceHop();
+    error ZeroAmountSend();
 
     constructor() Ownable(msg.sender) {}
 
@@ -144,11 +145,13 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
         bytes32 _to,
         uint256 _amountLD
     ) public view returns (MessagingFee memory fee) {
+        uint256 _minAmountLD = removeDust(oft, _amountLD);
+        if (_minAmountLD == 0) revert ZeroAmountSend();
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(oft, _amountLD)
+            _minAmountLD: _minAmountLD
         });
         fee = IOFT(oft).quoteSend(sendParam, false);
     }

@@ -19,16 +19,15 @@ abstract contract DeployRemoteHop is BaseScript {
     address sfrxEthOft;
     address fxsOft;
     address fpiOft;
+    address[] approvedOfts;
 
     function run() public broadcaster {
-        RemoteHop.ApprovedOFTs memory approvedOfts = RemoteHop.ApprovedOFTs({
-            frxUsd: frxUsdOft,
-            sfrxUsd: sfrxUsdOft,
-            frxEth: frxEthOft,
-            sfrxEth: sfrxEthOft,
-            fxs: fxsOft,
-            fpi: fpiOft
-        });
+        approvedOfts.push(frxUsdOft);
+        approvedOfts.push(sfrxUsdOft);
+        approvedOfts.push(frxEthOft);
+        approvedOfts.push(sfrxEthOft);
+        approvedOfts.push(fxsOft);
+        approvedOfts.push(fpiOft);
 
         RemoteHop remoteHop = new RemoteHop({
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),

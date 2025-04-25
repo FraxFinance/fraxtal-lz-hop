@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
-import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "./interfaces/IOFT2.sol";
@@ -31,6 +29,7 @@ contract RemoteHop is Ownable2Step {
     uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
     mapping(uint32 => bytes) public executorOptions;
+    mapping(address => bool) public approvedOft;
 
     address public immutable EXECUTOR;
     address public immutable DVN;
@@ -38,23 +37,30 @@ contract RemoteHop is Ownable2Step {
 
     event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
+    error RefundFailed();
+    error ZeroAmountSend();
 
     constructor(
         bytes32 _fraxtalHop,
         uint256 _numDVNs,
         address _EXECUTOR,
         address _DVN,
-        address _TREASURY
+        address _TREASURY,
+        address[] memory _approvedOfts
     ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;
         DVN = _DVN;
         TREASURY = _TREASURY;
+
+        for (uint256 i = 0; i < _approvedOfts.length; i++) {
+            approvedOft[_approvedOfts[i]] = true;
+        }
     }
 
     // Admin functions
@@ -90,12 +96,19 @@ contract RemoteHop is Ownable2Step {
         paused = _paused;
     }
 
+    function toggleOFTApproval(address _oft, bool _approved) external onlyOwner {
+        approvedOft[_oft] = _approved;
+    }
+
     // receive ETH
     receive() external payable {}
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
+        if (!approvedOft[_oft]) revert InvalidOFT();
+
         _amountLD = removeDust(_oft, _amountLD);
+        if (_amountLD == 0) revert ZeroAmountSend();
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         if (_dstEid == 30255) {
             _sendToFraxtal(_oft, _to, _amountLD);
@@ -121,7 +134,11 @@ contract RemoteHop is Ownable2Step {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value > fee.nativeFee) payable(msg.sender).transfer(msg.value - fee.nativeFee);
+        if (msg.value < fee.nativeFee) revert InsufficientFee();
+        if (msg.value > fee.nativeFee) {
+            (bool success, ) = address(msg.sender).call{ value: msg.value - fee.nativeFee }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _sendViaFraxtal(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
@@ -141,7 +158,10 @@ contract RemoteHop is Ownable2Step {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) {
+            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _generateSendParam(

@@ -8,7 +8,6 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "./interfaces/IOFT2.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IFraxtalERC4626MintRedeemer } from "src/contracts/interfaces/IFraxtalERC4626MintRedeemer.sol";
 
 // ====================================================================
@@ -26,10 +25,10 @@ import { IFraxtalERC4626MintRedeemer } from "src/contracts/interfaces/IFraxtalER
 contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     IFraxtalERC4626MintRedeemer public constant fraxtalERC4626MintRedeemer =
         IFraxtalERC4626MintRedeemer(0xBFc4D34Db83553725eC6c768da71D2D9c1456B55);
-    IOFT public constant frxUSDOAPP = IOFT(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
-    IOFT public constant sfrxUSDOAPP = IOFT(0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361);
     address public constant ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
 
+    address public frxUsdLockbox;
+    address public sfrxUsdLockbox;
     bool public paused = false;
     mapping(uint32 => bytes32) public remoteHop;
     mapping(bytes32 => bool) public messageProcessed;
@@ -37,13 +36,17 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InvalidSourceChain();
     error InvalidSourceHop();
+    error ZeroAmountSend();
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address _frxUsdLockbox, address _sfrxUsdLockbox) Ownable(msg.sender) {
+        frxUsdLockbox = _frxUsdLockbox;
+        sfrxUsdLockbox = _sfrxUsdLockbox;
+    }
 
     // Admin functions
     function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
@@ -64,6 +67,14 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
 
     function pause(bool _paused) external onlyOwner {
         paused = _paused;
+    }
+
+    function setFrxUsdLockbox(address _frxUsdLockbox) external onlyOwner {
+        frxUsdLockbox = _frxUsdLockbox;
+    }
+
+    function setSfrxUsdLockbox(address _sfrxUsdLockbox) external onlyOwner {
+        sfrxUsdLockbox = _sfrxUsdLockbox;
     }
 
     // receive ETH
@@ -87,11 +98,14 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
     ) external payable override {
         if (msg.sender != ENDPOINT) revert NotEndpoint();
         if (paused) revert HopPaused();
+        if (_oft != frxUsdLockbox && _oft != sfrxUsdLockbox) revert InvalidOFT();
+        if (_oft == address(0)) revert InvalidOFT();
+
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         {
             bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
             uint64 nonce = OFTComposeMsgCodec.nonce(_message);
-            bytes32 messageHash = keccak256(abi.encodePacked(_oft, srcEid, nonce, composeFrom));
+            bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
 
             // Avoid duplicated messages
             emit MessageHash(_oft, srcEid, nonce, composeFrom);
@@ -107,30 +121,31 @@ contract FraxtalMintRedeemHop is Ownable2Step, IOAppComposer {
         // Extract the composed message from the delivered message using the MsgCodec
         (bytes32 recipient, uint32 _dstEid) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        if (_oft == address(frxUSDOAPP)) {
-            IERC20(frxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+        if (_oft == frxUsdLockbox) {
+            IERC20(IOFT(frxUsdLockbox).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
             amount = fraxtalERC4626MintRedeemer.deposit(amount, address(this));
-            _oft = address(sfrxUSDOAPP);
-        } else if (_oft == address(sfrxUSDOAPP)) {
-            IERC20(sfrxUSDOAPP.token()).approve(address(fraxtalERC4626MintRedeemer), amount);
-            amount = fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
-            _oft = address(frxUSDOAPP);
+            _oft = sfrxUsdLockbox;
         } else {
-            // Do not revert, but send back the token
+            // assumed to be sfrxUsdLockbox due to prior `InvalidOFT()` check
+            IERC20(IOFT(sfrxUsdLockbox).token()).approve(address(fraxtalERC4626MintRedeemer), amount);
+            amount = fraxtalERC4626MintRedeemer.redeem(amount, address(this), address(this));
+            _oft = frxUsdLockbox;
         }
 
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, amount);
+        IERC20(IOFT(_oft).token()).approve(_oft, amount);
         _send({ _oft: address(_oft), _dstEid: _dstEid, _to: recipient, _amountLD: amount });
         emit Hop(_oft, srcEid, _dstEid, recipient, amount);
     }
 
     function _send(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) internal {
         // generate arguments
+        uint256 _minAmountLD = removeDust(_oft, _amountLD);
+        if (_minAmountLD == 0) revert ZeroAmountSend();
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
             _to: _to,
             _amountLD: _amountLD,
-            _minAmountLD: removeDust(_oft, _amountLD)
+            _minAmountLD: _minAmountLD
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         // Send the oft

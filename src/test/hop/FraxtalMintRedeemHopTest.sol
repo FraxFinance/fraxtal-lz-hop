@@ -17,20 +17,23 @@ contract FraxtalMintRedeemHopTest2 is BaseTest {
     address constant EXECUTOR = 0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d;
     address constant DVN = 0xcCE466a522984415bC91338c232d98869193D46e;
     address constant TREASURY = 0xc1B621b18187F74c8F6D52a6F709Dd2780C09821;
-
+    address constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
+    address constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;
     // receive ETH
     receive() external payable {}
 
     function setUpFraxtal() public virtual {
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
-        hop = new FraxtalMintRedeemHop();
+        hop = new FraxtalMintRedeemHop(frxUsdLockbox, sfrxUsdLockbox);
         remoteHop = new RemoteMintRedeemHop(
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
             EXECUTOR,
             DVN,
             TREASURY,
-            30255
+            30255,
+            0x96A394058E2b84A89bac9667B19661Ed003cF5D4, // frxUsdOft
+            0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361 // sfrxUsdOft
         );
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
@@ -39,27 +42,31 @@ contract FraxtalMintRedeemHopTest2 is BaseTest {
 
     function setupArbitrum() public {
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = new FraxtalMintRedeemHop();
+        hop = new FraxtalMintRedeemHop(frxUsdLockbox, sfrxUsdLockbox);
         remoteHop = new RemoteMintRedeemHop(
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
             0x31CAe3B7fB82d847621859fb1585353c5720660D,
             0x2f55C492897526677C5B68fb199ea31E2c126416,
             0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
-            30110
+            30110,
+            0x80Eede496655FB9047dd39d9f418d5483ED600df, // frxUsdOft
+            0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0 // sfrxUsdOft
         );
     }
 
     function setupEthereum() public {
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124168);
-        hop = new FraxtalMintRedeemHop();
+        hop = new FraxtalMintRedeemHop(frxUsdLockbox, sfrxUsdLockbox);
         remoteHop = new RemoteMintRedeemHop(
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
             0x173272739Bd7Aa6e4e214714048a9fE699453059,
             0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
             0x5ebB3f2feaA15271101a927869B3A56837e73056,
-            30101
+            30101,
+            0x566a6442A5A6e9895B9dCA97cC7879D632c6e4B0, // frxUsdOft
+            0x7311CEA93ccf5f4F7b789eE31eBA5D9B9290E126 // sfrxUsdOft
         );
     }
 

@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
-import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "./interfaces/IOFT2.sol";
@@ -35,13 +33,17 @@ contract RemoteMintRedeemHop is Ownable2Step {
     address public immutable DVN;
     address public immutable TREASURY;
     uint32 public immutable EID;
+    address public frxUsdOft;
+    address public sfrxUsdOft;
 
     event MintRedeem(address oft, address indexed sender, uint256 amountLD);
 
-    error InvalidOApp();
+    error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
     error InsufficientFee();
+    error RefundFailed();
+    error ZeroAmountSend();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -49,7 +51,9 @@ contract RemoteMintRedeemHop is Ownable2Step {
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
-        uint32 _EID
+        uint32 _EID,
+        address _frxUsdOft,
+        address _sfrxUsdOft
     ) Ownable(msg.sender) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
@@ -57,6 +61,8 @@ contract RemoteMintRedeemHop is Ownable2Step {
         DVN = _DVN;
         TREASURY = _TREASURY;
         EID = _EID;
+        frxUsdOft = _frxUsdOft;
+        sfrxUsdOft = _sfrxUsdOft;
     }
 
     // Admin functions
@@ -88,12 +94,23 @@ contract RemoteMintRedeemHop is Ownable2Step {
         paused = _paused;
     }
 
+    function setFrxUsdOft(address _frxUsdOft) external onlyOwner {
+        frxUsdOft = _frxUsdOft;
+    }
+
+    function setSfrxUsdOft(address _sfrxUsdOft) external onlyOwner {
+        sfrxUsdOft = _sfrxUsdOft;
+    }
+
     // receive ETH
     receive() external payable {}
 
     function mintRedeem(address _oft, uint256 _amountLD) external payable {
         if (paused) revert HopPaused();
+        if (_oft != frxUsdOft && _oft != sfrxUsdOft) revert InvalidOFT();
+
         _amountLD = removeDust(_oft, _amountLD);
+        if (_amountLD == 0) revert ZeroAmountSend();
         SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
         _mintRedeemViaFraxtal(_oft, bytes32(uint256(uint160(msg.sender))), _amountLD);
 
@@ -112,7 +129,10 @@ contract RemoteMintRedeemHop is Ownable2Step {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Refund the excess
-        if (msg.value > finalFee) payable(msg.sender).transfer(msg.value - finalFee);
+        if (msg.value > finalFee) {
+            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _generateSendParam(

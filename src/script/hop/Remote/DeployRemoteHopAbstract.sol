@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
-// TODO: forge script
+// forge script src/script/hop/Remote/DeployRemoteHopAbstract.sol --rpc-url https://api.mainnet.abs.xyz --zksync --broadcast --verify --verifier etherscan --etherscan-api-key $ABSTRACT_ETHERSCAN_API_KEY
 contract DeployRemoteHopAbstract is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x643E1471f37c4680Df30cF0C540Cd379a0fF58A5;

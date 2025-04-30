@@ -94,5 +94,5 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | Blast | [`0xe93Cb38f97469eac2f284a87813D0d701b28E58e`](https://blastscan.io/address/0xe93Cb38f97469eac2f284a87813D0d701b28E58e) | [`0x85b1714b25f40FD5025423124c076476073180b3`](https://blastscan.io/address/0x85b1714b25f40FD5025423124c076476073180b3) |
 | Base | [`0xbA0942814734897581a7e4Dea2bC92089aa1aD02`](https://basescan.org/address/0xbA0942814734897581a7e4Dea2bC92089aa1aD02) | [`0x9cC42167846dF40F401783E2c2D27e0aD6C3de0f`](https://basescan.org/address/0x9cC42167846dF40F401783E2c2D27e0aD6C3de0f) |
 | Berachain | [`0xc71BF5Ee4740405030eF521F18A96eA14fec802D`](https://berascan.com/address/0xc71BF5Ee4740405030eF521F18A96eA14fec802D) | [`0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263`](https://berascan.com/address/0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263) |
-| Abstract | TODO | TODO |
-| ZkSync | TODO | TODO |
+| Abstract | [`0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb`](https://abscan.org/address/0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb) | [`0xa05e9f9b97c963b5651ed6a50fae46625a8c400b`](https://abscan.org/address/0xa05e9f9b97c963b5651ed6a50fae46625a8c400b) |
+| ZkSync | [`0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb`](https://era.zksync.network/address/0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb) | [`0xa05e9f9b97c963b5651ed6a50fae46625a8c400b`](https://era.zksync.network/address/0xa05e9f9b97c963b5651ed6a50fae46625a8c400b) |

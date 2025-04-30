@@ -3,11 +3,11 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
-// TODO: forge script
+// forge script src/script/hop/Remote/DeployRemoteHopZkSync.sol --rpc-url https://mainnet.era.zksync.io --zksync --broadcast --verify --verifier etherscan --etherscan-api-key $ZKSYNC_ERA_ETHERSCAN_API_KEY
 contract DeployRemoteHopZkSync is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x664e390e672A811c12091db8426cBb7d68D5D8A6;
-        DVN = 0x620a9df73d2f1015ea75aea1067227f9013f5c51;
+        DVN = 0x620A9DF73D2F1015eA75aea1067227F9013f5C51;
         TREASURY = 0x2bB230ab04959EBB068fae428615aF7DF0a06F11;
         EID = 30165;
 

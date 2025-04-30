@@ -52,7 +52,7 @@ contract FraxtalHop is Ownable2Step, IOAppComposer {
     }
 
     function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
-        payable(recipient).transfer(tokenAmount);
+        payable(recipient).call{ value: tokenAmount }("");
     }
 
     function setRemoteHop(uint32 _eid, address _remoteHop) external {

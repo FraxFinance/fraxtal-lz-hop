@@ -18,6 +18,7 @@ contract FraxtalHopTest is BaseTest {
     address constant DVN = 0xcCE466a522984415bC91338c232d98869193D46e;
     address constant TREASURY = 0xc1B621b18187F74c8F6D52a6F709Dd2780C09821;
     address[] approvedOfts;
+
     // receive ETH
     receive() external payable {}
 
@@ -34,7 +35,7 @@ contract FraxtalHopTest is BaseTest {
         remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, approvedOfts);
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
-        payable(address(hop)).transfer(1 ether);
+        payable(address(hop)).call{ value: 1 ether }("");
     }
 
     function setupArbitrum() public {

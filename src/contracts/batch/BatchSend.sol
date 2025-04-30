@@ -52,7 +52,7 @@ contract BatchSend is Ownable {
     }
 
     function recoverETH() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
+        payable(msg.sender).call{ value: address(this).balance }("");
     }
 
     function recoverToken(address token) external onlyOwner {

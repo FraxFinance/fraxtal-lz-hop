@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
+// forge script src/script/hop/Remote/DeployRemoteHopEthereum.sol --rpc-url https://ethereum-rpc.publicnode.com --broadcast --verify --verifier etherscan --etherscan-api-key $ETHERSCAN_API_KEY
 contract DeployRemoteHopEthereum is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x173272739Bd7Aa6e4e214714048a9fE699453059;

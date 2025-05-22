@@ -19,6 +19,7 @@ contract FraxtalMintRedeemHopTest2 is BaseTest {
     address constant TREASURY = 0xc1B621b18187F74c8F6D52a6F709Dd2780C09821;
     address constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
     address constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;
+
     // receive ETH
     receive() external payable {}
 
@@ -37,7 +38,7 @@ contract FraxtalMintRedeemHopTest2 is BaseTest {
         );
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
-        payable(address(hop)).transfer(1 ether);
+        payable(address(hop)).call{ value: 1 ether }("");
     }
 
     function setupArbitrum() public {

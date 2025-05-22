@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
+// forge script src/script/hop/Remote/DeployRemoteHopSei.sol --rpc-url https://evm-rpc.sei-apis.com --broadcast --verify --verifier-url https://seitrace.com/pacific-1/api --verifier custom --verifier-api-key $SEITRACE_API_KEY
 contract DeployRemoteHopSei is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0xc097ab8CD7b053326DFe9fB3E3a31a0CCe3B526f;

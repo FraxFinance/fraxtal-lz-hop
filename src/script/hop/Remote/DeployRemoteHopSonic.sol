@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
+// forge script src/script/hop/Remote/DeployRemoteHopSonic.sol --rpc-url https://rpc.soniclabs.com --broadcast --verify --verifier etherscan --etherscan-api-key $SONICSCAN_API_KEY
 contract DeployRemoteHopSonic is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x4208D6E27538189bB48E603D6123A94b8Abe0A0b;

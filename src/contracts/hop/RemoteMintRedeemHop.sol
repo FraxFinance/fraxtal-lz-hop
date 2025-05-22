@@ -71,7 +71,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
     }
 
     function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
-        payable(recipient).transfer(tokenAmount);
+        payable(recipient).call{ value: tokenAmount }("");
     }
 
     function setFraxtalHop(address _fraxtalHop) external {

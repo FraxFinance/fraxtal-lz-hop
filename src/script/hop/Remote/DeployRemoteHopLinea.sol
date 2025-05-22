@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
+// forge script src/script/hop/Remote/DeployRemoteHopLinea.sol --rpc-url https://rpc.linea.build --broadcast --verify --verifier etherscan --etherscan-api-key $LINEASCAN_API_KEY
 contract DeployRemoteHopLinea is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x0408804C5dcD9796F22558464E6fE5bDdF16A7c7;

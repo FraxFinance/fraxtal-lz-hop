@@ -45,7 +45,7 @@ library Address {
             revert AddressInsufficientBalance(address(this));
         }
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success, ) = recipient.call{ value: amount }("");
         if (!success) {
             revert FailedInnerCall();
         }
@@ -86,7 +86,7 @@ library Address {
         if (address(this).balance < value) {
             revert AddressInsufficientBalance(address(this));
         }
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{ value: value }(data);
         return verifyCallResultFromTarget(target, success, returndata);
     }
 
@@ -225,7 +225,7 @@ library AddressUpgradeable {
     function sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success, ) = recipient.call{ value: amount }("");
         require(success, "Address: unable to send value, recipient may have reverted");
     }
 
@@ -293,7 +293,7 @@ library AddressUpgradeable {
         string memory errorMessage
     ) internal returns (bytes memory) {
         require(address(this).balance >= value, "Address: insufficient balance for call");
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{ value: value }(data);
         return verifyCallResultFromTarget(target, success, returndata, errorMessage);
     }
 
@@ -441,14 +441,7 @@ library BitMaps {
  */
 
 library BytesLib {
-    function concat(
-        bytes memory _preBytes,
-        bytes memory _postBytes
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function concat(bytes memory _preBytes, bytes memory _postBytes) internal pure returns (bytes memory) {
         bytes memory tempBytes;
 
         assembly {
@@ -510,10 +503,13 @@ library BytesLib {
             // next 32 byte block, then round down to the nearest multiple of
             // 32. If the sum of the length of the two arrays is zero then add
             // one before rounding down to leave a blank 32 bytes (the length block with 0).
-            mstore(0x40, and(
-              add(add(end, iszero(add(length, mload(_preBytes)))), 31),
-              not(31) // Round down to the nearest 32 bytes.
-            ))
+            mstore(
+                0x40,
+                and(
+                    add(add(end, iszero(add(length, mload(_preBytes)))), 31),
+                    not(31) // Round down to the nearest 32 bytes.
+                )
+            )
         }
 
         return tempBytes;
@@ -597,10 +593,7 @@ library BytesLib {
                 sstore(
                     sc,
                     add(
-                        and(
-                            fslot,
-                            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00
-                        ),
+                        and(fslot, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00),
                         and(mload(mc), mask)
                     )
                 )
@@ -656,15 +649,7 @@ library BytesLib {
         }
     }
 
-    function slice(
-        bytes memory _bytes,
-        uint256 _start,
-        uint256 _length
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
         require(_length + 31 >= _length, "slice_overflow");
         require(_bytes.length >= _start + _length, "slice_outOfBounds");
 
@@ -737,7 +722,7 @@ library BytesLib {
     }
 
     function toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
-        require(_bytes.length >= _start + 1 , "toUint8_outOfBounds");
+        require(_bytes.length >= _start + 1, "toUint8_outOfBounds");
         uint8 tempUint;
 
         assembly {
@@ -844,8 +829,8 @@ library BytesLib {
 
                 for {
                     let cc := add(_postBytes, 0x20)
-                // the next line is the loop condition:
-                // while(uint256(mc < end) + cb == 2)
+                    // the next line is the loop condition:
+                    // while(uint256(mc < end) + cb == 2)
                 } eq(add(lt(mc, end), cb), 2) {
                     mc := add(mc, 0x20)
                     cc := add(cc, 0x20)
@@ -887,8 +872,8 @@ library BytesLib {
                 let cc := add(_postBytes, 0x20)
 
                 for {
-                // the next line is the loop condition:
-                // while(uint256(mc < endWord) + cb == 2)
+                    // the next line is the loop condition:
+                    // while(uint256(mc < endWord) + cb == 2)
                 } eq(add(lt(mc, endMinusWord), cb), 2) {
                     mc := add(mc, 0x20)
                     cc := add(cc, 0x20)
@@ -911,8 +896,8 @@ library BytesLib {
                     let ccRem := mload(cc)
                     for {
                         let i := 0
-                    // the next line is the loop condition:
-                    // while(uint256(i < numTailBytes) + cb == 2)
+                        // the next line is the loop condition:
+                        // while(uint256(i < numTailBytes) + cb == 2)
                     } eq(add(lt(i, numTailBytes), cb), 2) {
                         i := add(i, 1)
                     } {
@@ -933,14 +918,7 @@ library BytesLib {
         return success;
     }
 
-    function equalStorage(
-        bytes storage _preBytes,
-        bytes memory _postBytes
-    )
-        internal
-        view
-        returns (bool)
-    {
+    function equalStorage(bytes storage _preBytes, bytes memory _postBytes) internal view returns (bool) {
         bool success = true;
 
         assembly {
@@ -983,7 +961,9 @@ library BytesLib {
 
                         // the next line is the loop condition:
                         // while(uint256(mc < end) + cb == 2)
-                        for {} eq(add(lt(mc, end), cb), 2) {
+                        for {
+
+                        } eq(add(lt(mc, end), cb), 2) {
                             sc := add(sc, 1)
                             mc := add(mc, 0x20)
                         } {
@@ -2774,7 +2754,8 @@ abstract contract Initializable {
     modifier initializer() {
         bool isTopLevelCall = !_initializing;
         require(
-            (isTopLevelCall && _initialized < 1) || (!AddressUpgradeable.isContract(address(this)) && _initialized == 1),
+            (isTopLevelCall && _initialized < 1) ||
+                (!AddressUpgradeable.isContract(address(this)) && _initialized == 1),
             "Initializable: contract is already initialized"
         );
         _initialized = 1;
@@ -2968,11 +2949,9 @@ abstract contract Ownable is Context {
  * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract ContextUpgradeable is Initializable {
-    function __Context_init() internal onlyInitializing {
-    }
+    function __Context_init() internal onlyInitializing {}
 
-    function __Context_init_unchained() internal onlyInitializing {
-    }
+    function __Context_init_unchained() internal onlyInitializing {}
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
     }
@@ -3944,7 +3923,7 @@ abstract contract OAppSenderUpgradeable is OAppCoreUpgradeable {
 
         return
             endpoint.send{ value: messageValue }(
-            // solhint-disable-next-line check-send-result
+                // solhint-disable-next-line check-send-result
                 MessagingParams(_dstEid, _getPeerOrRevert(_dstEid), _message, _options, _fee.lzTokenFee > 0),
                 _refundAddress
             );
@@ -4355,4 +4334,3 @@ contract RemoteHop is Ownable2Step {
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
     }
 }
-

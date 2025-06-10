@@ -13,7 +13,12 @@ struct MessagingFee {
     uint256 lzTokenFee;
 }
 interface IRemoteHop {
-    function quote(address oft, uint32 dstEid, bytes32 toAsBytes32, uint256 amount) external view returns (MessagingFee memory fee);
+    function quote(
+        address oft,
+        uint32 dstEid,
+        bytes32 toAsBytes32,
+        uint256 amount
+    ) external view returns (MessagingFee memory fee);
     function sendOFT(address oft, uint32 dstEid, bytes32 toAsBytes23, uint256 amount) external payable;
 }
 interface IMintRedeemHop {
@@ -23,11 +28,9 @@ interface IMintRedeemHop {
 
 // forge script src/script/test/TestHop.s.sol --rpc-url https://eth-sepolia.public.blastapi.io --broadcast --evm-version shanghai
 contract TestHop is BaseScript {
-
     uint256 public configDeployerPK = vm.envUint("PK_CONFIG_DEPLOYER");
 
     function run() public {
-
         // Eth sepolia frxUSD => (fraxtal) => Arb sepolia frxUSD OFT
 
         address oft = 0x29a5134D3B22F47AD52e0A22A63247363e9F35c2; // frxUSD OFT on Eth Sepolia
@@ -39,11 +42,11 @@ contract TestHop is BaseScript {
         // 1. Quote cost of send
         MessagingFee memory fee = IRemoteHop(remoteHop).quote(oft, dstEid, to, amount);
 
-        // 2. Approve OFT underlying token to be transferred to the remoteHop 
+        // 2. Approve OFT underlying token to be transferred to the remoteHop
         vm.startBroadcast(configDeployerPK);
         IERC20(IOFT(oft).token()).approve(remoteHop, amount);
 
         // 3. Send the OFT to destination
-        IRemoteHop(remoteHop).sendOFT{value: fee.nativeFee}(oft, dstEid, to, amount);
+        IRemoteHop(remoteHop).sendOFT{ value: fee.nativeFee }(oft, dstEid, to, amount);
     }
 }

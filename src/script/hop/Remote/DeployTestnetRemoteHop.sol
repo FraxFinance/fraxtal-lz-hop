@@ -5,8 +5,8 @@ import { console } from "frax-std/BaseScript.sol";
 import { RemoteHop } from "src/contracts/hop/RemoteHop.sol";
 import { RemoteMintRedeemHop } from "src/contracts/hop/RemoteMintRedeemHop.sol";
 
-abstract contract DeployRemoteHop is BaseScript {
-    address constant FRAXTAL_HOP = 0x2606C2BbE377EDa9e38FFf300D422Ca7cCAB1e5d;
+abstract contract DeployTestnetRemoteHop is BaseScript {
+    address constant FRAXTAL_HOP = 0x45c6852A5188Ce1905567EA83454329bd4982007;
 
     address EXECUTOR;
     address DVN;

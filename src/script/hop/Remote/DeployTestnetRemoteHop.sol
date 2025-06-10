@@ -2,11 +2,10 @@ pragma solidity 0.8.23;
 
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/BaseScript.sol";
-import { RemoteHop } from "src/contracts/hop/RemoteHop.sol";
-import { RemoteMintRedeemHop } from "src/contracts/hop/RemoteMintRedeemHop.sol";
+import { TestnetRemoteHop } from "src/contracts/hop/TestnetRemoteHop.sol";
 
 abstract contract DeployTestnetRemoteHop is BaseScript {
-    address constant FRAXTAL_HOP = 0x45c6852A5188Ce1905567EA83454329bd4982007;
+    address constant FRAXTAL_HOP = 0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586;
 
     address EXECUTOR;
     address DVN;
@@ -18,7 +17,7 @@ abstract contract DeployTestnetRemoteHop is BaseScript {
     function run() public broadcaster {
         approvedOfts.push(frxUsdOft);
 
-        RemoteHop remoteHop = new RemoteHop({
+        TestnetRemoteHop remoteHop = new TestnetRemoteHop({
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
             _numDVNs: 2,
             _EXECUTOR: EXECUTOR,

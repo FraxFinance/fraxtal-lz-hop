@@ -107,6 +107,6 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 ### Testnet
 | Chain | `RemoteHop` |
 | --- | --- |
-| Fraxtal | [`0x45c6852A5188Ce1905567EA83454329bd4982007`](https://holesky.fraxscan.com/address/0x45c6852A5188Ce1905567EA83454329bd4982007) |
-| Eth Sepolia | [`0x7a07D606c87b7251c2953A30Fa445d8c5F856C7A`](https://sepolia.etherscan.io/address/0x7a07d606c87b7251c2953a30fa445d8c5f856c7a) |
-| Arb Sepolia | [`0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263`](https://sepolia.arbiscan.io/address/0x983af86c94fe3963989c22ceeeb6ea8eac32d263) |
+| Fraxtal | [`0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586`](https://holesky.fraxscan.com/address/0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586) |
+| Eth Sepolia | [`0xa46A266dCBf199a71532c76967e200994C5A0D6d`](https://sepolia.etherscan.io/address/0xa46A266dCBf199a71532c76967e200994C5A0D6d) |
+| Arb Sepolia | [`0x7a07D606c87b7251c2953A30Fa445d8c5F856C7A`](https://sepolia.arbiscan.io/address/0x7a07D606c87b7251c2953A30Fa445d8c5F856C7A) |

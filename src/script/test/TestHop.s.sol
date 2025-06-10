@@ -21,7 +21,7 @@ interface IMintRedeemHop {
     function mintRedeem(address oft, uint256 amount) external payable;
 }
 
-// forge script src/script/test/TestHop.s.sol --rpc-url https://eth-sepolia.public.blastapi.io --broadcast
+// forge script src/script/test/TestHop.s.sol --rpc-url https://eth-sepolia.public.blastapi.io --broadcast --evm-version shanghai
 contract TestHop is BaseScript {
 
     uint256 public configDeployerPK = vm.envUint("PK_CONFIG_DEPLOYER");
@@ -31,9 +31,9 @@ contract TestHop is BaseScript {
         // Eth sepolia frxUSD => (fraxtal) => Arb sepolia frxUSD OFT
 
         address oft = 0x29a5134D3B22F47AD52e0A22A63247363e9F35c2; // frxUSD OFT on Eth Sepolia
-        address remoteHop = 0x7a07D606c87b7251c2953A30Fa445d8c5F856C7A; // See deployed contracts below
-        uint256 amount = 1e18;
-        uint32 dstEid = 40231; // Sonic
+        address remoteHop = 0xa46A266dCBf199a71532c76967e200994C5A0D6d; // See deployed contracts below
+        uint256 amount = 10_000e18;
+        uint32 dstEid = 40255; // testnet fraxtal
         bytes32 to = bytes32(uint256(uint160(vm.addr(configDeployerPK)))); // example
 
         // 1. Quote cost of send

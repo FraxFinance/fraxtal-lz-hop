@@ -18,7 +18,7 @@ libs = ['lib', 'node_modules']
 # Whether or not to enable `vm.ffi`
 ffi = false
 # Enables or disables the optimizer
-optimizer = true
+optimizer = false
 # The number of optimizer runs
 optimizer_runs = 200 
 # use the via-ir compiler flag
@@ -30,7 +30,7 @@ cbor_metadata = false
 # Contracts to track with --gas-report
 #gas_reports = [] 
 solc-version = '0.8.23'
-evm_version = 'shanghai'
+evm_version = 'paris'
 
 [fuzz]
 # Amount of runs per fuzz test

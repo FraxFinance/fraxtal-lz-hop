@@ -35,7 +35,7 @@ interface IRemoteHop {
 interface IMintRedeemHop {
     function quote(address oft, bytes32 toAsBytes32, uint256 amount) external view returns (MessagingFee memory fee);
     function mintRedeem(address oft, uint256 amount) external payable;
-}s
+}
 ```
 
 ### RemoteHop

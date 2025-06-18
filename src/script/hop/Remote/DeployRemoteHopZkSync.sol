@@ -15,7 +15,7 @@ contract DeployRemoteHopZkSync is DeployRemoteHop {
         sfrxUsdOft = 0x9F87fbb47C33Cd0614E43500b9511018116F79eE;
         frxEthOft = 0xc7Ab797019156b543B7a3fBF5A99ECDab9eb4440;
         sfrxEthOft = 0xFD78FD3667DeF2F1097Ed221ec503AE477155394;
-        fxsOft = 0xAf01aE13Fb67AD2bb2D76f29A83961069a5F245F;
+        wFraxOft = 0xAf01aE13Fb67AD2bb2D76f29A83961069a5F245F;
         fpiOft = 0x580F2ee1476eDF4B1760bd68f6AaBaD57dec420E;
     }
 }

@@ -15,7 +15,7 @@ contract DeployRemoteHopBase is DeployRemoteHop {
         sfrxUsdOft = 0x91A3f8a8d7a881fBDfcfEcd7A2Dc92a46DCfa14e;
         frxEthOft = 0x7eb8d1E4E2D0C8b9bEDA7a97b305cF49F3eeE8dA;
         sfrxEthOft = 0x192e0C7Cc9B263D93fa6d472De47bBefe1Fb12bA;
-        fxsOft = 0x0CEAC003B0d2479BebeC9f4b2EBAd0a803759bbf;
+        wFraxOft = 0x0CEAC003B0d2479BebeC9f4b2EBAd0a803759bbf;
         fpiOft = 0xEEdd3A0DDDF977462A97C1F0eBb89C3fbe8D084B;
     }
 }

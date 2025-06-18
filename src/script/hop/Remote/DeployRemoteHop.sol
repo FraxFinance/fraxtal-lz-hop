@@ -17,7 +17,7 @@ abstract contract DeployRemoteHop is BaseScript {
     address sfrxUsdOft;
     address frxEthOft;
     address sfrxEthOft;
-    address fxsOft;
+    address wFraxOft;
     address fpiOft;
     address[] approvedOfts;
 
@@ -26,7 +26,7 @@ abstract contract DeployRemoteHop is BaseScript {
         approvedOfts.push(sfrxUsdOft);
         approvedOfts.push(frxEthOft);
         approvedOfts.push(sfrxEthOft);
-        approvedOfts.push(fxsOft);
+        approvedOfts.push(wFraxOft);
         approvedOfts.push(fpiOft);
 
         RemoteHop remoteHop = new RemoteHop({

@@ -15,7 +15,7 @@ contract DeployRemoteHopEthereum is DeployRemoteHop {
         sfrxUsdOft = 0x7311CEA93ccf5f4F7b789eE31eBA5D9B9290E126;
         frxEthOft = 0x1c1649A38f4A3c5A0c4a24070f688C525AB7D6E6;
         sfrxEthOft = 0xbBc424e58ED38dd911309611ae2d7A23014Bd960;
-        fxsOft = 0xC6F59a4fD50cAc677B51558489E03138Ac1784EC;
+        wFraxOft = 0xC6F59a4fD50cAc677B51558489E03138Ac1784EC;
         fpiOft = 0x9033BAD7aA130a2466060A2dA71fAe2219781B4b;
     }
 }

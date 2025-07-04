@@ -102,14 +102,14 @@ contract RemoteCall is Ownable2Step, IOAppComposer {
         if (remoteAddress[srcEid] != composeFrom) revert InvalidSourceAddress();
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (address target, uint256 _value, bytes memory data) = abi.decode(
+        (address target, uint256 _value, bytes32 originalCaller, bytes memory data) = abi.decode(
             OFTComposeMsgCodec.composeMsg(_message),
-            (address, uint256, bytes)
+            (address, uint256, bytes32, bytes)
         );
 
         // Set the caller context
         callerEid = srcEid;
-        callerAddress = composeFrom;
+        callerAddress = originalCaller;
 
         // Execute the target call
         (bool success, ) = target.call{ value: _value }(data);
@@ -183,7 +183,7 @@ contract RemoteCall is Ownable2Step, IOAppComposer {
         sendParam.amountLD = 0;
         sendParam.minAmountLD = 0;
         sendParam.extraOptions = options;
-        sendParam.composeMsg = abi.encode(_target, _value, _data);
+        sendParam.composeMsg = abi.encode(_target, _value, bytes32(uint256(uint160(msg.sender))), _data);
     }
 
     function quote(

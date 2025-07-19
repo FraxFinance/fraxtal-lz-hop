@@ -8,8 +8,7 @@ contract DeployRemoteHopInk is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0xFEbCF17b11376C724AB5a5229803C6e838b6eAe5;
         DVN = 0x174F2bA26f8ADeAfA82663bcf908288d5DbCa649;
-        TREASURY = 0x665bd7A4b5765758ccF1eB5b6dEAf6bb07b6c531;
-        EID = 30339;
+        SEND_LIBRARY = 0x76111DE813F83AAAdBD62773Bf41247634e2319a;
 
         frxUsdOft = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
         sfrxUsdOft = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;

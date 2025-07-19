@@ -8,8 +8,7 @@ contract DeployRemoteHopOptimism is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x2D2ea0697bdbede3F01553D2Ae4B8d0c486B666e;
         DVN = 0x6A02D83e8d433304bba74EF1c427913958187142;
-        TREASURY = 0x6c26c61a97006888ea9E4FA36584c7df57Cd9dA3;
-        EID = 30111;
+        SEND_LIBRARY = 0x1322871e4ab09Bc7f5717189434f97bBD9546e95;
 
         frxUsdOft = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
         sfrxUsdOft = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;

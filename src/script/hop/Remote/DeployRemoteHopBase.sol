@@ -8,8 +8,7 @@ contract DeployRemoteHopBase is DeployRemoteHop {
     constructor() {
         EXECUTOR = 0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4;
         DVN = 0x9e059a54699a285714207b43B055483E78FAac25;
-        TREASURY = 0xCcD558d6839e128320bBC932CBBa2c890a5518E8;
-        EID = 30184;
+        SEND_LIBRARY = 0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2;
 
         frxUsdOft = 0xe5020A6d073a794B6E7f05678707dE47986Fb0b6;
         sfrxUsdOft = 0x91A3f8a8d7a881fBDfcfEcd7A2Dc92a46DCfa14e;

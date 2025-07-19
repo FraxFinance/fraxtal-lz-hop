@@ -38,7 +38,6 @@ abstract contract DeployRemoteHop is BaseScript {
     address[] approvedOfts;
 
     function run() public broadcaster {
-        
         _validateAddrs();
 
         approvedOfts.push(frxUsdOft);

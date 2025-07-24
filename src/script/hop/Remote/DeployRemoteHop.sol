@@ -78,12 +78,12 @@ abstract contract DeployRemoteHop is BaseScript {
         require(IExecutor(EXECUTOR).localEidV2() != 0, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 
-        require(isStringEqual(IERC20Metadata(frxUsdOft).symbol(), "frxUSD", "frxUsdOft != frxUSD"));
-        require(isStringEqual(IERC20Metadata(sfrxUsdOft).symbol(), "sfrxUSD", "sfrxUsdOft != sfrxUSD"));
-        require(isStringEqual(IERC20Metadata(frxEthOft).symbol(), "frxETH", "frxEthOft != frxETH"));
-        require(isStringEqual(IERC20Metadata(sfrxEthOft).symbol(), "sfrxETH", "sfrxEthOft != sfrxETH"));
-        require(isStringEqual(IERC20Metadata(wFraxOft).symbol(), "WFRAX", "wFraxOft != WFRAX"));
-        require(isStringEqual(IERC20Metadata(fpiOft).symbol(), "FPI", "fpiOft != FPI"));
+        require(isStringEqual(IERC20Metadata(frxUsdOft).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
+        require(isStringEqual(IERC20Metadata(sfrxUsdOft).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
+        require(isStringEqual(IERC20Metadata(frxEthOft).symbol(), "frxETH"), "frxEthOft != frxETH");
+        require(isStringEqual(IERC20Metadata(sfrxEthOft).symbol(), "sfrxETH"), "sfrxEthOft != sfrxETH");
+        require(isStringEqual(IERC20Metadata(wFraxOft).symbol(), "WFRAX"), "wFraxOft != WFRAX");
+        require(isStringEqual(IERC20Metadata(fpiOft).symbol(), "FPI"), "fpiOft != FPI");
     }
 
     function isStringEqual(string memory _a, string memory _b) public pure returns (bool) {

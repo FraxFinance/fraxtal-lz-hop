@@ -104,7 +104,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | ZkSync | [`0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb`](https://era.zksync.network/address/0xc5e4a0cfef8d801278927c25fb51c1db7b69ddfb) | [`0xa05e9f9b97c963b5651ed6a50fae46625a8c400b`](https://era.zksync.network/address/0xa05e9f9b97c963b5651ed6a50fae46625a8c400b) |
 | Worldchain | [`0x938d99A81814f66b01010d19DDce92A633441699`](https://worldscan.org/address/0x938d99A81814f66b01010d19DDce92A633441699) | [`0x111ddab65Af5fF96b674400246699ED40F550De1`](https://worldscan.org/address/0x111ddab65Af5fF96b674400246699ED40F550De1) |
 | Unichain | [`0xc71BF5Ee4740405030eF521F18A96eA14fec802D`](https://uniscan.xyz/address/0xc71BF5Ee4740405030eF521F18A96eA14fec802D) | [`0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263`](https://uniscan.xyz/address/0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263) |
-| Unichain | [`0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876`](https://explorer.plume.org/address/0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876) | [`0xa71f2204EDDB8d84F411A0C712687FAe5002e7Fb`](https://explorer.plume.org/address/0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263) |
+| Plume | [`0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876`](https://explorer.plume.org/address/0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876) | [`0xa71f2204EDDB8d84F411A0C712687FAe5002e7Fb`](https://explorer.plume.org/address/0xa71f2204EDDB8d84F411A0C712687FAe5002e7Fb) |
 
 ### Testnet
 | Chain | `RemoteHop` |

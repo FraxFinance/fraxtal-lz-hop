@@ -105,6 +105,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | Worldchain | [`0x938d99A81814f66b01010d19DDce92A633441699`](https://worldscan.org/address/0x938d99A81814f66b01010d19DDce92A633441699) | [`0x111ddab65Af5fF96b674400246699ED40F550De1`](https://worldscan.org/address/0x111ddab65Af5fF96b674400246699ED40F550De1) |
 | Unichain | [`0xc71BF5Ee4740405030eF521F18A96eA14fec802D`](https://uniscan.xyz/address/0xc71BF5Ee4740405030eF521F18A96eA14fec802D) | [`0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263`](https://uniscan.xyz/address/0x983aF86c94Fe3963989c22CeeEb6eA8Eac32D263) |
 | Plume | [`0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876`](https://explorer.plume.org/address/0x6cA98f43719231d38F6426DB64C7F3D5C7CE7876) | [`0xa71f2204EDDB8d84F411A0C712687FAe5002e7Fb`](https://explorer.plume.org/address/0xa71f2204EDDB8d84F411A0C712687FAe5002e7Fb) |
+| Katana | [`0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c`](https://explorer.katanarpc.com/address/0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c) | [`0xF6f45CCB5E85D1400067ee66F9e168f83e86124E`](https://explorer.katanarpc.com/address/0xF6f45CCB5E85D1400067ee66F9e168f83e86124E) |
 
 ### Testnet
 | Chain | `RemoteHop` |

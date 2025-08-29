@@ -7,6 +7,8 @@ import { TestnetRemoteHop } from "src/contracts/hop/TestnetRemoteHop.sol";
 abstract contract DeployTestnetRemoteHop is BaseScript {
     address constant FRAXTAL_HOP = 0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586;
 
+    address owner;
+
     address EXECUTOR;
     address DVN;
     address TREASURY;
@@ -18,6 +20,7 @@ abstract contract DeployTestnetRemoteHop is BaseScript {
         approvedOfts.push(frxUsdOft);
 
         TestnetRemoteHop remoteHop = new TestnetRemoteHop({
+            _owner: owner,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
             _numDVNs: 2,
             _EXECUTOR: EXECUTOR,

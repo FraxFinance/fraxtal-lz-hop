@@ -32,7 +32,15 @@ contract FraxtalHopTest is BaseTest {
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
         hop = new FraxtalHop(approvedOfts);
-        remoteHop = new RemoteHop(address(1), OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, approvedOfts);
+        remoteHop = new RemoteHop(
+            address(1),
+            OFTMsgCodec.addressToBytes32(address(hop)),
+            2,
+            EXECUTOR,
+            DVN,
+            TREASURY,
+            approvedOfts
+        );
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).call{ value: 1 ether }("");

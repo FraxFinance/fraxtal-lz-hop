@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
+
 import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 
-// forge script src/script/hop/Remote/DeployRemoteHopBlast.sol --rpc-url https://rpc.blast.io --broadcast --verify --verifier etherscan --etherscan-api-key $BLASTSCAN_API_KEY
-/// @notice CHAIN DEPRECATED, NO LONGER IN USE.
-contract DeployRemoteHopBlast is DeployRemoteHop {
+// forge script src/script/hop/Remote/DeployRemoteHopKatana.sol --rpc-url https://rpc.katana.network --broadcast --verify --verifier blockscout --verifier-url https://explorer.katanarpc.com/api/ --evm-version "shanghai"
+contract DeployRemoteHopKatana is DeployRemoteHop {
     constructor() {
-        // EXECUTOR = 0x4208D6E27538189bB48E603D6123A94b8Abe0A0b;
-        // DVN = 0xc097ab8CD7b053326DFe9fB3E3a31a0CCe3B526f;
-        // TREASURY = 0x2367325334447C5E1E0f1b3a6fB947b262F58312;
-        // EID = 30243;
+        EXECUTOR = 0x4208D6E27538189bB48E603D6123A94b8Abe0A0b;
+        DVN = 0x282b3386571f7f794450d5789911a9804FA346b4;
+        SEND_LIBRARY = 0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7;
 
         frxUsdOft = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
         sfrxUsdOft = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;

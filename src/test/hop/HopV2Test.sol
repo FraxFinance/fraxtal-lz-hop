@@ -9,6 +9,7 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { FraxtalHopV2 } from "src/contracts/hop/FraxtalHopV2.sol";
 import { RemoteHopV2 } from "src/contracts/hop/RemoteHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
+import { TestHopComposer } from "./TestHopComposer.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract HopV2Test is BaseTest {
@@ -197,7 +198,7 @@ contract HopV2Test is BaseTest {
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
         uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
-        hop.sendOFT{value: fee }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -214,7 +215,7 @@ contract HopV2Test is BaseTest {
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
         uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello").nativeFee;
-        hop.sendOFT{value: fee }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
+        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -231,7 +232,7 @@ contract HopV2Test is BaseTest {
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
         uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
-        remoteHop.sendOFT{value: fee }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -248,17 +249,90 @@ contract HopV2Test is BaseTest {
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
         uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello").nativeFee;
-        remoteHop.sendOFT{value: fee }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
+        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
     }    
-}
 
-contract TestHopComposer is IHopComposer {
-    event Composed(uint32 srcEid, bytes32 srcAddress, address oft, uint256 amount, bytes composeMsg);
 
-    function hopCompose(uint32 _srcEid, bytes32 _srcAddress, address _oft, uint256 _amount, bytes memory _composeMsg) external override {
-        emit Composed(_srcEid, _srcAddress, _oft, _amount, _composeMsg);
+    function test_FraxtalSendOftLocal() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        address reciever = address(0x4321);
+        deal(frxUSD, address(sender), 1e18);
+        vm.deal(sender, 1 ether);
+        vm.startPrank(sender);
+        IERC20(frxUSD).approve(address(hop), 1e18);
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        assertEq(fee, 0);
+        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
+        assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
+        assertEq(IERC20(frxUSD).balanceOf(address(reciever)), 1e18);
     }
+
+    function test_FraxtalSendOftWithHopComposeLocal() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        TestHopComposer testComposer = new TestHopComposer();
+        deal(frxUSD, address(sender), 1e18);
+        vm.deal(sender, 1 ether);
+        vm.startPrank(sender);
+        IERC20(frxUSD).approve(address(hop), 1e18);
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,0,"Hello").nativeFee;
+        assertEq(fee, 0);
+        vm.expectEmit(true, true, true, true);
+        emit Composed(30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,0,"Hello");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
+        assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
+        assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
+    }
+
+    function test_ArbitrumSendOftLocal() public {
+        setupArbitrum();
+        address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
+        address frxUSD = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
+        address sender = address(0x1234);
+        address reciever = address(0x4321);
+        deal(frxUSD, address(sender), 1e18);
+        vm.deal(sender, 1 ether);
+        vm.startPrank(sender);
+        IERC20(frxUSD).approve(address(remoteHop), 1e18);
+        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        assertEq(fee, 0);
+        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
+        assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
+        assertEq(IERC20(frxUSD).balanceOf(address(reciever)), 1e18);
+    }    
+
+    function test_ArbitrumSendOftWithHopComposeLocal() public {
+        setupArbitrum();
+        address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
+        address frxUSD = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
+        address sender = address(0x1234);
+        TestHopComposer testComposer = new TestHopComposer();
+        deal(frxUSD, address(sender), 1e18);
+        vm.deal(sender, 1 ether);
+        vm.startPrank(sender);
+        IERC20(frxUSD).approve(address(remoteHop), 1e18);
+        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,1000000,"Hello").nativeFee;
+        assertEq(fee, 0);
+        vm.expectEmit(true, true, true, true);
+        emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,1000000,"Hello");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
+        assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
+        assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
+    }     
 }

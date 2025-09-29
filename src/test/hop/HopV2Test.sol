@@ -34,12 +34,12 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0xd86fBBd0c8715d2C1f40e451e5C3514e65E7576A);
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
-        vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
+        vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
         hop = new FraxtalHopV2(approvedOfts);
         remoteHop = new RemoteHopV2(OFTMsgCodec.addressToBytes32(address(hop)), 2, ENDPOINT, EXECUTOR, DVN, TREASURY, 30110, approvedOfts);
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
-        payable(address(hop)).call{ value: 1 ether }("");
+        payable(address(hop)).call{ value: 100 ether }("");
     }
 
     function setupArbitrum() public {
@@ -137,6 +137,30 @@ contract HopV2Test is BaseTest {
         assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
     }
 
+    function test_lzCompose_Fraxtal_Remote_HopCompose() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        TestHopComposer testComposer = new TestHopComposer();
+        deal(frxUSD, address(hop), 1e18);
+        bytes memory hopComposeMsg = abi.encode(30110, sender, "Hello");
+        bytes memory _composeMsg = abi.encode(OFTMsgCodec.addressToBytes32(address(testComposer)), 30101,1000000,hopComposeMsg);
+        _composeMsg = abi.encodePacked(OFTMsgCodec.addressToBytes32(address(remoteHop)), _composeMsg);
+
+        bytes memory _msg = OFTComposeMsgCodec.encode(
+            0, // nonce of the origin transaction
+            30110, // source endpoint id of the transaction
+            1e18, // the token amount in local decimals to credit
+            _composeMsg // the composed message
+        );
+        vm.startPrank(ENDPOINT);
+        hop.lzCompose(_oApp, bytes32(0), _msg, address(0), "");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(testComposer)));
+        assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 0e18); // tokens send to other chain
+    }    
+
     function test_lzCompose_ArbitrumSend() public {
         setupArbitrum();
         address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
@@ -186,6 +210,80 @@ contract HopV2Test is BaseTest {
         assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
     }
 
+    function test_lzCompose_FraxtalSend_DirectMessage() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        address reciever = address(0x4321);
+        deal(frxUSD, address(hop), 1e18);
+        bytes memory _composeMsg = abi.encode(OFTMsgCodec.addressToBytes32(address(reciever)), 30255,0,"");
+        _composeMsg = abi.encodePacked(OFTMsgCodec.addressToBytes32(address(sender)), _composeMsg);
+
+        bytes memory _msg = OFTComposeMsgCodec.encode(
+            0, // nonce of the origin transaction
+            30110, // source endpoint id of the transaction
+            1e18, // the token amount in local decimals to credit
+            _composeMsg // the composed message
+        );
+        vm.startPrank(ENDPOINT);
+        hop.lzCompose(_oApp, bytes32(0), _msg, address(0), "");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(reciever)));
+        assertEq(IERC20(frxUSD).balanceOf(address(reciever)), 1e18);
+    }       
+
+
+    function test_lzCompose_FraxtalHopCompose_DirectMessage() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        TestHopComposer testComposer = new TestHopComposer();
+        deal(frxUSD, address(hop), 1e18);
+        bytes memory hopComposeMsg = "Hello";
+        bytes memory _composeMsg = abi.encode(OFTMsgCodec.addressToBytes32(address(testComposer)), 30255,1000000,hopComposeMsg);
+        _composeMsg = abi.encodePacked(OFTMsgCodec.addressToBytes32(address(sender)), _composeMsg);
+
+        bytes memory _msg = OFTComposeMsgCodec.encode(
+            0, // nonce of the origin transaction
+            30110, // source endpoint id of the transaction
+            1e18, // the token amount in local decimals to credit
+            _composeMsg // the composed message
+        );
+        vm.startPrank(ENDPOINT);
+        vm.expectEmit(true, true, true, true);
+        emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        hop.lzCompose(_oApp, bytes32(0), _msg, address(0), "");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(testComposer)));
+        assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
+    }
+
+    function test_lzCompose_Fraxtal_Remote_HopCompose_DirectMessage() public {
+        setUpFraxtal();
+        address _oApp = address(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
+        address frxUSD = address(0xFc00000000000000000000000000000000000001);
+        address sender = address(0x1234);
+        TestHopComposer testComposer = new TestHopComposer();
+        deal(frxUSD, address(hop), 1e18);
+        vm.deal(address(ENDPOINT), 100 ether);
+        bytes memory hopComposeMsg = "Hello";
+        bytes memory _composeMsg = abi.encode(OFTMsgCodec.addressToBytes32(address(testComposer)), 30101,150000,hopComposeMsg);
+        _composeMsg = abi.encodePacked(OFTMsgCodec.addressToBytes32(address(sender)), _composeMsg);
+
+        bytes memory _msg = OFTComposeMsgCodec.encode(
+            0, // nonce of the origin transaction
+            30110, // source endpoint id of the transaction
+            1e18, // the token amount in local decimals to credit
+            _composeMsg // the composed message
+        );
+        vm.startPrank(ENDPOINT);
+        hop.lzCompose{value: 0.3e18}(_oApp, bytes32(0), _msg, address(0), "");
+        vm.stopPrank();
+        console.log("tokens:", IERC20(frxUSD).balanceOf(address(testComposer)));
+        assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 0e18); // tokens send to other chain
+    }     
 
     function test_FraxtalSendOft() public {
         setUpFraxtal();
@@ -215,6 +313,7 @@ contract HopV2Test is BaseTest {
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
         uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello").nativeFee;
+        console.log("fee:", fee);
         hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));

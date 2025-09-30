@@ -21,7 +21,7 @@ interface IDVN {
 }
 
 abstract contract DeployRemoteHopV2 is BaseScript {
-    address constant FRAXTAL_HOP = 0x546FbA85314f633eEE84cfEe249dE535D82ae252;
+    address constant FRAXTAL_HOP = 0xA6e5d568Fd930A70034Ee74afd22C49950047573;
 
     address EXECUTOR;
     address DVN;

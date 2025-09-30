@@ -184,9 +184,11 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
             sendParam.to = _to;
         } else {
             bytes memory options = OptionsBuilder.newOptions();
-            if (_composeGas < 150000) _composeGas = 150000;
+            if (_composeGas < 400000) _composeGas = 400000;
             sendParam.to = fraxtalHop; 
-            options = OptionsBuilder.addExecutorLzComposeOption(options, 0, _composeGas, 0);
+            uint128 fraxtalGas = 1000000;
+            if (_composeGas > fraxtalGas && _dstEid == FRAXTAL_EID) fraxtalGas = _composeGas;
+            options = OptionsBuilder.addExecutorLzComposeOption(options, 0, fraxtalGas, 0);
             sendParam.extraOptions = options;
             if (_composeMsg.length == 0) sendParam.composeMsg = abi.encode(_to, _dstEid, _composeGas, "");
             else sendParam.composeMsg = abi.encode(_to, _dstEid, _composeGas, abi.encode(EID, msg.sender, _composeMsg));
@@ -220,7 +222,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         bytes memory options = executorOptions[_dstEid];
         if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
         if (_composeMsg.length != 0) {
-            if (_composeGas < 150000) _composeGas = 150000;
+            if (_composeGas < 400000) _composeGas = 400000;
             options = abi.encodePacked(options,hex"010013030000", _composeGas);
         }
         uint256 executorFee = IExecutor(EXECUTOR).getFee(_dstEid, address(this), 36, options);

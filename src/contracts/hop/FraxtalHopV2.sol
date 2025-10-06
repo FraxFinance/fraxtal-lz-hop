@@ -32,6 +32,13 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
     mapping(uint32 => bytes32) public remoteHop;
     mapping(bytes32 => bool) public messageProcessed;
     mapping(address => bool) public approvedOft;
+ 
+    enum HopType {
+        EXECUTE,
+        READ_OUTBOUND,
+        READ_DESTINATION,
+        READ_RETURN
+    }
 
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
@@ -122,34 +129,51 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         }
 
         // Extract the composed message from the delivered message using the MsgCodec
+        // TODO: add READ decoding here
         (bytes32 _recipient, uint32 _dstEid, uint128 _composeGas, bytes memory _composeMsg) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, uint32, uint128, bytes));
         if (directMessage) {
             // For direct messages, we need to add the original srcEid and composeFrom to the composeMsg
             if (_composeMsg.length > 0) _composeMsg = abi.encode(srcEid, composeFrom, _composeMsg);
         }
-        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        address __oft = _oft;
-        if (_dstEid == FRAXTAL_EID) {
-            if (amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(__oft).token()), address(uint160(uint256(_recipient))), amount);
-            if (_composeMsg.length != 0) {
-                // We call hopCompose to the recipient on the local chain
-                (uint32 _srcEid, bytes32 _srcAddress, bytes memory _composeMsg2) = abi.decode(_composeMsg, (uint32, bytes32, bytes));
-                IHopComposer(address(uint160(uint256(_recipient)))).hopCompose(_srcEid, _srcAddress, __oft, amount, _composeMsg2);
-            }
-        } else {
-            bytes memory _composeMsg2;
-            bytes32 _to;
-            if (_composeMsg.length > 0) {
-                _composeMsg2 = abi.encode(_recipient,_composeMsg);
-                _to = remoteHop[_dstEid];
+        if (_hopType == HopType.EXECUTE) {
+            uint256 amount = OFTComposeMsgCodec.amountLD(_message);
+            if (_dstEid == FRAXTAL_EID) {
+                if (amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), address(uint160(uint256(_recipient))), amount);
+                if (_composeMsg.length != 0) {
+                    // We call hopCompose to the recipient on the local chain
+                    (uint32 _srcEid, bytes32 _srcAddress, bytes memory _composeMsg2) = abi.decode(_composeMsg, (uint32, bytes32, bytes));
+                    IHopComposer(address(uint160(uint256(_recipient)))).hopCompose(_srcEid, _srcAddress, _oft, amount, _composeMsg2);
+                }
             } else {
-                _to = _recipient;
+                bytes memory _composeMsg2;
+                bytes32 _to;
+                if (_composeMsg.length > 0) {
+                    _composeMsg2 = abi.encode(_recipient,_composeMsg);
+                    _to = remoteHop[_dstEid];
+                } else {
+                    _to = _recipient;
+                }
+                // We send the tokens to the remote hop
+                SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, amount);
+                _send({ _oft: address(_oft), _dstEid: _dstEid, _to: _to, _amountLD: amount, _composeGas: _composeGas, _composeMsg: _composeMsg2 , _directMessage: directMessage});
             }
-            // We send the tokens to the remote hop
-            SafeERC20.forceApprove(IERC20(IOFT(__oft).token()), __oft, amount);
-            _send({ _oft: address(__oft), _dstEid: _dstEid, _to: _to, _amountLD: amount, _composeGas: _composeGas, _composeMsg: _composeMsg2 , _directMessage: directMessage});
+            emit Hop(_oft, srcEid, _dstEid, _recipient, amount);
+        } else if (_hopType == HopType.READ_OUTBOUND) {
+            if (_dstEid == FRAXTAL_EID) {
+                // TODO: update hopType with READ_RETURN
+                // TODO: static call read
+                // TODO: encode return message and send back to srcEid
+            } else { // _dstEid != FRAXTAL_EID
+                // TODO: update hopType with READ_DESTINATION
+                // TODO: encode arguments with srcEid to send
+                // TODO: send to dstEid
+
+            }
+        } else { // _hopType == HopType.READ_RETURN
+            // TODO: decode message with original srcEid
+            // TODO: send to original srcEid
         }
-        emit Hop(__oft, srcEid, _dstEid, _recipient, amount);
+
     }
 
     function _send(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD, uint128 _composeGas, bytes memory _composeMsg, bool _directMessage) internal {
@@ -218,18 +242,20 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         uint256 _amountLD,
         uint128 _composeGas,
         bytes memory _composeMsg
-    ) public view returns (uint256) {
-        if (_dstEid == FRAXTAL_EID) return 0;
+    ) public view returns (MessagingFee memory fee) {
+        if (_dstEid == FRAXTAL_EID) return MessagingFee(0, 0);
         bytes memory _composeMsg2;
         if (_composeMsg.length > 0) _composeMsg2 = abi.encode(_to,abi.encode(FRAXTAL_EID,msg.sender,_composeMsg));
-        MessagingFee memory fee = _quote(oft, _dstEid, remoteHop[_dstEid], _amountLD, _composeGas, _composeMsg2);
-        return fee.nativeFee;
-    }   
+        fee = _quote(oft, _dstEid, remoteHop[_dstEid], _amountLD, _composeGas, _composeMsg2);
+    }    
 
     function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
     }
+
+    // TODO
+    function readOFT() external pure {}
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
         sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");

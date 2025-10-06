@@ -13,4 +13,7 @@ interface IExecutor {
         uint256 _calldataSize,
         bytes calldata _options
     ) external view returns (uint256 price);
+
+    function endpoint() external view returns (address);
+    function localEidV2() external view returns (uint32);
 }

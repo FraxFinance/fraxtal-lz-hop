@@ -202,8 +202,8 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         uint256 _amountLD,
         uint128 _composeGas,
         bytes memory _composeMsg
-    ) public view returns (MessagingFee memory fee) {
-        if (_dstEid == EID) return MessagingFee(0, 0);
+    ) public view returns (uint256) {
+        if (_dstEid == EID) return 0;
         _amountLD = removeDust(_oft, _amountLD);
         SendParam memory sendParam = _generateSendParam({
             _dstEid: _dstEid,
@@ -213,8 +213,9 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
             _composeGas: _composeGas,
             _composeMsg: _composeMsg
         });
-        fee = IOFT(_oft).quoteSend(sendParam, false);
+        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         fee.nativeFee += quoteHop(_dstEid, _composeGas, _composeMsg);
+        return fee.nativeFee;
     }
 
     function quoteHop(uint32 _dstEid, uint128 _composeGas, bytes memory _composeMsg) public view returns (uint256 finalFee) {

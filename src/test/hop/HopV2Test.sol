@@ -295,7 +295,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
         hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
@@ -312,7 +312,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello").nativeFee;
+        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello");
         console.log("fee:", fee);
         hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
         vm.stopPrank();
@@ -330,7 +330,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
         remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
@@ -347,7 +347,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello").nativeFee;
+        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello");
         remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
@@ -365,7 +365,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
         assertEq(fee, 0);
         hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
@@ -384,7 +384,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,0,"Hello").nativeFee;
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,0,"Hello");
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
         emit Composed(30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
@@ -405,7 +405,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"").nativeFee;
+        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
         assertEq(fee, 0);
         remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
         vm.stopPrank();
@@ -424,7 +424,7 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,1000000,"Hello").nativeFee;
+        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,1000000,"Hello");
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
         emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");

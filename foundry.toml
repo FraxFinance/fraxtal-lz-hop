@@ -18,7 +18,7 @@ libs = ['lib', 'node_modules']
 # Whether or not to enable `vm.ffi`
 ffi = false
 # Enables or disables the optimizer
-optimizer = false
+optimizer = true
 # The number of optimizer runs
 optimizer_runs = 200 
 # use the via-ir compiler flag
@@ -30,7 +30,7 @@ cbor_metadata = false
 # Contracts to track with --gas-report
 #gas_reports = [] 
 solc-version = '0.8.23'
-evm_version = 'paris'
+evm_version = 'cancun'
 
 [fuzz]
 # Amount of runs per fuzz test
@@ -75,11 +75,13 @@ polygon = "${POLYGON_RPC_URL}"
 fraxtal = "${FRAXTAL_RPC_URL}"
 arbitrum = "${ARBITRUM_MAINNET_URL}"
 sonic = "${SONIC_MAINNET_URL}"
+base = "${BASE_MAINNET_URL}"
 
 [etherscan]
 #mainnet = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" }
-#polygon = { key = "${POLYGONSCAN_API_KEY}", url = "${POLYGONSCAN_API_URL}" }
-arbitrum = { key = "${ARBISCAN_API_KEY}", url = "${ARBISCAN_API_URL}" , chain=42161}
-sonic = { key = "${SONICSCAN_API_KEY}", url = "${SONICSCAN_API_URL}" , chain=146}
-fraxtal = { key = "${FRAXSCAN_API_KEY}", url = "${FRAXSCAN_API_URL}", chain=252 }
+#polygon = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" }
+arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" , chain=42161}
+sonic = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}" , chain=146}
+fraxtal = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}", chain=252 }
+base = { key = "${ETHERSCAN_API_KEY}", url = "${ETHERSCAN_API_URL}", chain=8453 }
 sei = {key = "${SEISCAN_API_KEY}", url = "https://seitrace.com/arctic-1/api", chain=1329}

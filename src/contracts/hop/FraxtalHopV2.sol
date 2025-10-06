@@ -218,12 +218,13 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         uint256 _amountLD,
         uint128 _composeGas,
         bytes memory _composeMsg
-    ) public view returns (MessagingFee memory fee) {
-        if (_dstEid == FRAXTAL_EID) return MessagingFee(0, 0);
+    ) public view returns (uint256) {
+        if (_dstEid == FRAXTAL_EID) return 0;
         bytes memory _composeMsg2;
         if (_composeMsg.length > 0) _composeMsg2 = abi.encode(_to,abi.encode(FRAXTAL_EID,msg.sender,_composeMsg));
-        fee = _quote(oft, _dstEid, remoteHop[_dstEid], _amountLD, _composeGas, _composeMsg2);
-    }    
+        MessagingFee memory fee = _quote(oft, _dstEid, remoteHop[_dstEid], _amountLD, _composeGas, _composeMsg2);
+        return fee.nativeFee;
+    }   
 
     function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();

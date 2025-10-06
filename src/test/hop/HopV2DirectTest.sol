@@ -17,7 +17,7 @@ contract HopV2DirectTest is BaseTest {
     FraxtalHopV2 hop = FraxtalHopV2(payable(0xA6e5d568Fd930A70034Ee74afd22C49950047573));
     
     function setupBase() public {
-        vm.createSelectFork(vm.envString("BASE_MAINNET_URL"), 36223865);
+        vm.createSelectFork(vm.envString("BASE_MAINNET_URL"), 36233708);
     }
 
     function send(uint32 _dstEid, bytes32 _to, uint256 _amount, uint256 _composeGas, bytes memory _composeMsg, uint128 _lzComposeValue) public {

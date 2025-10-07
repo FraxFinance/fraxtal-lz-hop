@@ -127,30 +127,50 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         if (paused) revert HopPaused();
         if (!approvedOft[_oft]) revert InvalidOFT();
         _amountLD = removeDust(_oft, _amountLD);
-        SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
-        if (_dstEid == EID) {
-            SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), address(uint160(uint256(_recipient))), _amountLD);
-            if (_data.length != 0) {
-                IHopComposer(address(uint160(uint256(_recipient)))).hopCompose(EID, bytes32(uint256(uint160(msg.sender))), _oft, _amountLD, _data);
-            }
-            if (msg.value > 0) {
-                (bool success, ) = address(msg.sender).call{ value: msg.value }("");
-                if (!success) revert RefundFailed();
-            }
-        } else {
-            // generate hop message
-            HopMessage memory hopMessage = HopMessage({
-                srcEid: EID,
-                dstEid: _dstEid,
-                dstGas: _dstGas,
-                sender: bytes32(uint256(uint160(msg.sender))),
-                recipient: _recipient,
-                data: _data
-            });
 
+        // generate hop message
+        HopMessage memory hopMessage = HopMessage({
+            srcEid: EID,
+            dstEid: _dstEid,
+            dstGas: _dstGas,
+            sender: bytes32(uint256(uint160(msg.sender))),
+            recipient: _recipient,
+            data: _data
+        });
+
+        // Transfer the OFT token to the hop
+        if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
+
+        if (_dstEid == EID) {
+            // Sending from src => src: no LZ send needed
+            _sendLocal(_oft, _amountLD, hopMessage);
+        } else {
             _sendViaFraxtal(_oft, _amountLD, hopMessage);
         }
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
+    }
+
+    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
+        // Transfer the OFT token to the recipient
+        address recipient = address(uint160(uint256(_hopMessage.recipient)));
+        if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
+
+        // Call the compose if there is data
+        if (_hopMessage.data.length != 0) {
+            IHopComposer(recipient).hopCompose({
+                _srcEid: _hopMessage.srcEid,
+                _sender: _hopMessage.sender,
+                _oft: _oft,
+                _amount: _amount,
+                _data: _hopMessage.data
+            });
+        }
+
+        // Refund the excess - TODO: could there be msg.value in lzCompose()._sendLocal()? If yes, msg.sender would be executor/caller...
+        if (msg.value > 0) {
+            (bool success, ) = address(msg.sender).call{ value: msg.value }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _sendViaFraxtal(address _oft, uint256 _amountLD, HopMessage memory _hopMessage) internal {
@@ -201,7 +221,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
     function quote(
         address _oft,
         uint32 _dstEid,
-        bytes32 _to,
+        bytes32 _recipient,
         uint256 _amountLD,
         uint128 _dstGas,
         bytes memory _data
@@ -215,7 +235,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _to,
+            recipient: _recipient,
             data: _data
         });
 
@@ -284,27 +304,9 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        address recipient = address(uint160(uint256(hopMessage.recipient)));
         
-        // transfer tokens if they have been sent in the hop (will be sitting in this hop until compose executes)
-        if (amount > 0) {
-            SafeERC20.safeTransfer(
-                IERC20(IOFT(_oft).token()),
-                recipient,
-                amount
-            );
-        }
-        
-        // Execute the hop compose call if there is data
-        if (hopMessage.data.length != 0) {
-            IHopComposer(recipient).hopCompose({
-                _srcEid: hopMessage.srcEid,
-                _sender: hopMessage.sender,
-                _oft: _oft,
-                _amount: amount,
-                _data: hopMessage.data
-            });
-        }
+        _sendLocal(_oft, amount, hopMessage);
+
         emit Hop(_oft, recipient, amount);
     }
 

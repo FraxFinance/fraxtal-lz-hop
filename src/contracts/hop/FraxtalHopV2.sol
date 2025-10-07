@@ -103,7 +103,7 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
 
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
-        bool isFromRemoteHop = remoteHop[srcEid] == composeFrom;;
+        bool isFromRemoteHop = remoteHop[srcEid] == composeFrom;
         {
             uint64 nonce = OFTComposeMsgCodec.nonce(_message);
             bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
@@ -189,7 +189,7 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         HopMessage memory _hopMessage,
         uint256 _amountLD,
         uint256 _minAmountLD
-    ) internal pure returns (SendParam memory sendParam) {
+    ) internal view returns (SendParam memory sendParam) {
         sendParam.dstEid = _hopMessage.dstEid;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _minAmountLD;

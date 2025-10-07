@@ -307,7 +307,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         
         _sendLocal(_oft, amount, hopMessage);
 
-        emit Hop(_oft, recipient, amount);
+        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
     }
 
 

@@ -141,13 +141,28 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         // Transfer the OFT token to the hop
         if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
 
+        uint256 sendFee;
         if (_dstEid == EID) {
             // Sending from src => src: no LZ send needed
             _sendLocal(_oft, _amountLD, hopMessage);
         } else {
-            _sendViaFraxtal(_oft, _amountLD, hopMessage);
+            sendFee = _sendToDestination(_oft, _amountLD, hopMessage);
         }
+
+        // validate the msg.value
+        _handleMsgValue(sendFee);
+
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
+    }
+
+    function _handleMsgValue(uint256 _sendFee) internal {
+        if (msg.value < _sendFee) {
+            revert InsufficientFee();
+        } else if (msg.value > _sendFee) {
+            // refund redundant fee to sender
+            (bool success, ) = payable(msg.sender).call{ value: msg.value - _sendFee }("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
@@ -165,33 +180,22 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
                 _data: _hopMessage.data
             });
         }
-
-        // Refund the excess - TODO: could there be msg.value in lzCompose()._sendLocal()? If yes, msg.sender would be executor/caller...
-        if (msg.value > 0) {
-            (bool success, ) = address(msg.sender).call{ value: msg.value }("");
-            if (!success) revert RefundFailed();
-        }
     }
 
-    function _sendViaFraxtal(address _oft, uint256 _amountLD, HopMessage memory _hopMessage) internal {
+    function _sendToDestination(address _oft, uint256 _amountLD, HopMessage memory _hopMessage) internal returns (uint256) {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({
             _hopMessage: _hopMessage,
             _amountLD: _amountLD
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        uint256 finalFee = fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
-        if (finalFee > msg.value) revert InsufficientFee();
+        uint256 sendFee = fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
 
         // Send the oft
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
+        if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
-        // Refund the excess
-        if (msg.value > finalFee) {
-            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
-            if (!success) revert RefundFailed();
-        }
+        return sendFee;
     }
 
     function _generateSendParam(

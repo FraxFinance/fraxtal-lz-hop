@@ -5,7 +5,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
-import { IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
+import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
@@ -60,6 +60,37 @@ abstract contract HopV2 is Ownable2Step {
         }
     }
 
+    function _sendToDestination(
+        address _oft,
+        uint256 _amountLD,
+        bool _isFromRemoteHop,
+        HopMessage memory _hopMessage
+    ) internal returns (uint256) {
+        // generate sendParam
+        SendParam memory sendParam = _generateSendParam({
+            _amountLD: removeDust(_oft, _amountLD),
+            _hopMessage: _hopMessage
+        });
+
+        MessagingFee memory fee;
+        if (_isFromRemoteHop) {
+            // Executes when:
+            // - RemoteHop sendOFT() to destination
+            // - Fraxtal lzCompose() from remoteHop
+            fee = IOFT(_oft).quoteSend(sendParam, false);
+        } else {
+            // Executes when:
+            // - Fraxtal sendOFT() to destination
+            // - Fraxtal lzCompose() from unregistered sender
+            fee.nativeFee = msg.value;
+        }
+
+        if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
+        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
+
+        return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
+    }
+
     function _handleMsgValue(uint256 _sendFee) internal {
         if (msg.value < _sendFee) {
             revert InsufficientFee();
@@ -86,4 +117,8 @@ abstract contract HopV2 is Ownable2Step {
     function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
         payable(recipient).call{ value: tokenAmount }("");
     }
+
+    // virtual functions to be overridden
+    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view virtual returns (uint256) {}
+    function _generateSendParam(uint256 _amountLD, HopMessage memory _hopMessage) internal view virtual returns (SendParam memory) {}
 }

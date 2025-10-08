@@ -114,7 +114,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
             // Sending from src => src: no LZ send needed
             _sendLocal(_oft, _amountLD, hopMessage);
         } else {
-            sendFee = _sendToDestination(_oft, _amountLD, hopMessage);
+            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
         }
 
         // validate the msg.value
@@ -123,26 +123,10 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-    function _sendToDestination(address _oft, uint256 _amountLD, HopMessage memory _hopMessage) internal returns (uint256) {
-        // generate arguments
-        SendParam memory sendParam = _generateSendParam({
-            _hopMessage: _hopMessage,
-            _amountLD: _amountLD
-        });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        uint256 sendFee = fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
-
-        // Send the oft
-        if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
-        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
-
-        return sendFee;
-    }
-
     function _generateSendParam(
-        HopMessage memory _hopMessage,
-        uint256 _amountLD
-    ) internal view returns (SendParam memory sendParam) {
+        uint256 _amountLD,
+        HopMessage memory _hopMessage
+    ) internal view override returns (SendParam memory sendParam) {
         sendParam.dstEid = FRAXTAL_EID;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
@@ -193,7 +177,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         return fee.nativeFee;
     }
 
-    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view returns (uint256 finalFee) {
+    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view override returns (uint256 finalFee) {
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(_dstEid, 5, address(this), "");
         bytes memory options = executorOptions[_dstEid];
         if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";

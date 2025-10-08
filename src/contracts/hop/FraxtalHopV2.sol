@@ -98,51 +98,21 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         } else {
             _sendToDestination({
                 _oft: _oft,
-                _amountLD: amountLD,
-                _hopMessage: hopMessage,
-                _isFromRemoteHop: isFromRemoteHop
+                _amountLD: removeDust(_oft, amountLD),
+                _isFromRemoteHop: isFromRemoteHop,
+                _hopMessage: hopMessage
             });
             emit Hop(_oft, srcEid, hopMessage.dstEid, hopMessage.recipient, amountLD);
         }
     }
 
-
-    function _sendToDestination(
-        address _oft,
-        uint256 _amountLD,
-        HopMessage memory _hopMessage,
-        bool _isFromRemoteHop
-    ) internal returns (uint256) {
-        // generate arguments
-        SendParam memory sendParam = _generateSendParam({
-            _hopMessage: _hopMessage,
-            _amountLD: _amountLD,
-            _minAmountLD: removeDust(_oft, _amountLD)
-        });
-        // Send the oft
-        MessagingFee memory fee;
-        if (!_isFromRemoteHop) {
-            // Direct messages pay the full msg.value as fee
-            fee.nativeFee = msg.value;
-        } else {
-            fee = IOFT(_oft).quoteSend(sendParam, false);
-        }
-
-        // send the tokens
-        if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
-        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
-
-        return fee.nativeFee;
-    }
-
     function _generateSendParam(
-        HopMessage memory _hopMessage,
         uint256 _amountLD,
-        uint256 _minAmountLD
-    ) internal view returns (SendParam memory sendParam) {
+        HopMessage memory _hopMessage
+    ) internal view override returns (SendParam memory sendParam) {
         sendParam.dstEid = _hopMessage.dstEid;
         sendParam.amountLD = _amountLD;
-        sendParam.minAmountLD = _minAmountLD;
+        sendParam.minAmountLD = _amountLD;
         
         if (_hopMessage.data.length == 0) {
             sendParam.to = _hopMessage.recipient;
@@ -161,12 +131,11 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         address _oft,
         uint32 _dstEid,
         bytes32 _recipient,
-        uint256 _amountLD,
+        uint256 _amount,
         uint128 _dstGas,
         bytes memory _data
     ) public view returns (uint256) {
         if (_dstEid == localEid) return 0;
-        uint256 _minAmountLD = removeDust(_oft, _amountLD);
 
         // generate hop message
         HopMessage memory hopMessage = HopMessage({
@@ -180,12 +149,15 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
 
         SendParam memory sendParam = _generateSendParam({
             _hopMessage: hopMessage,
-            _amountLD: _amountLD,
-            _minAmountLD: _minAmountLD
+            _amountLD: removeDust(_oft, _amount)
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         return fee.nativeFee;
-    }   
+    }
+
+    function quoteHop(uint32, uint128, bytes memory) public view override returns (uint256) {
+        return 0;
+    }
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
         sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");
@@ -215,7 +187,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
             // Sending from fraxtal => fraxtal- no LZ send needed
             _sendLocal(_oft, _amountLD, hopMessage);
         } else {
-            sendFee = _sendToDestination(_oft, _amountLD, hopMessage, false);
+            sendFee = _sendToDestination(_oft, _amountLD, false, hopMessage);
         }
 
         // Validate the msg.value

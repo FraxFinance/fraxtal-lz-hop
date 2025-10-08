@@ -48,11 +48,9 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         RemoteHopV2 remoteHop = new RemoteHopV2({
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
             _numDVNs: 3,
-            _ENDPOINT: IExecutor(EXECUTOR).endpoint(),
             _EXECUTOR: EXECUTOR,
             _DVN: DVN,
             _TREASURY: ISendLibrary(SEND_LIBRARY).treasury(),
-            _EID: IExecutor(EXECUTOR).localEidV2(),
             _approvedOfts: approvedOfts
         });
         console.log("RemoteHop deployed at:", address(remoteHop));

@@ -2,18 +2,18 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
-import { IOFT2 } from "./interfaces/IOFT2.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
 import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "./interfaces/IExecutor.sol";
 import { IHopComposer } from "./interfaces/IHopComposer.sol";
 import { IHopV2, HopMessage } from "./interfaces/IHopV2.sol";
+
+import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -27,21 +27,16 @@ import { IHopV2, HopMessage } from "./interfaces/IHopV2.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
+contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
     uint32 constant FRAXTAL_EID = 30255;
-    bool public paused = false;
     bytes32 public fraxtalHop;
     uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
     mapping(uint32 => bytes) public executorOptions;
-    mapping(address => bool) public approvedOft;
-    mapping(bytes32 => bool) public messageProcessed;
 
-    address public immutable ENDPOINT;
     address public immutable EXECUTOR;
     address public immutable DVN;
     address public immutable TREASURY;
-    uint32 public immutable EID;
 
     event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
     event Hop(address oft, address indexed recipient, uint256 amount);
@@ -50,8 +45,6 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
     error InvalidOFT();
     error HopPaused();
     error NotEndpoint();
-    error InsufficientFee();
-    error RefundFailed();
     error ZeroAmountSend();
     error InvalidSourceChain();
     error InvalidSourceHop();
@@ -59,33 +52,16 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
     constructor(
         bytes32 _fraxtalHop,
         uint256 _numDVNs,
-        address _ENDPOINT,
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
-        uint32 _EID,
         address[] memory _approvedOfts
-    ) Ownable(msg.sender) {
+    ) HopV2(_EXECUTOR, _approvedOfts) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
-        ENDPOINT = _ENDPOINT;
-        EID = _EID;
         EXECUTOR = _EXECUTOR;
         DVN = _DVN;
         TREASURY = _TREASURY;
-
-        for (uint256 i = 0; i < _approvedOfts.length; i++) {
-            approvedOft[_approvedOfts[i]] = true;
-        }
-    }
-
-    // Admin functions
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
-        IERC20(tokenAddress).transfer(recipient, tokenAmount);
-    }
-
-    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
-        payable(recipient).call{ value: tokenAmount }("");
     }
 
     function setFraxtalHop(address _fraxtalHop) external {
@@ -108,14 +84,6 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         executorOptions[eid] = _options;
     }
 
-    function pause(bool _paused) external onlyOwner {
-        paused = _paused;
-    }
-
-    function toggleOFTApproval(address _oft, bool _approved) external onlyOwner {
-        approvedOft[_oft] = _approved;
-    }
-
     // receive ETH
     receive() external payable {}
 
@@ -130,7 +98,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
 
         // generate hop message
         HopMessage memory hopMessage = HopMessage({
-            srcEid: EID,
+            srcEid: localEid,
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
@@ -142,7 +110,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
 
         uint256 sendFee;
-        if (_dstEid == EID) {
+        if (_dstEid == localEid) {
             // Sending from src => src: no LZ send needed
             _sendLocal(_oft, _amountLD, hopMessage);
         } else {
@@ -155,15 +123,6 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-    function _handleMsgValue(uint256 _sendFee) internal {
-        if (msg.value < _sendFee) {
-            revert InsufficientFee();
-        } else if (msg.value > _sendFee) {
-            // refund redundant fee to sender
-            (bool success, ) = payable(msg.sender).call{ value: msg.value - _sendFee }("");
-            if (!success) revert RefundFailed();
-        }
-    }
 
     function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
         // Transfer the OFT token to the recipient
@@ -230,12 +189,12 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         uint128 _dstGas,
         bytes memory _data
     ) public view returns (uint256) {
-        if (_dstEid == EID) return 0;
+        if (_dstEid == localEid) return 0;
         _amountLD = removeDust(_oft, _amountLD);
 
         // generate hop message
         HopMessage memory hopMessage = HopMessage({
-            srcEid: EID,
+            srcEid: localEid,
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
@@ -267,10 +226,6 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         finalFee = (finalFee * (10000 + hopFee)) / 10000;
     }
 
-    function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
-        uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
-        return (_amountLD / decimalConversionRate) * decimalConversionRate;
-    }
 
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.
@@ -288,7 +243,7 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        if (msg.sender != ENDPOINT) revert NotEndpoint();
+        if (msg.sender != endpoint) revert NotEndpoint();
         if (paused) revert HopPaused();
         if (!approvedOft[_oft]) revert InvalidOFT();
         if (OFTComposeMsgCodec.srcEid(_message)!= FRAXTAL_EID) revert InvalidSourceChain();

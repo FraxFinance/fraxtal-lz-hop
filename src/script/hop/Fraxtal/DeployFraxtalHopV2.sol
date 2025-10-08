@@ -23,7 +23,7 @@ contract DeployFraxtalHop is BaseScript {
         approvedOfts.push(fxsLockbox);
         approvedOfts.push(fpiLockbox);
 
-        FraxtalHopV2 hop = new FraxtalHopV2(approvedOfts);
+        FraxtalHopV2 hop = new FraxtalHopV2(0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d, approvedOfts);
         console.log("FraxtalHopV2 deployed at:", address(hop));
     }
 }

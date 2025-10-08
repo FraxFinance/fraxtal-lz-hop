@@ -1,0 +1,67 @@
+pragma solidity ^0.8.0;
+
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
+import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
+
+abstract contract HopV2 is Ownable2Step {
+
+    uint32 public immutable localEid;
+    address public immutable endpoint;
+
+    bool public paused;
+
+    mapping(address oft => bool isApproved) public approvedOft;
+    mapping(bytes32 message => bool isProcessed) public messageProcessed;
+
+    error InsufficientFee();
+    error RefundFailed();
+
+    constructor(
+        address _executor,
+        address[] memory _approvedOfts
+    ) Ownable(msg.sender) {
+        localEid = IExecutor(_executor).localEidV2();
+        endpoint = IExecutor(_executor).endpoint();
+        
+        for (uint i = 0; i < _approvedOfts.length; i++) {
+            approvedOft[_approvedOfts[i]] = true;
+        }
+    }
+
+    // Helper functions
+    function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
+        uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
+        return (_amountLD / decimalConversionRate) * decimalConversionRate;
+    }
+
+    // internal methods
+    function _handleMsgValue(uint256 _sendFee) internal {
+        if (msg.value < _sendFee) {
+            revert InsufficientFee();
+        } else if (msg.value > _sendFee) {
+            // refund redundant fee to sender
+            (bool success, ) = payable(msg.sender).call{ value: msg.value - _sendFee }("");
+            if (!success) revert RefundFailed();
+        }
+    }
+
+    // Admin functions
+    function pause(bool _paused) external onlyOwner {
+        paused = _paused;
+    }
+
+    function setApprovedOft(address _oft, bool _isApproved) external onlyOwner {
+        approvedOft[_oft] = _isApproved;
+    }
+
+    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
+        IERC20(tokenAddress).transfer(recipient, tokenAmount);
+    }
+
+    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
+        payable(recipient).call{ value: tokenAmount }("");
+    }
+}

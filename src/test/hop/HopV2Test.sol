@@ -35,8 +35,8 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
-        hop = new FraxtalHopV2(approvedOfts);
-        remoteHop = new RemoteHopV2(OFTMsgCodec.addressToBytes32(address(hop)), 2, ENDPOINT, EXECUTOR, DVN, TREASURY, 30110, approvedOfts);
+        hop = new FraxtalHopV2(EXECUTOR, approvedOfts);
+        remoteHop = new RemoteHopV2(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, approvedOfts);
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).call{ value: 100 ether }("");
@@ -51,15 +51,13 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927);
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = new FraxtalHopV2(approvedOfts);
+        hop = new FraxtalHopV2(0x31CAe3B7fB82d847621859fb1585353c5720660D, approvedOfts);
         remoteHop = new RemoteHopV2(
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
-            0x1a44076050125825900e736c501f859c50fE728c,
             0x31CAe3B7fB82d847621859fb1585353c5720660D,
             0x2f55C492897526677C5B68fb199ea31E2c126416,
             0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
-            30110,
             approvedOfts
         );
         remoteHop.setFraxtalHop(address(hop));
@@ -74,15 +72,13 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x9033BAD7aA130a2466060A2dA71fAe2219781B4b);
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
-        hop = new FraxtalHopV2(approvedOfts);
+        hop = new FraxtalHopV2(0x173272739Bd7Aa6e4e214714048a9fE699453059, approvedOfts);
         remoteHop = new RemoteHopV2(
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
-            0x1a44076050125825900e736c501f859c50fE728c,
             0x173272739Bd7Aa6e4e214714048a9fE699453059,
             0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
             0x5ebB3f2feaA15271101a927869B3A56837e73056,
-            30101,
             approvedOfts
         );
         remoteHop.setFraxtalHop(address(hop));

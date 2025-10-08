@@ -259,26 +259,26 @@ contract FraxtalHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         // Transfer the OFT token to the hop
         if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
 
-        uint256 totalFee;
+        uint256 sendFee;
         if (_dstEid == FRAXTAL_EID) {
             // Sending from fraxtal => fraxtal- no LZ send needed
             _sendLocal(_oft, hopMessage, _amountLD);
         } else {
-            totalFee = _sendToDestination(_oft, _amountLD, hopMessage, false);
+            sendFee = _sendToDestination(_oft, _amountLD, hopMessage, false);
         }
 
         // Validate the msg.value
-        _handleMsgValue(totalFee);
+        _handleMsgValue(sendFee);
 
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-    function _handleMsgValue(uint256 _totalFee) internal {
-        if (msg.value < _totalFee) {
+    function _handleMsgValue(uint256 _sendFee) internal {
+        if (msg.value < _sendFee) {
             revert InsufficientFee();
-        } else if (msg.value > _totalFee) {
+        } else if (msg.value > _sendFee) {
             // refund redundant fee to sender
-            (bool success, ) = payable(msg.sender).call{ value: msg.value - _totalFee }("");
+            (bool success, ) = payable(msg.sender).call{ value: msg.value - _sendFee }("");
             if (!success) revert RefundFailed();
         }
     }

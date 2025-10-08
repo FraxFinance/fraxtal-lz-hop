@@ -123,24 +123,6 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-
-    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
-        // Transfer the OFT token to the recipient
-        address recipient = address(uint160(uint256(_hopMessage.recipient)));
-        if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
-
-        // Call the compose if there is data
-        if (_hopMessage.data.length != 0) {
-            IHopComposer(recipient).hopCompose({
-                _srcEid: _hopMessage.srcEid,
-                _sender: _hopMessage.sender,
-                _oft: _oft,
-                _amount: _amount,
-                _data: _hopMessage.data
-            });
-        }
-    }
-
     function _sendToDestination(address _oft, uint256 _amountLD, HopMessage memory _hopMessage) internal returns (uint256) {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({

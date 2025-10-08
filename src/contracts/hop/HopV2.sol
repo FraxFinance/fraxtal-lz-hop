@@ -1,10 +1,15 @@
 pragma solidity ^0.8.0;
 
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
+import { IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
+import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
+import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
+
 
 abstract contract HopV2 is Ownable2Step {
 
@@ -38,6 +43,23 @@ abstract contract HopV2 is Ownable2Step {
     }
 
     // internal methods
+    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
+        // transfer the OFT token to the recipient
+        address recipient = address(uint160(uint256(_hopMessage.recipient)));
+        if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
+
+        // call the compose if there is data
+        if (_hopMessage.data.length != 0) {
+            IHopComposer(recipient).hopCompose({
+                _srcEid: _hopMessage.srcEid,
+                _sender: _hopMessage.sender,
+                _oft: _oft,
+                _amount: _amount,
+                _data: _hopMessage.data
+            });
+        }
+    }
+
     function _handleMsgValue(uint256 _sendFee) internal {
         if (msg.value < _sendFee) {
             revert InsufficientFee();

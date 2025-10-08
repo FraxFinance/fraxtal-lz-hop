@@ -94,7 +94,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
 
         if (hopMessage.dstEid == localEid) {
-            _sendLocal(_oft, hopMessage, amountLD);
+            _sendLocal(_oft, amountLD, hopMessage);
         } else {
             _sendToDestination({
                 _oft: _oft,
@@ -105,23 +105,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
             emit Hop(_oft, srcEid, hopMessage.dstEid, hopMessage.recipient, amountLD);
         }
     }
-    
-    function _sendLocal(address _oft, HopMessage memory _hopMessage, uint256 _amountLD) internal {
-        // transfer the OFT token to the recipient
-        address recipient = address(uint160(uint256(_hopMessage.recipient)));
-        if (_amountLD > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amountLD);
 
-        // Call the compose if there is data
-        if (_hopMessage.data.length != 0) {
-            IHopComposer(recipient).hopCompose({
-                _srcEid: _hopMessage.srcEid,
-                _sender: _hopMessage.sender,
-                _oft: _oft,
-                _amount: _amountLD,
-                _data: _hopMessage.data
-            });
-        }
-    }
 
     function _sendToDestination(
         address _oft,
@@ -229,7 +213,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         uint256 sendFee;
         if (_dstEid == localEid) {
             // Sending from fraxtal => fraxtal- no LZ send needed
-            _sendLocal(_oft, hopMessage, _amountLD);
+            _sendLocal(_oft, _amountLD, hopMessage);
         } else {
             sendFee = _sendToDestination(_oft, _amountLD, hopMessage, false);
         }

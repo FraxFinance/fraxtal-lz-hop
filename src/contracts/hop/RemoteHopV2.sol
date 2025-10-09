@@ -11,7 +11,7 @@ import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
 import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "./interfaces/IExecutor.sol";
 import { IHopComposer } from "./interfaces/IHopComposer.sol";
-import { IHopV2, HopMessage } from "./interfaces/IHopV2.sol";
+import { HopMessage } from "./interfaces/IHopV2.sol";
 
 import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
@@ -27,7 +27,7 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
+contract RemoteHopV2 is HopV2, IOAppComposer {
     uint32 constant FRAXTAL_EID = 30255;
     uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
@@ -37,10 +37,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
     address public immutable DVN;
     address public immutable TREASURY;
 
-    event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
     event Hop(address oft, address indexed recipient, uint256 amount);
-
-    error ZeroAmountSend();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -71,42 +68,6 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
 
     // receive ETH
     receive() external payable {}
-
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
-        sendOFT(_oft, _dstEid, _to, _amountLD, 0, "");
-    }
-
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public payable {
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-        _amountLD = removeDust(_oft, _amountLD);
-
-        // generate hop message
-        HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid,
-            dstEid: _dstEid,
-            dstGas: _dstGas,
-            sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
-        });
-
-        // Transfer the OFT token to the hop
-        if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
-
-        uint256 sendFee;
-        if (_dstEid == localEid) {
-            // Sending from src => src: no LZ send needed
-            _sendLocal(_oft, _amountLD, hopMessage);
-        } else {
-            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
-        }
-
-        // validate the msg.value
-        _handleMsgValue(sendFee);
-
-        emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
-    }
 
     function _generateSendParam(
         uint256 _amountLD,

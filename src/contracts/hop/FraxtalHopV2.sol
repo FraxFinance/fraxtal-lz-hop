@@ -8,7 +8,7 @@ import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contr
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IHopComposer } from "./interfaces/IHopComposer.sol";
-import { IHopV2, HopMessage } from "./interfaces/IHopV2.sol";
+import { HopMessage } from "./interfaces/IHopV2.sol";
 
 import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
@@ -24,17 +24,21 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
+contract FraxtalHopV2 is HopV2, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
-    event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amount);
 
-    error ZeroAmountSend();
     error InvalidDestinationChain();
 
     constructor(address _executor, address[] memory _approvedOfts) HopV2(_executor, _approvedOfts) {}
 
     // receive ETH
     receive() external payable {}
+
+    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public override payable {
+        if (_dstEid != localEid && remoteHop[_dstEid] == bytes32(0)) revert InvalidDestinationChain();
+        
+        super.sendOFT(_oft, _dstEid, _recipient, _amountLD, _dstGas, _data);
+    }
 
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.
@@ -125,47 +129,5 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         return 0;
     }
 
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
-        sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");
-    }    
 
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public payable {
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-        if (_dstEid != localEid && remoteHop[_dstEid] == bytes32(0)) revert InvalidDestinationChain();
-        _amountLD = removeDust(_oft, _amountLD);
-
-        // generate hop message
-        HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid,
-            dstEid: _dstEid,
-            dstGas: _dstGas,
-            sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
-        });
-
-        // Transfer the OFT token to the hop
-        if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
-
-        uint256 sendFee;
-        if (_dstEid == localEid) {
-            // Sending from fraxtal => fraxtal- no LZ send needed
-            _sendLocal(_oft, _amountLD, hopMessage);
-        } else {
-            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
-        }
-
-        // Validate the msg.value
-        _handleMsgValue(sendFee);
-
-        emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
-    }
-
-    // Owner functions
-    function setMessageProcessed(address oft, uint32 srcEid, uint64 nonce, bytes32 composeFrom) external onlyOwner {
-        bytes32 messageHash = keccak256(abi.encodePacked(oft, srcEid, nonce, composeFrom));
-        emit MessageHash(oft, srcEid, nonce, composeFrom);
-        messageProcessed[messageHash] = true;
-    }    
 }

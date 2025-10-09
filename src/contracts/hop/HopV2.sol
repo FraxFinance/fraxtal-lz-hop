@@ -24,6 +24,7 @@ abstract contract HopV2 is Ownable2Step {
     mapping(bytes32 message => bool isProcessed) public messageProcessed;
     mapping(uint32 eid => bytes32 hop) public remoteHop;
 
+    event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amount);
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
     error InvalidOFT();
@@ -44,8 +45,45 @@ abstract contract HopV2 is Ownable2Step {
         }
     }
 
+    // Public methods
+    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
+        sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");
+    }    
+
+    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public virtual payable {
+        if (paused) revert HopPaused();
+        if (!approvedOft[_oft]) revert InvalidOFT();
+
+        // generate hop message
+        HopMessage memory hopMessage = HopMessage({
+            srcEid: localEid,
+            dstEid: _dstEid,
+            dstGas: _dstGas,
+            sender: bytes32(uint256(uint160(msg.sender))),
+            recipient: _recipient,
+            data: _data
+        });
+
+        // Transfer the OFT token to the hop
+        _amountLD = removeDust(_oft, _amountLD);
+        if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
+
+        uint256 sendFee;
+        if (_dstEid == localEid) {
+            // Sending from fraxtal => fraxtal- no LZ send needed
+            _sendLocal(_oft, _amountLD, hopMessage);
+        } else {
+            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
+        }
+
+        // Validate the msg.value
+        _handleMsgValue(sendFee);
+
+        emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
+    }
+    
     // Helper functions
-    function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
+    function removeDust(address oft, uint256 _amountLD) public view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
     }
@@ -150,6 +188,12 @@ abstract contract HopV2 is Ownable2Step {
     function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
         IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
+
+    function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) external onlyOwner {
+        bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
+        messageProcessed[messageHash] = true;
+        emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
+    }    
 
     function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
         payable(recipient).call{ value: tokenAmount }("");

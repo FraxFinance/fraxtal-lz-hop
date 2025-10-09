@@ -74,10 +74,9 @@ abstract contract HopV2 is Ownable2Step {
 
         MessagingFee memory fee;
         if (_isTrustedHopMessage) {
-            // Executes when:
-            // - RemoteHop sendOFT() to destination
-            // - Fraxtal sendOFT() to destination
-            // - Fraxtal lzCompose() from remoteHop
+            // Executes in:
+            // - sendOFT()
+            // - Fraxtal lzCompose() when remote hop is sender
             fee = IOFT(_oft).quoteSend(sendParam, false);
         } else {
             // Executes when:

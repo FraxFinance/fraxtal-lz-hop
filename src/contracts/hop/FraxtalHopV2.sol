@@ -75,7 +75,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
 
         uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
         bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
-        bool isFromRemoteHop = remoteHop[srcEid] == composeFrom;
+        bool isTrustedHopMessage = remoteHop[srcEid] == composeFrom;
         {
             uint64 nonce = OFTComposeMsgCodec.nonce(_message);
             bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
@@ -99,7 +99,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
             _sendToDestination({
                 _oft: _oft,
                 _amountLD: removeDust(_oft, amountLD),
-                _isFromRemoteHop: isFromRemoteHop,
+                _isTrustedHopMessage: isTrustedHopMessage,
                 _hopMessage: hopMessage
             });
             emit Hop(_oft, srcEid, hopMessage.dstEid, hopMessage.recipient, amountLD);
@@ -187,7 +187,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
             // Sending from fraxtal => fraxtal- no LZ send needed
             _sendLocal(_oft, _amountLD, hopMessage);
         } else {
-            sendFee = _sendToDestination(_oft, _amountLD, false, hopMessage);
+            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
         }
 
         // Validate the msg.value

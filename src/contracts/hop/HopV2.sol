@@ -63,7 +63,7 @@ abstract contract HopV2 is Ownable2Step {
     function _sendToDestination(
         address _oft,
         uint256 _amountLD,
-        bool _isFromRemoteHop,
+        bool _isTrustedHopMessage,
         HopMessage memory _hopMessage
     ) internal returns (uint256) {
         // generate sendParam
@@ -73,14 +73,14 @@ abstract contract HopV2 is Ownable2Step {
         });
 
         MessagingFee memory fee;
-        if (_isFromRemoteHop) {
+        if (_isTrustedHopMessage) {
             // Executes when:
             // - RemoteHop sendOFT() to destination
+            // - Fraxtal sendOFT() to destination
             // - Fraxtal lzCompose() from remoteHop
             fee = IOFT(_oft).quoteSend(sendParam, false);
         } else {
             // Executes when:
-            // - Fraxtal sendOFT() to destination
             // - Fraxtal lzCompose() from unregistered sender
             fee.nativeFee = msg.value;
         }

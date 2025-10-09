@@ -4,6 +4,8 @@ import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2St
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
@@ -20,7 +22,13 @@ abstract contract HopV2 is Ownable2Step {
 
     mapping(address oft => bool isApproved) public approvedOft;
     mapping(bytes32 message => bool isProcessed) public messageProcessed;
+    mapping(uint32 eid => bytes32 hop) public remoteHop;
 
+    event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
+
+    error InvalidOFT();
+    error HopPaused();
+    error NotEndpoint();
     error InsufficientFee();
     error RefundFailed();
 
@@ -90,6 +98,28 @@ abstract contract HopV2 is Ownable2Step {
         return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
     }
 
+    function _validateComposeMessage(address _oft, bytes calldata _message) internal returns (bool isTrustedHopMessage, bool isDuplicateMessage) {
+        if (msg.sender != endpoint) revert NotEndpoint();
+        if (paused) revert HopPaused();
+        if (!approvedOft[_oft]) revert InvalidOFT();
+
+        // Decode message
+        uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
+        bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
+        uint64 nonce = OFTComposeMsgCodec.nonce(_message);
+
+        bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
+        isTrustedHopMessage = remoteHop[srcEid] == composeFrom;
+
+        if (messageProcessed[messageHash]) {
+            return (isTrustedHopMessage, true);
+        } else {
+            messageProcessed[messageHash] = true;
+            emit MessageHash(_oft, srcEid, nonce, composeFrom);
+            return (isTrustedHopMessage, false);
+        }
+    }
+
     function _handleMsgValue(uint256 _sendFee) internal {
         if (msg.value < _sendFee) {
             revert InsufficientFee();
@@ -107,6 +137,14 @@ abstract contract HopV2 is Ownable2Step {
 
     function setApprovedOft(address _oft, bool _isApproved) external onlyOwner {
         approvedOft[_oft] = _isApproved;
+    }
+
+    function setRemoteHop(uint32 _eid, address _remoteHop) external {
+        setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
+    }
+
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyOwner {
+        remoteHop[_eid] = _remoteHop;
     }
 
     function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {

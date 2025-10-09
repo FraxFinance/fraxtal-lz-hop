@@ -29,7 +29,6 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
     uint32 constant FRAXTAL_EID = 30255;
-    bytes32 public fraxtalHop;
     uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
     mapping(uint32 => bytes) public executorOptions;
@@ -40,14 +39,8 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
 
     event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
     event Hop(address oft, address indexed recipient, uint256 amount);
-    event MessageHash(address oft, uint64 indexed nonce, bytes32 indexed fraxtalHop);
 
-    error InvalidOFT();
-    error HopPaused();
-    error NotEndpoint();
     error ZeroAmountSend();
-    error InvalidSourceChain();
-    error InvalidSourceHop();
 
     constructor(
         bytes32 _fraxtalHop,
@@ -57,19 +50,11 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         address _TREASURY,
         address[] memory _approvedOfts
     ) HopV2(_EXECUTOR, _approvedOfts) {
-        fraxtalHop = _fraxtalHop;
+        remoteHop[FRAXTAL_EID] = _fraxtalHop;
         numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;
         DVN = _DVN;
         TREASURY = _TREASURY;
-    }
-
-    function setFraxtalHop(address _fraxtalHop) external {
-        setFraxtalHop(bytes32(uint256(uint160(_fraxtalHop))));
-    }
-
-    function setFraxtalHop(bytes32 _fraxtalHop) public onlyOwner {
-        fraxtalHop = _fraxtalHop;
     }
 
     function setNumDVNs(uint256 _numDVNs) external onlyOwner {
@@ -134,7 +119,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
             // Send directly to Fraxtal, no compose needed
             sendParam.to = _hopMessage.recipient;
         } else {
-            sendParam.to = fraxtalHop; 
+            sendParam.to = remoteHop[FRAXTAL_EID]; 
 
             bytes memory options = OptionsBuilder.newOptions();
             if (_hopMessage.dstGas < 400000) _hopMessage.dstGas = 400000;
@@ -209,22 +194,8 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        if (msg.sender != endpoint) revert NotEndpoint();
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-        if (OFTComposeMsgCodec.srcEid(_message)!= FRAXTAL_EID) revert InvalidSourceChain();
-        if (OFTComposeMsgCodec.composeFrom(_message) != fraxtalHop) revert InvalidSourceHop();
-        {
-            uint64 nonce = OFTComposeMsgCodec.nonce(_message);
-            bytes32 messageHash = keccak256(abi.encode(_oft, nonce, fraxtalHop));
-            // Avoid duplicated messages
-            if (!messageProcessed[messageHash]) {
-                messageProcessed[messageHash] = true;
-            } else {
-                return;
-            }
-            emit MessageHash(_oft, nonce, fraxtalHop);
-        }
+        (, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
+        if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
@@ -233,13 +204,5 @@ contract RemoteHopV2 is HopV2, IOAppComposer, IHopV2 {
         _sendLocal(_oft, amount, hopMessage);
 
         emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
-    }
-
-
-    // Owner functions
-    function setMessageProcessed(address oft, uint64 nonce, bytes32 _fraxtalHop) external onlyOwner {
-        bytes32 messageHash = keccak256(abi.encodePacked(oft,  nonce, _fraxtalHop));
-        emit MessageHash(oft, nonce, _fraxtalHop);
-        messageProcessed[messageHash] = true;
-    }       
+    }  
 }

@@ -38,7 +38,7 @@ contract HopV2Test is BaseTest {
         hop = new FraxtalHopV2(EXECUTOR, approvedOfts);
         remoteHop = new RemoteHopV2(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, approvedOfts);
         hop.setRemoteHop(30110, address(remoteHop));
-        remoteHop.setFraxtalHop(address(hop));
+        remoteHop.setRemoteHop(30255, address(hop));
         payable(address(hop)).call{ value: 100 ether }("");
     }
 
@@ -60,7 +60,7 @@ contract HopV2Test is BaseTest {
             0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
             approvedOfts
         );
-        remoteHop.setFraxtalHop(address(hop));
+        remoteHop.setRemoteHop(30255, address(hop));
     }
 
     function setupEthereum() public {
@@ -81,7 +81,7 @@ contract HopV2Test is BaseTest {
             0x5ebB3f2feaA15271101a927869B3A56837e73056,
             approvedOfts
         );
-        remoteHop.setFraxtalHop(address(hop));
+        remoteHop.setRemoteHop(30255, address(hop));
     }
 
     function test_lzCompose_FraxtalSend() public {

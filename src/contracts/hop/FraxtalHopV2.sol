@@ -25,30 +25,13 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
-    mapping(uint32 => bytes32) public remoteHop;
-
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
-    event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
     event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amount);
 
-    error InvalidOFT();
-    error HopPaused();
-    error NotEndpoint();
-    error InvalidSourceChain();
-    error InvalidSourceHop();
     error ZeroAmountSend();
     error InvalidDestinationChain();
 
     constructor(address _executor, address[] memory _approvedOfts) HopV2(_executor, _approvedOfts) {}
-
-    // Admin functions
-    function setRemoteHop(uint32 _eid, address _remoteHop) external {
-        setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
-    }
-
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyOwner {
-        remoteHop[_eid] = _remoteHop;
-    }
 
     // receive ETH
     receive() external payable {}
@@ -69,25 +52,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        if (msg.sender != endpoint) revert NotEndpoint();
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-
-        uint32 srcEid = OFTComposeMsgCodec.srcEid(_message);
-        bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
-        bool isTrustedHopMessage = remoteHop[srcEid] == composeFrom;
-        {
-            uint64 nonce = OFTComposeMsgCodec.nonce(_message);
-            bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
-
-            emit MessageHash(_oft, srcEid, nonce, composeFrom);
-            // Avoid duplicated messages
-            if (!messageProcessed[messageHash]) {
-                messageProcessed[messageHash] = true;
-            } else {
-                return;
-            }
-        }
+        (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
+        if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
@@ -102,7 +68,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer, IHopV2 {
                 _isTrustedHopMessage: isTrustedHopMessage,
                 _hopMessage: hopMessage
             });
-            emit Hop(_oft, srcEid, hopMessage.dstEid, hopMessage.recipient, amountLD);
+            emit Hop(_oft, OFTComposeMsgCodec.srcEid(_message), hopMessage.dstEid, hopMessage.recipient, amountLD);
         }
     }
 

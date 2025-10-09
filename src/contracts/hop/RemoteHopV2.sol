@@ -30,7 +30,7 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 contract RemoteHopV2 is HopV2, IOAppComposer {
     uint32 constant FRAXTAL_EID = 30255;
     uint256 public numDVNs = 2;
-    uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
+    uint256 public hopFee = 1; // 10_000 based so 1 = 0.01%
     mapping(uint32 => bytes) public executorOptions;
 
     address public immutable EXECUTOR;
@@ -83,8 +83,8 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
             sendParam.to = remoteHop[FRAXTAL_EID]; 
 
             bytes memory options = OptionsBuilder.newOptions();
-            if (_hopMessage.dstGas < 400000) _hopMessage.dstGas = 400000;
-            uint128 fraxtalGas = 1000000;
+            if (_hopMessage.dstGas < 400_000) _hopMessage.dstGas = 400_000;
+            uint128 fraxtalGas = 1_000_000;
             if (_hopMessage.dstGas > fraxtalGas && _hopMessage.dstEid == FRAXTAL_EID) fraxtalGas = _hopMessage.dstGas;
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, fraxtalGas, 0);
             sendParam.extraOptions = options;
@@ -93,51 +93,23 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quote(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _recipient,
-        uint256 _amountLD,
-        uint128 _dstGas,
-        bytes memory _data
-    ) public view returns (uint256) {
-        if (_dstEid == localEid) return 0;
-        _amountLD = removeDust(_oft, _amountLD);
-
-        // generate hop message
-        HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid,
-            dstEid: _dstEid,
-            dstGas: _dstGas,
-            sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
-        });
-
-        SendParam memory sendParam = _generateSendParam({
-            _hopMessage: hopMessage,
-            _amountLD: _amountLD
-        });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        fee.nativeFee += quoteHop(_dstEid, _dstGas, _data);
-        return fee.nativeFee;
-    }
-
     function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view override returns (uint256 finalFee) {
+        // No hop needed if Fraxtal is the destination
+        if (_dstEid == FRAXTAL_EID) return 0;
+        
         uint256 dvnFee = ILayerZeroDVN(DVN).getFee(_dstEid, 5, address(this), "");
         bytes memory options = executorOptions[_dstEid];
         if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
         if (_data.length != 0) {
-            if (_dstGas < 400000) _dstGas = 400000;
+            if (_dstGas < 400_000) _dstGas = 400_000;
             options = abi.encodePacked(options,hex"010013030000", _dstGas);
         }
         uint256 executorFee = IExecutor(EXECUTOR).getFee(_dstEid, address(this), 36, options);
         uint256 totalFee = dvnFee * numDVNs + executorFee;
         uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), _dstEid, totalFee, false);
         finalFee = totalFee + treasuryFee;
-        finalFee = (finalFee * (10000 + hopFee)) / 10000;
+        finalFee = (finalFee * (10_000 + hopFee)) / 10_000;
     }
-
 
     /// @notice Handles incoming composed messages from LayerZero.
     /// @dev Decodes the message payload to perform a token swap.

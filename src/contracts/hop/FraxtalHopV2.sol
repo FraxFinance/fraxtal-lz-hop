@@ -97,37 +97,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quote(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _recipient,
-        uint256 _amount,
-        uint128 _dstGas,
-        bytes memory _data
-    ) public view returns (uint256) {
-        if (_dstEid == localEid) return 0;
-
-        // generate hop message
-        HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid,
-            dstEid: _dstEid,
-            dstGas: _dstGas,
-            sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
-        });
-
-        SendParam memory sendParam = _generateSendParam({
-            _hopMessage: hopMessage,
-            _amountLD: removeDust(_oft, _amount)
-        });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        return fee.nativeFee;
-    }
-
     function quoteHop(uint32, uint128, bytes memory) public view override returns (uint256) {
         return 0;
     }
-
-
 }

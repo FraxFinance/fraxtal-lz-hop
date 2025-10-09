@@ -83,6 +83,34 @@ abstract contract HopV2 is Ownable2Step {
     }
     
     // Helper functions
+    function quote(
+        address _oft,
+        uint32 _dstEid,
+        bytes32 _recipient,
+        uint256 _amount,
+        uint128 _dstGas,
+        bytes memory _data
+    ) public view returns (uint256) {
+        if (_dstEid == localEid) return 0;
+
+        // generate hop message
+        HopMessage memory hopMessage = HopMessage({
+            srcEid: localEid,
+            dstEid: _dstEid,
+            dstGas: _dstGas,
+            sender: bytes32(uint256(uint160(msg.sender))),
+            recipient: _recipient,
+            data: _data
+        });
+
+        SendParam memory sendParam = _generateSendParam({
+            _hopMessage: hopMessage,
+            _amountLD: removeDust(_oft, _amount)
+        });
+        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
+        return fee.nativeFee + quoteHop(_dstEid, _dstGas, _data);
+    }
+
     function removeDust(address oft, uint256 _amountLD) public view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;

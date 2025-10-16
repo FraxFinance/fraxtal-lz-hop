@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
-import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
-import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
-import { IExecutor } from "./interfaces/IExecutor.sol";
-import { IHopComposer } from "./interfaces/IHopComposer.sol";
-import { HopMessage } from "./interfaces/IHopV2.sol";
+import { SendParam } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { HopV2 } from "src/contracts/hop/HopV2.sol";
+import { ILayerZeroDVN } from "src/contracts/hop/interfaces/ILayerZeroDVN.sol";
+import { ILayerZeroTreasury } from "src/contracts/hop/interfaces/ILayerZeroTreasury.sol";
+import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
+
+import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -28,7 +25,8 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer {
-    uint32 constant FRAXTAL_EID = 30255;
+    uint32 internal constant FRAXTAL_EID = 30255;
+
     uint256 public numDVNs = 2;
     uint256 public hopFee = 1; // 10_000 based so 1 = 0.01%
     mapping(uint32 => bytes) public executorOptions;
@@ -40,13 +38,15 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
     event Hop(address oft, address indexed recipient, uint256 amount);
 
     constructor(
+        uint32 _localEid,
+        address _endpoint,
         bytes32 _fraxtalHop,
         uint256 _numDVNs,
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
         address[] memory _approvedOfts
-    ) HopV2(_EXECUTOR, _approvedOfts) {
+    ) HopV2(_localEid, _endpoint, _approvedOfts) {
         remoteHop[FRAXTAL_EID] = _fraxtalHop;
         numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;

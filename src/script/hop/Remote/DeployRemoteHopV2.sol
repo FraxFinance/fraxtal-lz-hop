@@ -23,6 +23,9 @@ interface IDVN {
 abstract contract DeployRemoteHopV2 is BaseScript {
     address constant FRAXTAL_HOP = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
 
+    address endpoint;
+    uint32 localEid;
+    
     address EXECUTOR;
     address DVN;
     address SEND_LIBRARY;
@@ -46,6 +49,8 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         approvedOfts.push(fpiOft);
 
         RemoteHopV2 remoteHop = new RemoteHopV2({
+            _localEid: localEid,
+            _endpoint: endpoint,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
             _numDVNs: 3,
             _EXECUTOR: EXECUTOR,
@@ -60,8 +65,8 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         (uint64 major, uint8 minor, uint8 endpointVersion) = ISendLibrary(SEND_LIBRARY).version();
         require(major == 3 && minor == 0 && endpointVersion == 2, "Invalid SendLibrary version");
 
-        require(IExecutor(EXECUTOR).endpoint() != address(0), "Invalid executor endpoint");
-        require(IExecutor(EXECUTOR).localEidV2() != 0, "Invalid executor localEidV2");
+        require(IExecutor(EXECUTOR).endpoint() != endpoint, "Invalid executor endpoint");
+        require(IExecutor(EXECUTOR).localEidV2() == localEid, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 
         require(isStringEqual(IERC20Metadata(frxUsdOft).symbol(), "frxUSD"), "frxUsdOft != frxUSD");

@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
-import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IHopComposer } from "./interfaces/IHopComposer.sol";
-import { HopMessage } from "./interfaces/IHopV2.sol";
+import { SendParam } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 
-import { HopV2 } from "src/contracts/hop/HopV2.sol";
+import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -27,9 +23,15 @@ import { HopV2 } from "src/contracts/hop/HopV2.sol";
 contract FraxtalHopV2 is HopV2, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
 
+    event Test(address, address);
+
     error InvalidDestinationChain();
 
-    constructor(address _executor, address[] memory _approvedOfts) HopV2(_executor, _approvedOfts) {}
+    constructor(
+        uint32 _localEid,
+        address _endpoint,
+        address[] memory _approvedOfts
+    ) HopV2(_localEid, _endpoint, _approvedOfts) {}
 
     // receive ETH
     receive() external payable {}
@@ -58,10 +60,13 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
     ) external payable override {
         (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
         if (isDuplicateMessage) return;
-
+        
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
+        emit Test(address(1), address(2));
+        
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
+
 
         if (hopMessage.dstEid == localEid) {
             _sendLocal(_oft, amountLD, hopMessage);

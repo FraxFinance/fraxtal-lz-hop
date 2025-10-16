@@ -34,11 +34,12 @@ abstract contract HopV2 is Ownable2Step {
     error RefundFailed();
 
     constructor(
-        address _executor,
+        uint32 _localEid,
+        address _endpoint,
         address[] memory _approvedOfts
     ) Ownable(msg.sender) {
-        localEid = IExecutor(_executor).localEidV2();
-        endpoint = IExecutor(_executor).endpoint();
+        localEid = _localEid;
+        endpoint = _endpoint;
         
         for (uint i = 0; i < _approvedOfts.length; i++) {
             approvedOft[_approvedOfts[i]] = true;

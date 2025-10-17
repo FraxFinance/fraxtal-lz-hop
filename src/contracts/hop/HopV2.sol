@@ -61,8 +61,7 @@ abstract contract HopV2 is Ownable2Step {
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
+            recipient: _recipient
         });
 
         // Transfer the OFT token to the hop
@@ -72,9 +71,9 @@ abstract contract HopV2 is Ownable2Step {
         uint256 sendFee;
         if (_dstEid == localEid) {
             // Sending from fraxtal => fraxtal- no LZ send needed
-            _sendLocal(_oft, _amountLD, hopMessage);
+            _sendLocal(_oft, _amountLD, hopMessage, _data);
         } else {
-            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage);
+            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage, _data);
         }
 
         // Validate the msg.value
@@ -100,13 +99,13 @@ abstract contract HopV2 is Ownable2Step {
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
-            recipient: _recipient,
-            data: _data
+            recipient: _recipient
         });
 
         SendParam memory sendParam = _generateSendParam({
+            _amountLD: removeDust(_oft, _amount),
             _hopMessage: hopMessage,
-            _amountLD: removeDust(_oft, _amount)
+            _data: _data
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
         return fee.nativeFee + quoteHop(_dstEid, _dstGas, _data);
@@ -118,19 +117,19 @@ abstract contract HopV2 is Ownable2Step {
     }
 
     // internal methods
-    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
+    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage, bytes memory _data) internal {
         // transfer the OFT token to the recipient
         address recipient = address(uint160(uint256(_hopMessage.recipient)));
         if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
 
         // call the compose if there is data
-        if (_hopMessage.data.length != 0) {
+        if (_data.length != 0) {
             IHopComposer(recipient).hopCompose({
                 _srcEid: _hopMessage.srcEid,
                 _sender: _hopMessage.sender,
                 _oft: _oft,
                 _amount: _amount,
-                _data: _hopMessage.data
+                _data: _data
             });
         }
     }
@@ -139,12 +138,14 @@ abstract contract HopV2 is Ownable2Step {
         address _oft,
         uint256 _amountLD,
         bool _isTrustedHopMessage,
-        HopMessage memory _hopMessage
+        HopMessage memory _hopMessage,
+        bytes memory _data
     ) internal returns (uint256) {
         // generate sendParam
         SendParam memory sendParam = _generateSendParam({
             _amountLD: removeDust(_oft, _amountLD),
-            _hopMessage: _hopMessage
+            _hopMessage: _hopMessage,
+            _data: _data
         });
 
         MessagingFee memory fee;
@@ -162,7 +163,7 @@ abstract contract HopV2 is Ownable2Step {
         if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
-        return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
+        return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _data);
     }
 
     function _validateComposeMessage(address _oft, bytes calldata _message) internal returns (bool isTrustedHopMessage, bool isDuplicateMessage) {
@@ -230,5 +231,5 @@ abstract contract HopV2 is Ownable2Step {
 
     // virtual functions to be overridden
     function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view virtual returns (uint256) {}
-    function _generateSendParam(uint256 _amountLD, HopMessage memory _hopMessage) internal view virtual returns (SendParam memory) {}
+    function _generateSendParam(uint256 _amountLD, HopMessage memory _hopMessage, bytes memory _data) internal view virtual returns (SendParam memory) {}
 }

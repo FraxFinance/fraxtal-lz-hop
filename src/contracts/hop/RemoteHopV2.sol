@@ -71,12 +71,13 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
 
     function _generateSendParam(
         uint256 _amountLD,
-        HopMessage memory _hopMessage
+        HopMessage memory _hopMessage,
+        bytes memory _data
     ) internal view override returns (SendParam memory sendParam) {
         sendParam.dstEid = FRAXTAL_EID;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
-        if (_hopMessage.dstEid == FRAXTAL_EID && _hopMessage.data.length == 0) { 
+        if (_hopMessage.dstEid == FRAXTAL_EID && _data.length == 0) { 
             // Send directly to Fraxtal, no compose needed
             sendParam.to = _hopMessage.recipient;
         } else {
@@ -89,7 +90,10 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, fraxtalGas, 0);
             sendParam.extraOptions = options;
 
-            sendParam.composeMsg = abi.encode(_hopMessage);
+            sendParam.composeMsg = abi.encode(
+                _hopMessage,
+                _data
+            );
         }
     }
 
@@ -131,10 +135,10 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
-        HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
+        (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
         
-        _sendLocal(_oft, amount, hopMessage);
+        _sendLocal(_oft, amount, hopMessage, data);
 
         emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
     }  

@@ -6,6 +6,9 @@ import { RemoteHopV2 } from "src/contracts/hop/RemoteHopV2.sol";
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
+
+
 interface IExecutor {
     function endpoint() external view returns (address);
     function localEidV2() external view returns (uint32);
@@ -23,6 +26,7 @@ interface IDVN {
 abstract contract DeployRemoteHopV2 is BaseScript {
     address constant FRAXTAL_HOP = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
 
+    address proxyAdmin;
     address endpoint;
     uint32 localEid;
     
@@ -48,7 +52,8 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         approvedOfts.push(wFraxOft);
         approvedOfts.push(fpiOft);
 
-        RemoteHopV2 remoteHop = new RemoteHopV2({
+        address remoteHop = deployRemoteHopV2({
+            _proxyAdmin: proxyAdmin,
             _localEid: localEid,
             _endpoint: endpoint,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
@@ -58,7 +63,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
             _TREASURY: ISendLibrary(SEND_LIBRARY).treasury(),
             _approvedOfts: approvedOfts
         });
-        console.log("RemoteHop deployed at:", address(remoteHop));
+        console.log("RemoteHop deployed at:", remoteHop);
     }
 
     function _validateAddrs() internal view returns (bool) {
@@ -75,9 +80,45 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         require(isStringEqual(IERC20Metadata(sfrxEthOft).symbol(), "sfrxETH"), "sfrxEthOft != sfrxETH");
         require(isStringEqual(IERC20Metadata(wFraxOft).symbol(), "WFRAX"), "wFraxOft != WFRAX");
         require(isStringEqual(IERC20Metadata(fpiOft).symbol(), "FPI"), "fpiOft != FPI");
+
+        // TODO: validate ProxyAdmin
     }
 
     function isStringEqual(string memory _a, string memory _b) public pure returns (bool) {
         return keccak256(abi.encodePacked(_a)) == keccak256(abi.encodePacked(_b));
     }
+}
+
+function deployRemoteHopV2(
+    address _proxyAdmin,
+    uint32 _localEid,
+    address _endpoint,
+    bytes32 _fraxtalHop,
+    uint32 _numDVNs,
+    address _EXECUTOR,
+    address _DVN,
+    address _TREASURY,
+    address[] memory _approvedOfts
+) returns (address payable) {
+    bytes memory initializeArgs = abi.encodeCall(
+        RemoteHopV2.initialize,
+        (
+            _localEid,
+            _endpoint,
+            _fraxtalHop,
+            _numDVNs,
+            _EXECUTOR,
+            _DVN,
+            _TREASURY,
+            _approvedOfts
+        )
+    );
+
+    address implementation = address(new RemoteHopV2());
+    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(
+        implementation,
+        _proxyAdmin,
+        initializeArgs
+    );
+    return payable(address(proxy));
 }

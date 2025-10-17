@@ -25,17 +25,23 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
 
     error InvalidDestinationChain();
 
-    constructor(
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         uint32 _localEid,
         address _endpoint,
         address[] memory _approvedOfts
-    ) HopV2(_localEid, _endpoint, _approvedOfts) {}
+    ) external initializer {
+        __init_HopV2(_localEid, _endpoint, _approvedOfts);
+    }
 
     // receive ETH
     receive() external payable {}
 
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public override payable {
-        if (_dstEid != localEid && remoteHop[_dstEid] == bytes32(0)) revert InvalidDestinationChain();
+        if (_dstEid != localEid() && remoteHop(_dstEid) == bytes32(0)) revert InvalidDestinationChain();
         
         super.sendOFT(_oft, _dstEid, _recipient, _amountLD, _dstGas, _data);
     }
@@ -63,7 +69,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         
-        if (hopMessage.dstEid == localEid) {
+        if (hopMessage.dstEid == localEid()) {
             _sendLocal({
                 _oft: _oft,
                 _amount: amountLD,
@@ -95,7 +101,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         if (_data.length == 0) {
             sendParam.to = _hopMessage.recipient;
         } else {
-            sendParam.to = remoteHop[_hopMessage.dstEid];
+            sendParam.to = remoteHop(_hopMessage.dstEid);
 
             bytes memory options = OptionsBuilder.newOptions();
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, _hopMessage.dstGas, 0);

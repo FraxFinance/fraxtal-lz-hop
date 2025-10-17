@@ -71,9 +71,21 @@ abstract contract HopV2 is Ownable2Step {
         uint256 sendFee;
         if (_dstEid == localEid) {
             // Sending from fraxtal => fraxtal- no LZ send needed
-            _sendLocal(_oft, _amountLD, hopMessage, _data);
+            _sendLocal({
+                _oft: _oft,
+                _amount: _amountLD,
+                _isTrustedHopMessage: true,
+                _hopMessage: hopMessage,
+                _data: _data
+            });
         } else {
-            sendFee = _sendToDestination(_oft, _amountLD, true, hopMessage, _data);
+            sendFee = _sendToDestination({
+                _oft: _oft,
+                _amountLD: _amountLD,
+                _isTrustedHopMessage: true,
+                _hopMessage: hopMessage,
+                _data: _data
+            });
         }
 
         // Validate the msg.value
@@ -117,7 +129,13 @@ abstract contract HopV2 is Ownable2Step {
     }
 
     // internal methods
-    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage, bytes memory _data) internal {
+    function _sendLocal(
+        address _oft,
+        uint256 _amount,
+        bool _isTrustedHopMessage,
+        HopMessage memory _hopMessage,
+        bytes memory _data
+    ) internal {
         // transfer the OFT token to the recipient
         address recipient = address(uint160(uint256(_hopMessage.recipient)));
         if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
@@ -125,6 +143,7 @@ abstract contract HopV2 is Ownable2Step {
         // call the compose if there is data
         if (_data.length != 0) {
             IHopComposer(recipient).hopCompose({
+                _isTrustedHopMessage: _isTrustedHopMessage,
                 _srcEid: _hopMessage.srcEid,
                 _sender: _hopMessage.sender,
                 _oft: _oft,

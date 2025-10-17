@@ -131,14 +131,20 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        (, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
+        (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
         if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
         (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
         
-        _sendLocal(_oft, amount, hopMessage, data);
+        _sendLocal({
+            _oft: _oft,
+            _amount: amount,
+            _isTrustedHopMessage: isTrustedHopMessage,
+            _hopMessage: hopMessage,
+            _data: data
+        });
 
         emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
     }  

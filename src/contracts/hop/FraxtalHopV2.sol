@@ -64,7 +64,13 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         
         if (hopMessage.dstEid == localEid) {
-            _sendLocal(_oft, amountLD, hopMessage, data);
+            _sendLocal({
+                _oft: _oft,
+                _amount: amountLD,
+                _isTrustedHopMessage: isTrustedHopMessage,
+                _hopMessage: hopMessage,
+                _data: data
+            });
         } else {
             _sendToDestination({
                 _oft: _oft,

@@ -69,6 +69,11 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         
+        if (!isTrustedHopMessage) {
+            hopMessage.srcEid = OFTComposeMsgCodec.srcEid(_message);
+            hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
+        }
+
         if (hopMessage.dstEid == localEid()) {
             _sendLocal({
                 _oft: _oft,

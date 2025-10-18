@@ -161,6 +161,11 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
         
+        if (!isTrustedHopMessage) {
+            hopMessage.srcEid = OFTComposeMsgCodec.srcEid(_message);
+            hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
+        }
+
         _sendLocal({
             _oft: _oft,
             _amount: amount,

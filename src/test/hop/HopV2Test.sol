@@ -341,7 +341,7 @@ contract HopV2Test is BaseTest {
 
         vm.startPrank(ENDPOINT);
         vm.expectEmit(true, true, true, true);
-        emit Composed(false, 1, OFTMsgCodec.addressToBytes32(address(0xabcde)), address(_oApp), 1e18, "Hello");
+        emit Composed(false, remoteHop.localEid(), OFTMsgCodec.addressToBytes32(sender), address(_oApp), 1e18, "Hello");
         hop.lzCompose(_oApp, bytes32(0), message, address(0), "");
         vm.stopPrank();
 

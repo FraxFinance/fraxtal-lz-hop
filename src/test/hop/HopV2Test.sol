@@ -118,9 +118,9 @@ contract HopV2Test is BaseTest {
                 dstEid: hop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(reciever)
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(reciever),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(remoteHop)), composeMsg);
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -152,9 +152,9 @@ contract HopV2Test is BaseTest {
                 dstEid: hop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer))
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer)),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(remoteHop)), composeMsg);
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -188,9 +188,9 @@ contract HopV2Test is BaseTest {
                 dstEid: remoteHop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer))
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer)),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(remoteHop)), composeMsg);
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -222,9 +222,9 @@ contract HopV2Test is BaseTest {
                 dstEid: remoteHop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(reciever)
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(reciever),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(hop)), composeMsg);
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -256,9 +256,9 @@ contract HopV2Test is BaseTest {
                 dstEid: remoteHop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer))
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer)),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(hop)), composeMsg);
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -292,9 +292,9 @@ contract HopV2Test is BaseTest {
                 dstEid: hop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(address(0xabcde)))), // bad sender
-                recipient: OFTComposeMsgCodec.addressToBytes32(reciever)
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(reciever),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(sender), composeMsg); // leads to !isTrustedHopMessage
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -327,9 +327,9 @@ contract HopV2Test is BaseTest {
                 dstEid: hop.localEid(),
                 dstGas: 0,
                 sender: bytes32(uint256(uint160(address(0xabcde)))), // bad sender
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer))
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer)),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(sender), composeMsg); // leads to !isTrustedHopMessage
         bytes memory message = OFTComposeMsgCodec.encode(
@@ -364,9 +364,9 @@ contract HopV2Test is BaseTest {
                 dstEid: remoteHop.localEid(),
                 dstGas: 150_000,
                 sender: bytes32(uint256(uint160(address(0xabcde)))), // bad sender
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer))
-            }),
-            data
+                recipient: OFTComposeMsgCodec.addressToBytes32(address(testComposer)),
+                data: data
+            })
         );
         composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(sender), composeMsg); // leads to !isTrustedHopMessage
         bytes memory message = OFTComposeMsgCodec.encode(

@@ -66,7 +66,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         if (isDuplicateMessage) return;
         
         // Extract the composed message from the delivered message using the MsgCodec
-        (HopMessage memory hopMessage, bytes memory data) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage, bytes));
+        (HopMessage memory hopMessage) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         
         if (!isTrustedHopMessage) {
@@ -79,16 +79,14 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
                 _oft: _oft,
                 _amount: amountLD,
                 _isTrustedHopMessage: isTrustedHopMessage,
-                _hopMessage: hopMessage,
-                _data: data
+                _hopMessage: hopMessage
             });
         } else {
             _sendToDestination({
                 _oft: _oft,
                 _amountLD: removeDust(_oft, amountLD),
                 _isTrustedHopMessage: isTrustedHopMessage,
-                _hopMessage: hopMessage,
-                _data: data
+                _hopMessage: hopMessage
             });
             emit Hop(_oft, OFTComposeMsgCodec.srcEid(_message), hopMessage.dstEid, hopMessage.recipient, amountLD);
         }
@@ -96,14 +94,13 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
 
     function _generateSendParam(
         uint256 _amountLD,
-        HopMessage memory _hopMessage,
-        bytes memory _data
+        HopMessage memory _hopMessage
     ) internal view override returns (SendParam memory sendParam) {
         sendParam.dstEid = _hopMessage.dstEid;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
         
-        if (_data.length == 0) {
+        if (_hopMessage.data.length == 0) {
             sendParam.to = _hopMessage.recipient;
         } else {
             sendParam.to = remoteHop(_hopMessage.dstEid);
@@ -112,10 +109,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, _hopMessage.dstGas, 0);
             sendParam.extraOptions = options;
 
-            sendParam.composeMsg = abi.encode(
-                _hopMessage,
-                _data
-            );
+            sendParam.composeMsg = abi.encode(_hopMessage);
         }
     }
 

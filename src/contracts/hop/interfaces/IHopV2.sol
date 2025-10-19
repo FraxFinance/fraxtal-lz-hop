@@ -6,6 +6,7 @@ struct HopMessage {
     uint128 dstGas;
     bytes32 sender;
     bytes32 recipient;
+    bytes data;
 }
 
 interface IHopV2 {

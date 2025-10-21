@@ -43,6 +43,7 @@ contract RemoteHop is Ownable2Step {
     error InsufficientFee();
     error RefundFailed();
     error ZeroAmountSend();
+    error ArrayLengthMismatch();
 
     function version() external pure virtual returns (string memory) {
         return "1.0.1";
@@ -55,7 +56,9 @@ contract RemoteHop is Ownable2Step {
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
-        address[] memory _approvedOfts
+        address[] memory _approvedOfts,
+        uint32[] memory _eids,
+        bytes[] memory _executorOptions
     ) Ownable(_owner) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
@@ -65,6 +68,11 @@ contract RemoteHop is Ownable2Step {
 
         for (uint256 i = 0; i < _approvedOfts.length; i++) {
             approvedOft[_approvedOfts[i]] = true;
+        }
+        uint256 _eidCount = _eids.length;
+        if (_eidCount != _executorOptions.length) revert ArrayLengthMismatch();
+        for (uint256 i = 0; i < _eidCount; i++) {
+            executorOptions[_eids[i]] = _executorOptions[i];
         }
     }
 

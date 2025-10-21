@@ -32,7 +32,21 @@ contract FraxtalHopTest is BaseTest {
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 17180177);
         hop = new FraxtalHop(approvedOfts);
-        remoteHop = new RemoteHop(OFTMsgCodec.addressToBytes32(address(hop)), 2, EXECUTOR, DVN, TREASURY, approvedOfts);
+        uint32[] memory _eids = new uint32[](1);
+        _eids[0] = 30168;
+        bytes[] memory _executorOptions = new bytes[](1);
+        _executorOptions[0] = hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0";
+        remoteHop = new RemoteHop(
+            address(1),
+            OFTMsgCodec.addressToBytes32(address(hop)),
+            2,
+            EXECUTOR,
+            DVN,
+            TREASURY,
+            approvedOfts,
+            _eids,
+            _executorOptions
+        );
         hop.setRemoteHop(30110, address(remoteHop));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).call{ value: 1 ether }("");
@@ -48,13 +62,20 @@ contract FraxtalHopTest is BaseTest {
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
         hop = new FraxtalHop(approvedOfts);
+        uint32[] memory _eids = new uint32[](1);
+        _eids[0] = 30168;
+        bytes[] memory _executorOptions = new bytes[](1);
+        _executorOptions[0] = hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0";
         remoteHop = new RemoteHop(
+            address(1),
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
             0x31CAe3B7fB82d847621859fb1585353c5720660D,
             0x2f55C492897526677C5B68fb199ea31E2c126416,
             0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
-            approvedOfts
+            approvedOfts,
+            _eids,
+            _executorOptions
         );
     }
 
@@ -68,13 +89,20 @@ contract FraxtalHopTest is BaseTest {
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
         hop = new FraxtalHop(approvedOfts);
+        uint32[] memory _eids = new uint32[](1);
+        _eids[0] = 30168;
+        bytes[] memory _executorOptions = new bytes[](1);
+        _executorOptions[0] = hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0";
         remoteHop = new RemoteHop(
+            address(1),
             OFTMsgCodec.addressToBytes32(address(hop)),
             2,
             0x173272739Bd7Aa6e4e214714048a9fE699453059,
             0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
             0x5ebB3f2feaA15271101a927869B3A56837e73056,
-            approvedOfts
+            approvedOfts,
+            _eids,
+            _executorOptions
         );
     }
 

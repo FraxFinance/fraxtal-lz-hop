@@ -112,7 +112,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
 
         uint256 sendFee;
         if (_dstEid == $.localEid) {
-            // Sending from fraxtal => fraxtal- no LZ send needed (sendFee remains 0)
+            // Sending from src => src - no LZ send needed (sendFee remains 0)
             _sendLocal({
                 _oft: _oft,
                 _amount: _amountLD,

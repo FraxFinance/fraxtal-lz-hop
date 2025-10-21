@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 interface IHopComposer {
     function hopCompose(
-        bool _isTrustedHopMessage,
         uint32 _srcEid,
         bytes32 _sender,
         address _oft,

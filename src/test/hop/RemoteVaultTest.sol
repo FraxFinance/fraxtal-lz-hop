@@ -62,7 +62,7 @@ contract RemoteVaultTest is BaseTest {
             pricePerShare: 885458600678000000
         });
         vm.prank(hop);
-        remoteVaultHop.hopCompose(true, 30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
 
         assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600678000000, "Price per share should be updated");
         console.log("Price per share:", RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare());
@@ -87,7 +87,7 @@ contract RemoteVaultTest is BaseTest {
         });
         deal(frxUSD, address(remoteVaultHop), 10E18);
         vm.prank(hop);
-        remoteVaultHop.hopCompose(true, 30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
 
         assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600678000000, "Price per share not yet updated");
 
@@ -121,7 +121,7 @@ contract RemoteVaultTest is BaseTest {
 
         deal(frxUSD, address(remoteVaultHop), 10E18);
         vm.prank(hop);
-        remoteVaultHop.hopCompose(true, 30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
 
         uint256 vaultTokens = IERC20(0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2).balanceOf(address(remoteVaultHop));
         console.log("vaultTokens",vaultTokens);
@@ -137,7 +137,7 @@ contract RemoteVaultTest is BaseTest {
             pricePerShare: 0
         });
         vm.prank(hop);
-        remoteVaultHop.hopCompose(true, 30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 0, abi.encode(message));
+        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 0, abi.encode(message));
 
 
         vaultTokens = IERC20(0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2).balanceOf(address(remoteVaultHop));

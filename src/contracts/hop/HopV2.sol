@@ -93,7 +93,6 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
             _sendLocal({
                 _oft: _oft,
                 _amount: _amountLD,
-                _isTrustedHopMessage: true,
                 _hopMessage: hopMessage
             });
         } else {
@@ -150,7 +149,6 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     function _sendLocal(
         address _oft,
         uint256 _amount,
-        bool _isTrustedHopMessage,
         HopMessage memory _hopMessage
     ) internal {
         // transfer the OFT token to the recipient
@@ -160,7 +158,6 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         // call the compose if there is data
         if (_hopMessage.data.length != 0) {
             IHopComposer(recipient).hopCompose({
-                _isTrustedHopMessage: _isTrustedHopMessage,
                 _srcEid: _hopMessage.srcEid,
                 _sender: _hopMessage.sender,
                 _oft: _oft,

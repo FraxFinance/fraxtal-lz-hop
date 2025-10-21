@@ -168,7 +168,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         return fee;
     }
 
-    function hopCompose(bool _isTrustedHopMessage, uint32 _srcEid, bytes32 _srcAddress, address _oft, uint256 _amount, bytes memory _data) external {
+    function hopCompose(uint32 _srcEid, bytes32 _srcAddress, address _oft, uint256 _amount, bytes memory _data) external {
         if (msg.sender != address(HOP)) revert NotHop();
         if (_oft != OFT) revert InvalidOFT();
         if (bytes32(uint256(uint160(remoteVaultHops[_srcEid]))) != _srcAddress) revert InvalidChain();

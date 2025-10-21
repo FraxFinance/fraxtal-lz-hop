@@ -30,7 +30,7 @@ contract HopV2Test is BaseTest {
     // receive ETH
     receive() external payable {}
 
-    event Composed(bool isTrustedHopMessage, uint32 srcEid, bytes32 srcAddress, address oft, uint256 amount, bytes data);
+    event Composed(uint32 srcEid, bytes32 srcAddress, address oft, uint256 amount, bytes data);
 
     function setUpFraxtal() public virtual {
         approvedOfts.push(0x96A394058E2b84A89bac9667B19661Ed003cF5D4);
@@ -166,7 +166,7 @@ contract HopV2Test is BaseTest {
 
         vm.startPrank(ENDPOINT);
         vm.expectEmit(true, true, true, true);
-        emit Composed(true, 30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
         hop.lzCompose(_oApp, bytes32(0), message, address(0), "");
         vm.stopPrank();
 
@@ -270,7 +270,7 @@ contract HopV2Test is BaseTest {
 
         vm.startPrank(ENDPOINT);
         vm.expectEmit(true, true, true, true);
-        emit Composed(true, 30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        emit Composed(30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
         remoteHop.lzCompose(_oApp, bytes32(0), message, address(0), "");
         vm.stopPrank();
 
@@ -341,7 +341,7 @@ contract HopV2Test is BaseTest {
 
         vm.startPrank(ENDPOINT);
         vm.expectEmit(true, true, true, true);
-        emit Composed(false, remoteHop.localEid(), OFTMsgCodec.addressToBytes32(sender), address(_oApp), 1e18, "Hello");
+        emit Composed(remoteHop.localEid(), OFTMsgCodec.addressToBytes32(sender), address(_oApp), 1e18, "Hello");
         hop.lzCompose(_oApp, bytes32(0), message, address(0), "");
         vm.stopPrank();
 
@@ -485,7 +485,7 @@ contract HopV2Test is BaseTest {
         uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,0,"Hello");
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
-        emit Composed(true, 30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        emit Composed(30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
         hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,0,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
@@ -525,7 +525,7 @@ contract HopV2Test is BaseTest {
         uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,1000000,"Hello");
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
-        emit Composed(true, 30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
+        emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
         remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,1000000,"Hello");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));

@@ -78,7 +78,6 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
             _sendLocal({
                 _oft: _oft,
                 _amount: amountLD,
-                _isTrustedHopMessage: isTrustedHopMessage,
                 _hopMessage: hopMessage
             });
         } else {

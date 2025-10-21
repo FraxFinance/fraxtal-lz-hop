@@ -165,7 +165,6 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         _sendLocal({
             _oft: _oft,
             _amount: amount,
-            _isTrustedHopMessage: isTrustedHopMessage,
             _hopMessage: hopMessage
         });
 

@@ -28,11 +28,22 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
 
     struct RemoteHopV2Storage {
+        /// @dev number of DVNs used to verify a message
         uint32 numDVNs;
+
+        /// @dev Hop fee charged to users to use the Hop service
         uint256 hopFee; // 10_000 based so 1 = 0.01%
+
+        /// @dev Configuration of executor options by chain EID
         mapping(uint32 eid => bytes options) executorOptions;
+
+        /// @dev Address of LZ executor
         address EXECUTOR;
+
+        /// @dev Address of LZ DVN
         address DVN;
+
+        /// @dev Address of LZ treasury
         address TREASURY;
     }
 
@@ -157,6 +168,9 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         (HopMessage memory hopMessage) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
         
+        // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
+        // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
+        // to ensure the HopMessage data is legitimate when passed to IHopComposer.hopCompose().
         if (!isTrustedHopMessage) {
             hopMessage.srcEid = OFTComposeMsgCodec.srcEid(_message);
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
@@ -200,5 +214,4 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         return $.TREASURY;
     }
-
 }

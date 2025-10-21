@@ -17,11 +17,22 @@ import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 abstract contract HopV2 is Ownable2StepUpgradeable {
 
     struct HopV2Storage {
+        /// @dev EID of this chain
         uint32 localEid;
+
+        /// @dev LZ endpoint on this chain
         address endpoint;
+
+        /// @dev Admin-controlled boolean to pause hops
         bool paused;
+
+        /// @dev Mapping to validate only trusted OFTs
         mapping(address oft => bool isApproved) approvedOft;
+
+        /// @dev Mapping to track messages to prevent replays / duplicate messages
         mapping(bytes32 message => bool isProcessed) messageProcessed;
+
+        /// @dev Mapping to track the Hop on a remote chain
         mapping(uint32 eid => bytes32 hop) remoteHop;
     }
 
@@ -64,10 +75,22 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     }
 
     // Public methods
+
+    /// @notice Send an OFT to a destination without encoded data
+    /// @param _oft Address of OFT
+    /// @param _dstEid Destination EID
+    /// @param _recipient bytes32 representation of recipient
+    /// @param _amountLD Amount of OFT to send
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
         sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");
     }    
 
+    /// @notice Send an OFT to a destination with encoded data
+    /// @param _oft Address of OFT
+    /// @param _dstEid Destination EID
+    /// @param _recipient bytes32 representation of recipient
+    /// @param _amountLD Amount of OFT to send
+    /// @param _data Encoded data to pass
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public virtual payable {
         HopV2Storage storage $ = _getHopV2Storage();
         if ($.paused) revert HopPaused();
@@ -83,13 +106,13 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
             data: _data
         });
 
-        // Transfer the OFT token to the hop
+        // Transfer the OFT token to the hop. Clean off dust for the sender that would otherwise be lost through LZ.
         _amountLD = removeDust(_oft, _amountLD);
         if (_amountLD > 0) SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
 
         uint256 sendFee;
         if (_dstEid == $.localEid) {
-            // Sending from fraxtal => fraxtal- no LZ send needed
+            // Sending from fraxtal => fraxtal- no LZ send needed (sendFee remains 0)
             _sendLocal({
                 _oft: _oft,
                 _amount: _amountLD,
@@ -111,6 +134,14 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     }
     
     // Helper functions
+
+    /// @notice Get the gas cost estimate of going from this chain to a destination chain
+    /// @param _oft Address of OFT to send
+    /// @param _dstEid Destination EID
+    /// @param _recipient Address of recipient upon destination
+    /// @param _amount Amount to transfer (dust will be removed)
+    /// @param _dstGas Amount of gas to forward to the destination
+    /// @param _data Encoded data to pass to the destination
     function quote(
         address _oft,
         uint32 _dstEid,
@@ -140,18 +171,21 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         return fee.nativeFee + quoteHop(_dstEid, _dstGas, _data);
     }
 
+    /// @notice Remove the dust amount of OFT so that the message passed is the message received
     function removeDust(address oft, uint256 _amountLD) public view returns (uint256) {
         uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
         return (_amountLD / decimalConversionRate) * decimalConversionRate;
     }
 
     // internal methods
+
+    /// @dev Send the OFT and execute hopCompose on this chain (locally)
     function _sendLocal(
         address _oft,
         uint256 _amount,
         HopMessage memory _hopMessage
     ) internal {
-        // transfer the OFT token to the recipient
+        // transfer the OFT to the recipient
         address recipient = address(uint160(uint256(_hopMessage.recipient)));
         if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
 
@@ -167,6 +201,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         }
     }
 
+    /// @dev Send the OFT to execute hopCompose on a destination chain
     function _sendToDestination(
         address _oft,
         uint256 _amountLD,
@@ -191,12 +226,15 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
             fee.nativeFee = msg.value;
         }
 
+        // Send the OFT to the recipient
         if (_amountLD > 0) SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
+        // Return the total amount charged in the send.  On fraxtal, this is only the native fee as there is no hop needed.
         return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
     }
 
+    /// @dev Check the incoming message integrity
     function _validateComposeMessage(address _oft, bytes calldata _message) internal returns (bool isTrustedHopMessage, bool isDuplicateMessage) {
         HopV2Storage storage $ = _getHopV2Storage();
         
@@ -209,18 +247,24 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         bytes32 composeFrom = OFTComposeMsgCodec.composeFrom(_message);
         uint64 nonce = OFTComposeMsgCodec.nonce(_message);
 
+        // Encode the unique message data to prevent replays
         bytes32 messageHash = keccak256(abi.encode(_oft, srcEid, nonce, composeFrom));
+
+        // True if the composer is a registered RemoteHop, otherwise false
         isTrustedHopMessage = $.remoteHop[srcEid] == composeFrom;
 
         if ($.messageProcessed[messageHash]) {
+            // The message is a duplicate, we end execution early
             return (isTrustedHopMessage, true);
         } else {
+            // We process the message and continue execution
             $.messageProcessed[messageHash] = true;
             emit MessageHash(_oft, srcEid, nonce, composeFrom);
             return (isTrustedHopMessage, false);
         }
     }
 
+    /// @dev Check the msg value of the tx
     function _handleMsgValue(uint256 _sendFee) internal {
         if (msg.value < _sendFee) {
             revert InsufficientFee();
@@ -302,7 +346,9 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         return $.remoteHop[eid];
     }
 
-    // virtual functions to be overridden
+    // virtual functions to override
+
+    /// @notice Quote the hop of a send. Returns 0 when originating from fraxtal as the destination only receives and does not hop further.
     function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view virtual returns (uint256) {}
     function _generateSendParam(uint256 _amountLD, HopMessage memory _hopMessage) internal view virtual returns (SendParam memory) {}
 }

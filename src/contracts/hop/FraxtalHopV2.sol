@@ -31,11 +31,10 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
     }
 
     function initialize(
-        uint32 _localEid,
         address _endpoint,
         address[] memory _approvedOfts
     ) external initializer {
-        __init_HopV2(_localEid, _endpoint, _approvedOfts);
+        __init_HopV2(FRAXTAL_EID, _endpoint, _approvedOfts);
     }
 
     // receive ETH

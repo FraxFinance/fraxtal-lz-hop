@@ -24,6 +24,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
     event Hop(address oft, uint32 indexed srcEid, uint32 indexed dstEid, bytes32 indexed recipient, uint256 amount);
 
     error InvalidDestinationChain();
+    error InvalidRemoteHop();
 
     constructor() {
         _disableInitializers();
@@ -102,7 +103,13 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         if (_hopMessage.data.length == 0) {
             sendParam.to = _hopMessage.recipient;
         } else {
-            sendParam.to = remoteHop(_hopMessage.dstEid);
+            bytes32 to = remoteHop(_hopMessage.dstEid);
+
+            // In sending from A => Fraxtal => B, A does not know if B has a remoteHop.
+            // Therefore, revert on Fraxtal lzCompose() when there is no remoteHop to allow replays
+            // rather than sending to address(0) on destination
+            if (to == bytes32(0)) revert InvalidRemoteHop();
+            sendParam.to = to;
 
             bytes memory options = OptionsBuilder.newOptions();
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, _hopMessage.dstGas, 0);

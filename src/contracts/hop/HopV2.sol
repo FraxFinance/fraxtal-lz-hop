@@ -54,6 +54,7 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
     error InvalidSourceEid();
     error HopPaused();
     error NotEndpoint();
+    error NotHop();
     error InsufficientFee();
     error RefundFailed();
 
@@ -150,6 +151,9 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
         
         // Only allow composes originating from fraxtal
         if (_srcEid != FRAXTAL_EID) revert InvalidSourceEid();
+
+        // Only allow self-calls (via lzCompose())
+        if (msg.sender != address(this)) revert NotHop();
 
         // Only allow composes where the sender is approved
         _checkRole(DEFAULT_ADMIN_ROLE, address(uint160(uint256(_sender))));

@@ -150,12 +150,9 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         uint128 _dstGas,
         bytes memory _data
     ) public view returns (uint256) {
-        uint32 localEid_ = localEid();
-        if (_dstEid == localEid_) return 0;
-
         // generate hop message
         HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid_,
+            srcEid: localEid(),
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),

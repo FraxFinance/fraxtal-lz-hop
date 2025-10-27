@@ -43,6 +43,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
     mapping(uint32 eid => bytes32 readHop) public readHops;
     mapping(address srcAddress => uint256 nonce) public nonces;
 
+    error InsufficientFee();
     error InvalidEID();
     error InvalidOFT();
     error NotReadHop();
@@ -63,7 +64,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
         bytes32 _dstAddress,
         uint64 _returnDataLen,
         bytes memory _data
-    ) external {
+    ) external payable {
         if (readHops[_targetEid] == bytes32(0) || readHops[_dstEid] == bytes32(0)) revert InvalidEID();
 
         // Craft ReadMessage with ReadHopMessage
@@ -136,6 +137,8 @@ contract ReadHop is Ownable2Step, IHopComposer {
             )
         });
 
+        if (fee < msg.value) revert InsufficientFee();
+
         // Send message
         IHopV2(HOP).sendOFT({
             _oft: OFT,
@@ -202,7 +205,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
         });
 
         // send message
-        IHopV2(HOP).sendOFT({
+        IHopV2(HOP).sendOFT{value: fee}({
             _oft: OFT,
             _dstEid: readHopMessage.dstEid,
             _recipient: readHops[readHopMessage.dstEid],

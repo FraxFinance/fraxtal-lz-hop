@@ -36,7 +36,6 @@
     "@layerzerolabs/lz-v2-utilities": "^3.0.115",
     "@layerzerolabs/oapp-evm": "^0.0.4",
     "@layerzerolabs/oft-evm": "^0.1.0",
-    "@openzeppelin/contracts-upgradeable": "5.4.0",
     "dotenv": "^16.6.1",
     "ds-test": "github:dapphub/ds-test",
     "forge-std": "github:foundry-rs/forge-std#60acb7aaadcce2d68e52986a0a66fe79f07d138f",

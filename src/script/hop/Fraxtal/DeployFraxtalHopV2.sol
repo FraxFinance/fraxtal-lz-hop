@@ -30,6 +30,7 @@ contract DeployFraxtalHopV2 is BaseScript {
 
         address hop = deployFraxtalHopV2(
             proxyAdmin,
+            30255,
             0x1a44076050125825900e736c501f859c50fE728c,
             approvedOfts
         );
@@ -37,10 +38,11 @@ contract DeployFraxtalHopV2 is BaseScript {
     }
 }
 
-function deployFraxtalHopV2(address _proxyAdmin, address _endpoint, address[] memory _approvedOfts) returns (address payable) {
+function deployFraxtalHopV2(address _proxyAdmin, uint32 _localEid, address _endpoint, address[] memory _approvedOfts) returns (address payable) {
     bytes memory initializeArgs = abi.encodeCall(
         FraxtalHopV2.initialize,
         (
+            _localEid,
             _endpoint,
             _approvedOfts
         )

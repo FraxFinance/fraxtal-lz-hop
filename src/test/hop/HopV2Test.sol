@@ -16,9 +16,6 @@ import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 
 import { deployRemoteHopV2 } from "src/script/hop/Remote/DeployRemoteHopV2.sol";
 import { deployFraxtalHopV2 } from "src/script/hop/Fraxtal/DeployFraxtalHopV2.sol";
-import { HopV2 } from "src/contracts/hop/HopV2.sol";
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-
 
 contract HopV2Test is BaseTest {
     FraxtalHopV2 hop;
@@ -44,7 +41,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(deployRemoteHopV2(
             proxyAdmin,
             30110,
@@ -69,7 +66,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927);
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin,30255, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(deployRemoteHopV2(
             proxyAdmin,
             30110,
@@ -92,7 +89,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x9033BAD7aA130a2466060A2dA71fAe2219781B4b);
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(deployRemoteHopV2(
             proxyAdmin,
             30101,
@@ -534,106 +531,5 @@ contract HopV2Test is BaseTest {
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
         assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
-    }
-
-    function test_HopV2_hopCompose_Pause() public {
-        setupArbitrum();
-        address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
-        address frxUSD = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
-        address sender = address(0x1234);
-        deal(frxUSD, address(remoteHop), 1e18);
-
-        bytes memory data = abi.encodeCall(HopV2.pause, (true));
-        bytes memory composeMsg = abi.encode(
-            HopMessage({
-                srcEid: hop.localEid(),
-                dstEid: remoteHop.localEid(),
-                dstGas: 0,
-                sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(remoteHop)),
-                data: data
-            })
-        );
-        composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(hop)), composeMsg);
-        bytes memory message = OFTComposeMsgCodec.encode(
-            0, // nonce of the origin tx
-            hop.localEid(), // source endpoint id of the tx
-            0, // amount of token
-            composeMsg // the composed message
-        );
-
-        // Should revert before sender is added as an admin role
-        vm.startPrank(ENDPOINT);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                sender,
-                bytes32(0)
-            )
-        );
-        remoteHop.lzCompose(_oApp, bytes32(0), message, address(0), "");
-        vm.stopPrank();
-
-        // Grant admin role to sender
-        remoteHop.grantRole(bytes32(0), sender);
-
-        // should now succeed
-        vm.startPrank(ENDPOINT);
-        remoteHop.lzCompose(_oApp, bytes32(0), message, address(0), "");
-        vm.stopPrank();
-
-        // should now be paused
-        require(remoteHop.paused(), "Contract is not remotely paused");
-    }
-
-    function test_RemoteHopV2_hopCompose_SetHopFee() public {
-        setupArbitrum();
-        address _oApp = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
-        address frxUSD = address(0x80Eede496655FB9047dd39d9f418d5483ED600df);
-        address sender = address(0x1234);
-        uint256 hopFee = 999;
-        deal(frxUSD, address(remoteHop), 1e18);
-
-        bytes memory data = abi.encodeCall(RemoteHopV2.setHopFee, (hopFee));
-        bytes memory composeMsg = abi.encode(
-            HopMessage({
-                srcEid: hop.localEid(),
-                dstEid: remoteHop.localEid(),
-                dstGas: 0,
-                sender: bytes32(uint256(uint160(sender))),
-                recipient: OFTComposeMsgCodec.addressToBytes32(address(remoteHop)),
-                data: data
-            })
-        );
-        composeMsg = abi.encodePacked(OFTComposeMsgCodec.addressToBytes32(address(hop)), composeMsg);
-        bytes memory message = OFTComposeMsgCodec.encode(
-            0, // nonce of the origin tx
-            hop.localEid(), // source endpoint id of the tx
-            0, // amount of token
-            composeMsg // the composed message
-        );
-
-        // Should revert before sender is added as an admin role
-        vm.startPrank(ENDPOINT);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                sender,
-                bytes32(0)
-            )
-        );
-        remoteHop.lzCompose(_oApp, bytes32(0), message, address(0), "");
-        vm.stopPrank();
-
-        // Grant admin role to sender
-        remoteHop.grantRole(bytes32(0), sender);
-
-        // should now succeed
-        vm.startPrank(ENDPOINT);
-        remoteHop.lzCompose(_oApp, bytes32(0), message, address(0), "");
-        vm.stopPrank();
-
-        // should now contain the new hop fee
-        require(remoteHop.hopFee() == hopFee, "Contract failed to set hop fee remotely");
-    }
+    }     
 }

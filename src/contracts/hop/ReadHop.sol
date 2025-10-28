@@ -15,7 +15,7 @@ struct ReadMessage {
     Direction direction;
     uint32 srcEid;
     uint32 targetEid;
-    uint256 id;
+    uint256 nonce;
     bytes32 srcAddress;
     bytes32 targetAddress;
     bytes32 dstAddress;
@@ -60,6 +60,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
         uint32 _dstEid,
         uint128 _targetGas,
         uint128 _dstGas,
+        uint256 _nonce,
         bytes32 _targetAddress,
         bytes32 _dstAddress,
         uint64 _returnDataLen,
@@ -75,22 +76,11 @@ contract ReadHop is Ownable2Step, IHopComposer {
             data: _data
         });
 
-        // generate unique id
-        uint256 id = generateId({
-            _srcEid: EID,
-            _targetEid: _targetEid,
-            _dstEid: _dstEid,
-            _nonce: nonces[msg.sender]++,
-            _srcAddress: bytes32(uint256(uint160(msg.sender))),
-            _targetAddress: _targetAddress,
-            _dstAddress: _dstAddress
-        });
-
         ReadMessage memory readMessage = ReadMessage({
             direction: Direction.Outbound,
             srcEid: EID,
             targetEid: _targetEid,
-            id: id,
+            nonce: _nonce,
             srcAddress: bytes32(uint256(uint160(msg.sender))),
             targetAddress: _targetAddress,
             dstAddress: _dstAddress,
@@ -128,7 +118,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
                     direction: Direction.Inbound,
                     srcEid: EID,
                     targetEid: _targetEid,
-                    id: id,
+                    nonce: _nonce,
                     srcAddress: bytes32(uint256(uint160(msg.sender))),
                     targetAddress: _targetAddress,
                     dstAddress: _dstAddress,
@@ -221,35 +211,13 @@ contract ReadHop is Ownable2Step, IHopComposer {
         
         // call dst with shared and compose message
         IReadComposer(address(uint160(uint256(readMessage.dstAddress)))).readCompose({
-            _id: readMessage.id,
-            _success: readComposeMessage.success,
+            _srcEid: readMessage.srcEid,
+            _srcAddress: readMessage.srcAddress,
+            _nonce: readMessage.nonce,
             _readTimestamp: readComposeMessage.readTimestamp,
+            _success: readComposeMessage.success,
             _data: readComposeMessage.data
         });
-    }
-
-    function generateId(
-        uint32 _srcEid,
-        uint32 _targetEid,
-        uint32 _dstEid,
-        uint256 _nonce,
-        bytes32 _srcAddress,
-        bytes32 _targetAddress,
-        bytes32 _dstAddress
-    ) public pure returns (uint256) {
-        return uint256(
-            keccak256(
-                abi.encode(
-                    _srcEid,
-                    _targetEid,
-                    _dstEid,
-                    _nonce,
-                    _srcAddress,
-                    _targetAddress,
-                    _dstAddress
-                )
-            )
-        );
     }
 
     function setReadHop(uint32 _eid, bytes32 _readHop) external onlyOwner {

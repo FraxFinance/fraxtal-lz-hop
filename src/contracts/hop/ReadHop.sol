@@ -11,24 +11,29 @@ enum Direction {
     Inbound
 }
 
+// TODO: is there a better convention around these ReadXMessage structs?
+
+/// @dev Generic message passed from ReadHop to ReadHop where message is either an encoded
+// ReadHopMessage or ReadComposeMessage
 struct ReadMessage {
     Direction direction;
     uint32 srcEid;
-    uint32 targetEid;
     uint256 nonce;
     bytes32 srcAddress;
-    bytes32 targetAddress;
     bytes32 dstAddress;
     bytes message;
 }
 
+/// @dev Data to be used on the target chain
 struct ReadHopMessage {
     uint32 dstEid;
     uint128 dstGas;
     uint64 returnDataLen;
+    bytes32 targetAddress;
     bytes data;
 }
 
+/// @dev Data to be used on the destination chain
 struct ReadComposeMessage {
     bool success;
     uint64 readTimestamp;
@@ -53,6 +58,8 @@ contract ReadHop is Ownable2Step, IHopComposer {
         OFT = _oft;
         HOP = _hop;
         EID = _eid;
+
+        readHops[_eid] = bytes32(uint256(uint160(address(this))));
     }
 
     function readOFT(
@@ -66,23 +73,22 @@ contract ReadHop is Ownable2Step, IHopComposer {
         uint64 _returnDataLen,
         bytes memory _data
     ) external payable {
-        if (readHops[_targetEid] == bytes32(0) || readHops[_dstEid] == bytes32(0)) revert InvalidEID();
+        if (readHops[_targetEid] == bytes32(0)) revert InvalidEID();
 
         // Craft ReadMessage with ReadHopMessage
         ReadHopMessage memory readHopMessage = ReadHopMessage({
             dstEid: _dstEid,
             dstGas: _dstGas,
             returnDataLen: _returnDataLen,
+            targetAddress: _targetAddress,
             data: _data
         });
 
         ReadMessage memory readMessage = ReadMessage({
             direction: Direction.Outbound,
             srcEid: EID,
-            targetEid: _targetEid,
             nonce: _nonce,
             srcAddress: bytes32(uint256(uint160(msg.sender))),
-            targetAddress: _targetAddress,
             dstAddress: _dstAddress,
             message: abi.encode(readHopMessage)
         });
@@ -117,10 +123,8 @@ contract ReadHop is Ownable2Step, IHopComposer {
                 ReadMessage({
                     direction: Direction.Inbound,
                     srcEid: EID,
-                    targetEid: _targetEid,
                     nonce: _nonce,
                     srcAddress: bytes32(uint256(uint160(msg.sender))),
-                    targetAddress: _targetAddress,
                     dstAddress: _dstAddress,
                     message: abi.encode(mockReadComposeMessage)
                 })
@@ -130,7 +134,10 @@ contract ReadHop is Ownable2Step, IHopComposer {
         if (fee < msg.value) revert InsufficientFee();
 
         // Send message
-        IHopV2(HOP).sendOFT({
+        // Note that fees accrue in the ReadHop similar to RemoteHop.  User pays the target chain hopCompose() and destination chain readCompose()
+        // in advance in the source chain token, and on the target and destination chain, there is an equivalent amount of gas available within
+        // the ReadHop to execute the hopCompose()/readCompose()
+        IHopV2(HOP).sendOFT{value: fee}({
             _oft: OFT,
             _dstEid: _targetEid,
             _recipient: readHops[_targetEid],
@@ -161,6 +168,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
         }
     }
 
+    /// @dev Read the target contract and send the data to the destination
     function _handleOutboundMessage(ReadMessage memory readMessage) internal {
         // decode into ReadHopMessage
         ReadHopMessage memory readHopMessage;
@@ -168,7 +176,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
 
         // call target with data
         (bool success, bytes memory data) = 
-            address(uint160(uint256(readMessage.targetAddress))).call(readHopMessage.data);
+            address(uint160(uint256(readHopMessage.targetAddress))).call(readHopMessage.data);
 
         // ensure data fits params
         if (data.length > readHopMessage.returnDataLen) revert TooMuchDataReturned();
@@ -205,6 +213,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
         });
     }
 
+    /// @dev push the read data to the recipient
     function _handleInboundMessage(ReadMessage memory readMessage) internal {
         ReadComposeMessage memory readComposeMessage;
         (readComposeMessage) = abi.decode(readMessage.message, (ReadComposeMessage));

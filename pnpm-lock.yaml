@@ -42,6 +42,12 @@ importers:
       '@openzeppelin/contracts':
         specifier: ^5.4.0
         version: 5.4.0
+      '@openzeppelin/contracts-4.8.1':
+        specifier: npm:@openzeppelin/contracts@4.8.1
+        version: '@openzeppelin/contracts@4.8.1'
+      '@openzeppelin/contracts-upgradeable-4.8.1':
+        specifier: npm:@openzeppelin/contracts-upgradeable@4.8.1
+        version: '@openzeppelin/contracts-upgradeable@4.8.1'
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -52,8 +58,8 @@ importers:
         specifier: ^3.6.2
         version: 3.6.2
       prettier-plugin-solidity:
-        specifier: ^2.1.0
-        version: 2.1.0(prettier@3.6.2)
+        specifier: ^1.4.3
+        version: 1.4.3(prettier@3.6.2)
       prettier-plugin-svelte:
         specifier: ^3.4.0
         version: 3.4.0(prettier@3.6.2)(svelte@4.2.10)
@@ -62,7 +68,7 @@ importers:
         version: 6.0.0(typescript@5.8.3)
       solhint-plugin-prettier:
         specifier: ^0.1.0
-        version: 0.1.0(prettier-plugin-solidity@2.1.0(prettier@3.6.2))(prettier@3.6.2)
+        version: 0.1.0(prettier-plugin-solidity@1.4.3(prettier@3.6.2))(prettier@3.6.2)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@24.8.1)(typescript@5.8.3)
@@ -91,9 +97,6 @@ packages:
   '@babel/runtime@7.28.2':
     resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
     engines: {node: '>=6.9.0'}
-
-  '@bytecodealliance/preview2-shim@0.17.2':
-    resolution: {integrity: sha512-mNm/lblgES8UkVle8rGImXOz4TtL3eU3inHay/7TVchkKrb/lgcVvTK0+VAw8p5zQ0rgQsXm1j5dOlAAd+MeoA==}
 
   '@chainlink/contracts-ccip@0.7.6':
     resolution: {integrity: sha512-yNbCBFpLs3R+ALymto9dQYKz3vatnjqYGu1pnMD0i2fHEMthiXe0+otaNCGNht6n8k7ruNaA0DNpz3F+2jHQXw==}
@@ -281,11 +284,11 @@ packages:
       '@openzeppelin/contracts': ^4.8.1 || ^5.0.0
       '@openzeppelin/contracts-upgradeable': ^4.8.1 || ^5.0.0
 
-  '@nomicfoundation/slang@1.2.0':
-    resolution: {integrity: sha512-+04Z1RHbbz0ldDbHKQFOzveCdI9Rd3TZZu7fno5hHy3OsqTo9UK5Jgqo68wMvRovCO99POv6oCEyO7+urGeN8Q==}
-
   '@openzeppelin/contracts-upgradeable@4.7.3':
     resolution: {integrity: sha512-+wuegAMaLcZnLCJIvrVUDzA9z/Wp93f0Dla/4jJvIhijRrPabjQbZe6fWiECLaJyfn5ci9fqf9vTw3xpQOad2A==}
+
+  '@openzeppelin/contracts-upgradeable@4.8.1':
+    resolution: {integrity: sha512-1wTv+20lNiC0R07jyIAbHU7TNHKRwGiTGRfiNnA8jOWjKT98g5OgLpYWOi40Vgpk8SPLA9EvfJAbAeIyVn+7Bw==}
 
   '@openzeppelin/contracts-upgradeable@4.9.5':
     resolution: {integrity: sha512-f7L1//4sLlflAN7fVzJLoRedrf5Na3Oal5PZfIq55NFcVZ90EpV1q5xOvL4lFvg3MNICSDr2hH0JUBxwlxcoPg==}
@@ -295,6 +298,9 @@ packages:
 
   '@openzeppelin/contracts@4.3.3':
     resolution: {integrity: sha512-tDBopO1c98Yk7Cv/PZlHqrvtVjlgK5R4J6jxLwoO7qxK4xqOiZG+zSkIvGFpPZ0ikc3QOED3plgdqjgNTnBc7g==}
+
+  '@openzeppelin/contracts@4.8.1':
+    resolution: {integrity: sha512-xQ6eUZl+RDyb/FiZe1h+U7qr/f4p/SrTSQcTPH2bjur3C5DbuW/zFgCU/b1P/xcIaEqJep+9ju4xDRi3rmChdQ==}
 
   '@openzeppelin/contracts@5.4.0':
     resolution: {integrity: sha512-eCYgWnLg6WO+X52I16TZt8uEjbtdkgLC0SUX/xnAksjjrQI4Xfn4iBRoI5j55dmlOhDv1Y7BoR3cU7e3WWhC6A==}
@@ -1248,12 +1254,6 @@ packages:
     peerDependencies:
       prettier: '>=2.3.0'
 
-  prettier-plugin-solidity@2.1.0:
-    resolution: {integrity: sha512-O5HX4/PCE5aqiaEiNGbSRLbSBZQ6kLswAav5LBSewwzhT+sZlN6iAaLZlZcJzPEnIAxwLEHP03xKEg92fflT9Q==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      prettier: '>=3.0.0'
-
   prettier-plugin-svelte@3.4.0:
     resolution: {integrity: sha512-pn1ra/0mPObzqoIQn/vUTR3ZZI6UuZ0sHqMK5x2jMLGrs53h0sXhkVuDcrlssHwIMk7FYrMjHBPoUSyyEEDlBQ==}
     peerDependencies:
@@ -1593,8 +1593,6 @@ snapshots:
   '@babel/helper-validator-identifier@7.27.1': {}
 
   '@babel/runtime@7.28.2': {}
-
-  '@bytecodealliance/preview2-shim@0.17.2': {}
 
   '@chainlink/contracts-ccip@0.7.6(ethers@5.8.0)':
     dependencies:
@@ -1978,17 +1976,17 @@ snapshots:
       '@openzeppelin/contracts': 5.4.0
       '@openzeppelin/contracts-upgradeable': 4.9.5
 
-  '@nomicfoundation/slang@1.2.0':
-    dependencies:
-      '@bytecodealliance/preview2-shim': 0.17.2
-
   '@openzeppelin/contracts-upgradeable@4.7.3': {}
+
+  '@openzeppelin/contracts-upgradeable@4.8.1': {}
 
   '@openzeppelin/contracts-upgradeable@4.9.5': {}
 
   '@openzeppelin/contracts@3.4.2': {}
 
   '@openzeppelin/contracts@4.3.3': {}
+
+  '@openzeppelin/contracts@4.8.1': {}
 
   '@openzeppelin/contracts@5.4.0': {}
 
@@ -3010,13 +3008,6 @@ snapshots:
       prettier: 3.6.2
       semver: 7.7.2
 
-  prettier-plugin-solidity@2.1.0(prettier@3.6.2):
-    dependencies:
-      '@nomicfoundation/slang': 1.2.0
-      '@solidity-parser/parser': 0.20.2
-      prettier: 3.6.2
-      semver: 7.7.2
-
   prettier-plugin-svelte@3.4.0(prettier@3.6.2)(svelte@4.2.10):
     dependencies:
       prettier: 3.6.2
@@ -3167,13 +3158,6 @@ snapshots:
       prettier: 3.6.2
       prettier-linter-helpers: 1.0.0
       prettier-plugin-solidity: 1.4.3(prettier@3.6.2)
-
-  solhint-plugin-prettier@0.1.0(prettier-plugin-solidity@2.1.0(prettier@3.6.2))(prettier@3.6.2):
-    dependencies:
-      '@prettier/sync': 0.3.0(prettier@3.6.2)
-      prettier: 3.6.2
-      prettier-linter-helpers: 1.0.0
-      prettier-plugin-solidity: 2.1.0(prettier@3.6.2)
 
   solhint@3.6.2(typescript@5.8.3):
     dependencies:

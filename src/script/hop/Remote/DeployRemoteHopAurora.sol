@@ -13,6 +13,8 @@ contract DeployRemoteHopAurora is BaseScript {
     address constant FRAXTAL_HOP = 0x2A2019b30C157dB6c1C01306b8025167dBe1803B;
     address constant FRAXTAL_MINTREDEEM_HOP = 0x3e6a2cBaFD864e09e6DAb9Cf035a0AbEa32bc0BC;
 
+    address owner;
+
     address EXECUTOR;
     address DVN;
     address SEND_LIBRARY;
@@ -49,6 +51,7 @@ contract DeployRemoteHopAurora is BaseScript {
         approvedOfts.push(fpiOft);
 
         RemoteHop remoteHop = new RemoteHop({
+            _owner: owner,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
             _numDVNs: 3,
             _EXECUTOR: EXECUTOR,
@@ -59,6 +62,7 @@ contract DeployRemoteHopAurora is BaseScript {
         console.log("RemoteHop deployed at:", address(remoteHop));
 
         RemoteMintRedeemHop remoteMintRedeemHop = new RemoteMintRedeemHop({
+            _owner: owner,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_MINTREDEEM_HOP))),
             _numDVNs: 3,
             _EXECUTOR: EXECUTOR,

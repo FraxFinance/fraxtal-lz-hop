@@ -7,7 +7,6 @@ import { TestHopComposer } from "src/test/hop/TestHopComposer.sol";
 import "src/Constants.sol" as Constants;
 
 contract DeployTestHopComposer is BaseScript {
-
     function run() public broadcaster {
         TestHopComposer hopComposer = new TestHopComposer();
         console.log("TestHopComposer deployed at:", address(hopComposer));

@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { RemoteVaultHop } from "src/contracts/hop/RemoteVaultHop.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-
 // ====================================================================
 // |     ______                   _______                             |
 // |    / _____________ __  __   / ____(_____  ____ _____  ________   |
@@ -27,7 +26,7 @@ contract RemoteVaultDeposit is ERC20, Ownable {
 
     /// @notice The chain ID where the vault is located
     uint32 public immutable VAULT_CHAIN_ID;
-    
+
     /// @notice The address of the vault on the remote chain
     address public immutable VAULT_ADDRESS;
 
@@ -110,9 +109,9 @@ contract RemoteVaultDeposit is ERC20, Ownable {
 
     function deposit(uint256 _amount, address _to) public payable {
         IERC20(ASSET).transferFrom(msg.sender, address(REMOTE_VAULT_HOP), _amount);
-        RemoteVaultHop(REMOTE_VAULT_HOP).deposit{value: msg.value}(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS, _to);
+        RemoteVaultHop(REMOTE_VAULT_HOP).deposit{ value: msg.value }(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS, _to);
         if (address(this).balance > 0) {
-            (bool success, ) = msg.sender.call{value: address(this).balance}("");
+            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
             require(success, "Refund failed");
         }
     }
@@ -125,14 +124,14 @@ contract RemoteVaultDeposit is ERC20, Ownable {
         _burn(msg.sender, _amount);
         emit Burn(msg.sender, _amount);
 
-        RemoteVaultHop(REMOTE_VAULT_HOP).redeem{value: msg.value}(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS, _to);
+        RemoteVaultHop(REMOTE_VAULT_HOP).redeem{ value: msg.value }(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS, _to);
         if (address(this).balance > 0) {
-            (bool success, ) = msg.sender.call{value: address(this).balance}("");
+            (bool success, ) = msg.sender.call{ value: address(this).balance }("");
             require(success, "Refund failed");
         }
     }
 
     function quote(uint256 _amount) public view returns (uint256) {
-        return  RemoteVaultHop(REMOTE_VAULT_HOP).quote(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS);
+        return RemoteVaultHop(REMOTE_VAULT_HOP).quote(_amount, VAULT_CHAIN_ID, VAULT_ADDRESS);
     }
 }

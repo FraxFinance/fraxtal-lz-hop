@@ -15,25 +15,11 @@ contract DeployHopSetter is BaseScript {
     }
 }
 
-function deployHopSetter(
-    address _proxyAdmin,
-    address _fraxtalHop,
-    address _frxUsdOft
-) returns (address payable) {
-    bytes memory initializeArgs = abi.encodeCall(
-        HopSetter.initialize,
-        (
-            _fraxtalHop,
-            _frxUsdOft
-        )
-    );
+function deployHopSetter(address _proxyAdmin, address _fraxtalHop, address _frxUsdOft) returns (address payable) {
+    bytes memory initializeArgs = abi.encodeCall(HopSetter.initialize, (_fraxtalHop, _frxUsdOft));
 
     address implementation = address(new HopSetter());
-    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(
-        implementation,
-        _proxyAdmin,
-        initializeArgs
-    );
+    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);
 
     return payable(address(proxy));
 }

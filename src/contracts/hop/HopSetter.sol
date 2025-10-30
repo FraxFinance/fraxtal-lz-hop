@@ -6,7 +6,6 @@ import { IHopV2 } from "src/contracts/hop/interfaces/IHopV2.sol";
 
 /// @notice Set RemoteHop params via Fraxtal
 contract HopSetter is OwnableUpgradeable {
-
     IHopV2 public fraxtalHop;
     address public frxUsdOft;
 
@@ -22,21 +21,17 @@ contract HopSetter is OwnableUpgradeable {
     }
 
     function recoverETH(uint256 value, address to) external onlyOwner {
-        (bool success, ) = to.call{value: value}("");
+        (bool success, ) = to.call{ value: value }("");
         require(success, "recoverETH failed");
     }
 
-    function callRemoteHops(
-        uint32[] memory eids,
-        uint128 _dstGas,
-        bytes memory _data
-    ) external onlyOwner {
+    function callRemoteHops(uint32[] memory eids, uint128 _dstGas, bytes memory _data) external onlyOwner {
         uint32 localEid = fraxtalHop.localEid();
-        for (uint256 i=0; i<eids.length; i++) {
+        for (uint256 i = 0; i < eids.length; i++) {
             uint32 eid = eids[i];
-            bytes32 remoteHop = eid == localEid ? 
-                bytes32(uint256(uint160(address(fraxtalHop)))):
-                fraxtalHop.remoteHop(eid);
+            bytes32 remoteHop = eid == localEid
+                ? bytes32(uint256(uint160(address(fraxtalHop))))
+                : fraxtalHop.remoteHop(eid);
 
             uint256 fee = fraxtalHop.quote({
                 _oft: frxUsdOft,
@@ -47,7 +42,7 @@ contract HopSetter is OwnableUpgradeable {
                 _data: _data
             });
 
-            fraxtalHop.sendOFT{value: fee}({
+            fraxtalHop.sendOFT{ value: fee }({
                 _oft: frxUsdOft,
                 _dstEid: eid,
                 _recipient: remoteHop,

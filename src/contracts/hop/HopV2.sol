@@ -49,6 +49,7 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
     error NotHop();
     error InsufficientFee();
     error RefundFailed();
+    error FailedRemoteSetCall();
 
     constructor() {
         _disableInitializers();
@@ -133,7 +134,7 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
         uint32 _srcEid,
         bytes32 _sender,
         address _oft,
-        uint256 _amount,
+        uint256 /* _amount */,
         bytes memory _data
     ) external override {
         HopV2Storage storage $ = _getHopV2Storage();
@@ -149,7 +150,8 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
         // Only allow composes where the sender is approved
         _checkRole(DEFAULT_ADMIN_ROLE, address(uint160(uint256(_sender))));
 
-        address(this).call(_data);
+        (bool success, ) = address(this).call(_data);
+        if (!success) revert FailedRemoteSetCall();
     }
 
     // Helper functions
@@ -330,7 +332,8 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
     }
 
     function recoverETH(address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        payable(recipient).call{ value: tokenAmount }("");
+        (bool success, ) = payable(recipient).call{ value: tokenAmount }("");
+        require(success);
     }
 
     // Storage views

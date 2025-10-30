@@ -10,7 +10,7 @@ import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 import "src/Constants.sol" as Constants;
 
 contract DeployFraxtalHopV2 is BaseScript {
-    address proxyAdmin;
+    address constant proxyAdmin = 0x223a681fc5c5522c85C96157c0efA18cd6c5405c;
 
     address constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
     address constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;

@@ -122,7 +122,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quoteHop(uint32, uint128, bytes memory) public view override returns (uint256) {
+    function quoteHop(uint32, uint128, bytes memory) public pure override returns (uint256) {
         return 0;
     }
 }

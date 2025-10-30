@@ -44,14 +44,19 @@ contract TestnetRemoteHop is Ownable2Step {
     error RefundFailed();
     error ZeroAmountSend();
 
+    function version() external pure virtual returns (string memory) {
+        return "1.0.1";
+    }
+
     constructor(
+        address _owner,
         bytes32 _fraxtalHop,
         uint256 _numDVNs,
         address _EXECUTOR,
         address _DVN,
         address _TREASURY,
         address[] memory _approvedOfts
-    ) Ownable(msg.sender) {
+    ) Ownable(_owner) {
         fraxtalHop = _fraxtalHop;
         numDVNs = _numDVNs;
         EXECUTOR = _EXECUTOR;

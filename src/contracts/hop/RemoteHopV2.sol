@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import { IOAppComposer } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppComposer.sol";
 import { OptionsBuilder } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oapp/libs/OptionsBuilder.sol";
-import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
-import { IOFT2 } from "./interfaces/IOFT2.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ILayerZeroDVN } from "./interfaces/ILayerZeroDVN.sol";
-import { ILayerZeroTreasury } from "./interfaces/ILayerZeroTreasury.sol";
-import { IExecutor } from "./interfaces/IExecutor.sol";
-import { IHopComposer } from "./interfaces/IHopComposer.sol";
-import { IHopV2 } from "./interfaces/IHopV2.sol";
+import { SendParam } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
+
+import { ILayerZeroDVN } from "src/contracts/hop/interfaces/ILayerZeroDVN.sol";
+import { ILayerZeroTreasury } from "src/contracts/hop/interfaces/ILayerZeroTreasury.sol";
+import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
+
+import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -27,215 +24,125 @@ import { IHopV2 } from "./interfaces/IHopV2.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
-    uint32 constant FRAXTAL_EID = 30255;
-    bool public paused = false;
-    bytes32 public fraxtalHop;
-    uint256 public numDVNs = 2;
-    uint256 public hopFee = 1; // 10000 based so 1 = 0.01%
-    mapping(uint32 => bytes) public executorOptions;
-    mapping(address => bool) public approvedOft;
-    mapping(bytes32 => bool) public messageProcessed;
+contract RemoteHopV2 is HopV2, IOAppComposer {
+    uint32 internal constant FRAXTAL_EID = 30255;
 
-    address public immutable ENDPOINT;
-    address public immutable EXECUTOR;
-    address public immutable DVN;
-    address public immutable TREASURY;
-    uint32 public immutable EID;
+    struct RemoteHopV2Storage {
+        /// @dev number of DVNs used to verify a message
+        uint32 numDVNs;
 
-    event SendOFT(address oft, address indexed sender, uint32 indexed dstEid, bytes32 indexed to, uint256 amountLD);
-    event Hop(address oft, address indexed recipient, uint256 amount);
-    event MessageHash(address oft, uint64 indexed nonce, bytes32 indexed fraxtalHop);
+        /// @dev Hop fee charged to users to use the Hop service
+        uint256 hopFee; // 10_000 based so 1 = 0.01%
 
-    error InvalidOFT();
-    error HopPaused();
-    error NotEndpoint();
-    error InsufficientFee();
-    error RefundFailed();
-    error ZeroAmountSend();
-    error InvalidSourceChain();
-    error InvalidSourceHop();
+        /// @dev Configuration of executor options by chain EID
+        mapping(uint32 eid => bytes options) executorOptions;
 
-    constructor(
-        bytes32 _fraxtalHop,
-        uint256 _numDVNs,
-        address _ENDPOINT,
-        address _EXECUTOR,
-        address _DVN,
-        address _TREASURY,
-        uint32 _EID,
-        address[] memory _approvedOfts
-    ) Ownable(msg.sender) {
-        fraxtalHop = _fraxtalHop;
-        numDVNs = _numDVNs;
-        ENDPOINT = _ENDPOINT;
-        EID = _EID;
-        EXECUTOR = _EXECUTOR;
-        DVN = _DVN;
-        TREASURY = _TREASURY;
+        /// @dev Address of LZ executor
+        address EXECUTOR;
 
-        for (uint256 i = 0; i < _approvedOfts.length; i++) {
-            approvedOft[_approvedOfts[i]] = true;
+        /// @dev Address of LZ DVN
+        address DVN;
+
+        /// @dev Address of LZ treasury
+        address TREASURY;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.RemoteHopV2")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant RemoteHopV2StorageLocation = 
+        0x092e031a5530f7fcb3ff5e857b626b93fc7001a81b918f0ab9aa9078c572b700;
+
+    function _getRemoteHopV2Storage() private pure returns (RemoteHopV2Storage storage $) {
+        assembly {
+            $.slot := RemoteHopV2StorageLocation
         }
     }
 
-    // Admin functions
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
-        IERC20(tokenAddress).transfer(recipient, tokenAmount);
+    event Hop(address oft, address indexed recipient, uint256 amount);
+
+    constructor() {
+        _disableInitializers();
     }
 
-    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
-        payable(recipient).call{ value: tokenAmount }("");
+    function initialize(
+        uint32 _localEid,
+        address _endpoint,
+        bytes32 _fraxtalHop,
+        uint32 _numDVNs,
+        address _EXECUTOR,
+        address _DVN,
+        address _TREASURY,
+        address[] memory _approvedOfts
+    ) external initializer {
+        __init_HopV2(_localEid, _endpoint, _approvedOfts);
+        _setRemoteHop(FRAXTAL_EID, _fraxtalHop);
+
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        $.numDVNs = _numDVNs;
+        $.EXECUTOR = _EXECUTOR;
+        $.DVN = _DVN;
+        $.TREASURY = _TREASURY;
     }
 
-    function setFraxtalHop(address _fraxtalHop) external {
-        setFraxtalHop(bytes32(uint256(uint160(_fraxtalHop))));
-    }
-
-    function setFraxtalHop(bytes32 _fraxtalHop) public onlyOwner {
-        fraxtalHop = _fraxtalHop;
-    }
-
-    function setNumDVNs(uint256 _numDVNs) external onlyOwner {
-        numDVNs = _numDVNs;
+    function setNumDVNs(uint32 _numDVNs) external onlyOwner {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        $.numDVNs = _numDVNs;
     }
 
     function setHopFee(uint256 _hopFee) external onlyOwner {
-        hopFee = _hopFee;
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        $.hopFee = _hopFee;
     }
 
     function setExecutorOptions(uint32 eid, bytes memory _options) external onlyOwner {
-        executorOptions[eid] = _options;
-    }
-
-    function pause(bool _paused) external onlyOwner {
-        paused = _paused;
-    }
-
-    function toggleOFTApproval(address _oft, bool _approved) external onlyOwner {
-        approvedOft[_oft] = _approved;
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        $.executorOptions[eid] = _options;
     }
 
     // receive ETH
     receive() external payable {}
 
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD) external payable {
-        sendOFT(_oft, _dstEid, _to, _amountLD, 0, "");
-    }
-
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD, uint128 _composeGas, bytes memory _composeMsg) public payable {
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-        _amountLD = removeDust(_oft, _amountLD);
-        SafeERC20.safeTransferFrom(IERC20(IOFT(_oft).token()), msg.sender, address(this), _amountLD);
-        if (_dstEid == EID) {
-            SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), address(uint160(uint256(_to))), _amountLD);
-            if (_composeMsg.length != 0) {
-                IHopComposer(address(uint160(uint256(_to)))).hopCompose(EID, bytes32(uint256(uint160(msg.sender))), _oft, _amountLD, _composeMsg);
-            }
-            if (msg.value > 0) {
-                (bool success, ) = address(msg.sender).call{ value: msg.value }("");
-                if (!success) revert RefundFailed();
-            }
-        } else {
-            _sendViaFraxtal(_oft, _dstEid, _to, _amountLD, _composeGas, _composeMsg);
-        }
-        emit SendOFT(_oft, msg.sender, _dstEid, _to, _amountLD);
-    }
-
-    function _sendViaFraxtal(address _oft, uint32 _dstEid, bytes32 _to, uint256 _amountLD, uint128 _composeGas, bytes memory _composeMsg) internal {
-        // generate arguments
-        SendParam memory sendParam = _generateSendParam({
-            _dstEid: _dstEid,
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _amountLD,
-            _composeGas: _composeGas,
-            _composeMsg: _composeMsg
-        });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        uint256 finalFee = fee.nativeFee + quoteHop(_dstEid, _composeGas, _composeMsg);
-        if (finalFee > msg.value) revert InsufficientFee();
-
-        // Send the oft
-        SafeERC20.forceApprove(IERC20(IOFT(_oft).token()), _oft, _amountLD);
-        IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
-
-        // Refund the excess
-        if (msg.value > finalFee) {
-            (bool success, ) = address(msg.sender).call{ value: msg.value - finalFee }("");
-            if (!success) revert RefundFailed();
-        }
-    }
-
     function _generateSendParam(
-        uint32 _dstEid,
-        bytes32 _to,
         uint256 _amountLD,
-        uint256 _minAmountLD,
-        uint128 _composeGas,
-        bytes memory _composeMsg
-    ) internal view returns (SendParam memory sendParam) {
+        HopMessage memory _hopMessage
+    ) internal view override returns (SendParam memory sendParam) {
         sendParam.dstEid = FRAXTAL_EID;
         sendParam.amountLD = _amountLD;
-        sendParam.minAmountLD = _minAmountLD;
-        if (_dstEid == FRAXTAL_EID && _composeMsg.length == 0) { 
+        sendParam.minAmountLD = _amountLD;
+        if (_hopMessage.dstEid == FRAXTAL_EID && _hopMessage.data.length == 0) { 
             // Send directly to Fraxtal, no compose needed
-            sendParam.to = _to;
+            sendParam.to = _hopMessage.recipient;
         } else {
+            sendParam.to = remoteHop(FRAXTAL_EID); 
+
             bytes memory options = OptionsBuilder.newOptions();
-            if (_composeGas < 400000) _composeGas = 400000;
-            sendParam.to = fraxtalHop; 
-            uint128 fraxtalGas = 1000000;
-            if (_composeGas > fraxtalGas && _dstEid == FRAXTAL_EID) fraxtalGas = _composeGas;
+            if (_hopMessage.dstGas < 400_000) _hopMessage.dstGas = 400_000;
+            uint128 fraxtalGas = 1_000_000;
+            if (_hopMessage.dstGas > fraxtalGas && _hopMessage.dstEid == FRAXTAL_EID) fraxtalGas = _hopMessage.dstGas;
             options = OptionsBuilder.addExecutorLzComposeOption(options, 0, fraxtalGas, 0);
             sendParam.extraOptions = options;
-            if (_composeMsg.length == 0) sendParam.composeMsg = abi.encode(_to, _dstEid, _composeGas, "");
-            else sendParam.composeMsg = abi.encode(_to, _dstEid, _composeGas, abi.encode(EID, msg.sender, _composeMsg));
+
+            sendParam.composeMsg = abi.encode(_hopMessage);
         }
     }
 
-    function quote(
-        address _oft,
-        uint32 _dstEid,
-        bytes32 _to,
-        uint256 _amountLD,
-        uint128 _composeGas,
-        bytes memory _composeMsg
-    ) public view returns (uint256) {
-        if (_dstEid == EID) return 0;
-        _amountLD = removeDust(_oft, _amountLD);
-        SendParam memory sendParam = _generateSendParam({
-            _dstEid: _dstEid,
-            _to: _to,
-            _amountLD: _amountLD,
-            _minAmountLD: _amountLD,
-            _composeGas: _composeGas,
-            _composeMsg: _composeMsg
-        });
-        MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        fee.nativeFee += quoteHop(_dstEid, _composeGas, _composeMsg);
-        return fee.nativeFee;
-    }
+    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view override returns (uint256 finalFee) {
+        // No hop needed if Fraxtal is the destination
+        if (_dstEid == FRAXTAL_EID) return 0;
+        
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
 
-    function quoteHop(uint32 _dstEid, uint128 _composeGas, bytes memory _composeMsg) public view returns (uint256 finalFee) {
-        uint256 dvnFee = ILayerZeroDVN(DVN).getFee(_dstEid, 5, address(this), "");
-        bytes memory options = executorOptions[_dstEid];
+        uint256 dvnFee = ILayerZeroDVN($.DVN).getFee(_dstEid, 5, address(this), "");
+        bytes memory options = $.executorOptions[_dstEid];
         if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
-        if (_composeMsg.length != 0) {
-            if (_composeGas < 400000) _composeGas = 400000;
-            options = abi.encodePacked(options,hex"010013030000", _composeGas);
+        if (_data.length != 0) {
+            if (_dstGas < 400_000) _dstGas = 400_000;
+            options = abi.encodePacked(options,hex"010013030000", _dstGas);
         }
-        uint256 executorFee = IExecutor(EXECUTOR).getFee(_dstEid, address(this), 36, options);
-        uint256 totalFee = dvnFee * numDVNs + executorFee;
-        uint256 treasuryFee = ILayerZeroTreasury(TREASURY).getFee(address(this), _dstEid, totalFee, false);
+        uint256 executorFee = IExecutor($.EXECUTOR).getFee(_dstEid, address(this), 36, options);
+        uint256 totalFee = dvnFee * $.numDVNs + executorFee;
+        uint256 treasuryFee = ILayerZeroTreasury($.TREASURY).getFee(address(this), _dstEid, totalFee, false);
         finalFee = totalFee + treasuryFee;
-        finalFee = (finalFee * (10000 + hopFee)) / 10000;
-    }
-
-    function removeDust(address oft, uint256 _amountLD) internal view returns (uint256) {
-        uint256 decimalConversionRate = IOFT2(oft).decimalConversionRate();
-        return (_amountLD / decimalConversionRate) * decimalConversionRate;
+        finalFee = (finalFee * (10_000 + $.hopFee)) / 10_000;
     }
 
     /// @notice Handles incoming composed messages from LayerZero.
@@ -254,41 +161,57 @@ contract RemoteHopV2 is Ownable2Step, IOAppComposer, IHopV2 {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
-        if (msg.sender != ENDPOINT) revert NotEndpoint();
-        if (paused) revert HopPaused();
-        if (!approvedOft[_oft]) revert InvalidOFT();
-        if (OFTComposeMsgCodec.srcEid(_message)!= FRAXTAL_EID) revert InvalidSourceChain();
-        if (OFTComposeMsgCodec.composeFrom(_message) != fraxtalHop) revert InvalidSourceHop();
-        {
-            uint64 nonce = OFTComposeMsgCodec.nonce(_message);
-            bytes32 messageHash = keccak256(abi.encode(_oft, nonce, fraxtalHop));
-            // Avoid duplicated messages
-            if (!messageProcessed[messageHash]) {
-                messageProcessed[messageHash] = true;
-            } else {
-                return;
-            }
-            emit MessageHash(_oft, nonce, fraxtalHop);
-        }
+        (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
+        if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (bytes32 _recipient, bytes memory _composeMsg) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (bytes32, bytes));
-        uint256 _amount = OFTComposeMsgCodec.amountLD(_message);
-        address _recipientAddress = address(uint160(uint256(_recipient)));
-        address __oft = _oft;
-        if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), _recipientAddress, _amount);
-        if (_composeMsg.length != 0) {
-            (uint32 srcEid, bytes32 srcAddress, bytes memory _composeMsg2) = abi.decode(_composeMsg, (uint32, bytes32, bytes));
-            IHopComposer(_recipientAddress).hopCompose(srcEid, srcAddress, __oft, _amount, _composeMsg2);
+        (HopMessage memory hopMessage) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
+        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
+        
+        // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
+        // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
+        // to ensure the HopMessage data is legitimate when passed to IHopComposer.hopCompose().
+        if (!isTrustedHopMessage) {
+            hopMessage.srcEid = OFTComposeMsgCodec.srcEid(_message);
+            hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
-        emit Hop(__oft, _recipientAddress, _amount);
+
+        _sendLocal({
+            _oft: _oft,
+            _amount: amount,
+            _hopMessage: hopMessage
+        });
+
+        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
     }
 
+    function numDVNs() external view returns (uint32) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.numDVNs;
+    }
 
-    // Owner functions
-    function setMessageProcessed(address oft, uint64 nonce, bytes32 _fraxtalHop) external onlyOwner {
-        bytes32 messageHash = keccak256(abi.encodePacked(oft,  nonce, _fraxtalHop));
-        emit MessageHash(oft, nonce, _fraxtalHop);
-        messageProcessed[messageHash] = true;
-    }       
+    function hopFee() external view returns (uint256) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.hopFee;
+    }
+
+    function executorOptions(uint32 eid) external view returns (bytes memory) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.executorOptions[eid];
+    }
+
+    function EXECUTOR() external view returns (address) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.EXECUTOR;
+    }
+
+    function DVN() external view returns (address) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.DVN;
+    }
+
+    function TREASURY() external view returns (address) {
+        RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
+        return $.TREASURY;
+    }
 }

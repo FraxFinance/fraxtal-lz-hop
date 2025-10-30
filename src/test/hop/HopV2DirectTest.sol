@@ -15,12 +15,19 @@ import { IExecutor } from "@fraxfinance/layerzero-v2-upgradeable/messagelib/cont
 
 contract HopV2DirectTest is BaseTest {
     FraxtalHopV2 hop = FraxtalHopV2(payable(0xA6e5d568Fd930A70034Ee74afd22C49950047573));
-    
+
     function setupBase() public {
         vm.createSelectFork(vm.envString("BASE_MAINNET_URL"), 36233708);
     }
 
-    function send(uint32 _dstEid, bytes32 _to, uint256 _amount, uint256 _composeGas, bytes memory _composeMsg, uint128 _lzComposeValue) public {
+    function send(
+        uint32 _dstEid,
+        bytes32 _to,
+        uint256 _amount,
+        uint256 _composeGas,
+        bytes memory _composeMsg,
+        uint128 _lzComposeValue
+    ) public {
         IOFT frxUSD = IOFT(0xe5020A6d073a794B6E7f05678707dE47986Fb0b6);
         bytes memory options = OptionsBuilder.newOptions();
         options = OptionsBuilder.addExecutorLzComposeOption(options, 0, 1000000, _lzComposeValue);
@@ -41,7 +48,7 @@ contract HopV2DirectTest is BaseTest {
             oftCmd: hex""
         });
         // Encode the struct to bytes for Tenderly
-        MessagingFee memory fee = frxUSD.quoteSend(sendParams,false);
+        MessagingFee memory fee = frxUSD.quoteSend(sendParams, false);
         console.log("fee:", fee.nativeFee);
         console.log("extraOptions");
         console.logBytes(sendParams.extraOptions);
@@ -57,14 +64,14 @@ contract HopV2DirectTest is BaseTest {
 
     function setupFraxtal() public {
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 26211760);
-    }  
+    }
 
     function logConfig(uint32 _eid) public view {
         IExecutor executor = IExecutor(0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4);
         (uint64 baseGas, uint16 multiplierBps, uint128 floorMarginUSD, uint128 nativeCap) = executor.dstConfig(_eid);
         console.log("eid:", _eid);
         //console.log("baseGas:", baseGas);
-        //console.log("multiplierBps:", multiplierBps);   
+        //console.log("multiplierBps:", multiplierBps);
         //console.log("floorMarginUSD:", floorMarginUSD);
         console.log("nativeCap:", nativeCap);
     }
@@ -79,5 +86,4 @@ contract HopV2DirectTest is BaseTest {
         logConfig(30109); // Polygon
         logConfig(30255); // Fraxtal
     }
-
 }

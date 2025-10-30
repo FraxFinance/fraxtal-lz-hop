@@ -4,7 +4,6 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
@@ -13,32 +12,24 @@ import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-
 abstract contract HopV2 is Ownable2StepUpgradeable {
-
     struct HopV2Storage {
         /// @dev EID of this chain
         uint32 localEid;
-
         /// @dev LZ endpoint on this chain
         address endpoint;
-
         /// @dev Admin-controlled boolean to pause hops
         bool paused;
-
         /// @dev Mapping to validate only trusted OFTs
         mapping(address oft => bool isApproved) approvedOft;
-
         /// @dev Mapping to track messages to prevent replays / duplicate messages
         mapping(bytes32 message => bool isProcessed) messageProcessed;
-
         /// @dev Mapping to track the Hop on a remote chain
         mapping(uint32 eid => bytes32 hop) remoteHop;
     }
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.HopV2")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant HopV2StorageLocation = 
-        0x6f2b5e4a4e4e1ee6e84aeabd150e6bcb39c4b05494d47809c3cd3d998f859100;
+    bytes32 private constant HopV2StorageLocation = 0x6f2b5e4a4e4e1ee6e84aeabd150e6bcb39c4b05494d47809c3cd3d998f859100;
 
     function _getHopV2Storage() private pure returns (HopV2Storage storage $) {
         assembly {
@@ -59,17 +50,13 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         _disableInitializers();
     }
 
-    function __init_HopV2(
-        uint32 _localEid,
-        address _endpoint,
-        address[] memory _approvedOfts
-    ) internal {
+    function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
         __Ownable2Step_init();
 
         HopV2Storage storage $ = _getHopV2Storage();
         $.localEid = _localEid;
         $.endpoint = _endpoint;
-        for (uint256 i=0; i<_approvedOfts.length; i++) {
+        for (uint256 i = 0; i < _approvedOfts.length; i++) {
             $.approvedOft[_approvedOfts[i]] = true;
         }
     }
@@ -83,7 +70,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     /// @param _amountLD Amount of OFT to send
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable {
         sendOFT(_oft, _dstEid, _recipient, _amountLD, 0, "");
-    }    
+    }
 
     /// @notice Send an OFT to a destination with encoded data
     /// @param _oft Address of OFT
@@ -91,7 +78,14 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     /// @param _recipient bytes32 representation of recipient
     /// @param _amountLD Amount of OFT to send
     /// @param _data Encoded data to pass
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public virtual payable {
+    function sendOFT(
+        address _oft,
+        uint32 _dstEid,
+        bytes32 _recipient,
+        uint256 _amountLD,
+        uint128 _dstGas,
+        bytes memory _data
+    ) public payable virtual {
         HopV2Storage storage $ = _getHopV2Storage();
         if ($.paused) revert HopPaused();
         if (!$.approvedOft[_oft]) revert InvalidOFT();
@@ -113,11 +107,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
         uint256 sendFee;
         if (_dstEid == $.localEid) {
             // Sending from src => src - no LZ send needed (sendFee remains 0)
-            _sendLocal({
-                _oft: _oft,
-                _amount: _amountLD,
-                _hopMessage: hopMessage
-            });
+            _sendLocal({ _oft: _oft, _amount: _amountLD, _hopMessage: hopMessage });
         } else {
             sendFee = _sendToDestination({
                 _oft: _oft,
@@ -132,7 +122,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
 
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
-    
+
     // Helper functions
 
     /// @notice Get the gas cost estimate of going from this chain to a destination chain
@@ -180,11 +170,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     // internal methods
 
     /// @dev Send the OFT and execute hopCompose on this chain (locally)
-    function _sendLocal(
-        address _oft,
-        uint256 _amount,
-        HopMessage memory _hopMessage
-    ) internal {
+    function _sendLocal(address _oft, uint256 _amount, HopMessage memory _hopMessage) internal {
         // transfer the OFT to the recipient
         address recipient = address(uint160(uint256(_hopMessage.recipient)));
         if (_amount > 0) SafeERC20.safeTransfer(IERC20(IOFT(_oft).token()), recipient, _amount);
@@ -235,9 +221,12 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
     }
 
     /// @dev Check the incoming message integrity
-    function _validateComposeMessage(address _oft, bytes calldata _message) internal returns (bool isTrustedHopMessage, bool isDuplicateMessage) {
+    function _validateComposeMessage(
+        address _oft,
+        bytes calldata _message
+    ) internal returns (bool isTrustedHopMessage, bool isDuplicateMessage) {
         HopV2Storage storage $ = _getHopV2Storage();
-        
+
         if (msg.sender != $.endpoint) revert NotEndpoint();
         if ($.paused) revert HopPaused();
         if (!$.approvedOft[_oft]) revert InvalidOFT();
@@ -305,11 +294,11 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
 
     function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) external onlyOwner {
         HopV2Storage storage $ = _getHopV2Storage();
-        
+
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
         $.messageProcessed[messageHash] = true;
         emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
-    }    
+    }
 
     function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
         payable(recipient).call{ value: tokenAmount }("");
@@ -350,5 +339,8 @@ abstract contract HopV2 is Ownable2StepUpgradeable {
 
     /// @notice Quote the hop of a send. Returns 0 when originating from fraxtal as the destination only receives and does not hop further.
     function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view virtual returns (uint256) {}
-    function _generateSendParam(uint256 _amountLD, HopMessage memory _hopMessage) internal view virtual returns (SendParam memory) {}
+    function _generateSendParam(
+        uint256 _amountLD,
+        HopMessage memory _hopMessage
+    ) internal view virtual returns (SendParam memory) {}
 }

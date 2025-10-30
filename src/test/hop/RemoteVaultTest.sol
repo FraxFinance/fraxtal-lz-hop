@@ -14,7 +14,6 @@ contract RemoteVaultTest is BaseTest {
     address oft;
     address hop;
 
-
     receive() external payable {}
 
     function setupBase() public {
@@ -25,7 +24,12 @@ contract RemoteVaultTest is BaseTest {
         uint32 eid = 30184;
         remoteVaultHop = new RemoteVaultHop(frxUSD, oft, hop, eid);
         remoteVaultHop.setRemoteVaultHop(30255, address(remoteVaultHop));
-        remoteVaultHop.addRemoteVault(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2,"Fraxlend Interest Bearing frxUSD (Frax Share) - 9","ffrxUSD(FXS)-9");
+        remoteVaultHop.addRemoteVault(
+            30255,
+            0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2,
+            "Fraxlend Interest Bearing frxUSD (Frax Share) - 9",
+            "ffrxUSD(FXS)-9"
+        );
     }
 
     function setupFraxtal() public {
@@ -37,17 +41,22 @@ contract RemoteVaultTest is BaseTest {
         remoteVaultHop = new RemoteVaultHop(frxUSD, oft, hop, eid);
         remoteVaultHop.setRemoteVaultHop(30184, address(remoteVaultHop));
         remoteVaultHop.setRemoteVaultHop(30255, address(remoteVaultHop));
-        remoteVaultHop.addLocalVault(0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2,0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2);
+        remoteVaultHop.addLocalVault(
+            0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2,
+            0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2
+        );
     }
 
     function test_depositRedeem() public {
         setupBase();
         deal(frxUSD, address(this), 10E18);
-        RemoteVaultDeposit depositToken = RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2));
+        RemoteVaultDeposit depositToken = RemoteVaultDeposit(
+            remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)
+        );
         vm.deal(address(this), 1E18);
         IERC20(frxUSD).approve(address(depositToken), type(uint256).max);
-        uint256 fee  = remoteVaultHop.quote(10E18, 30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2);
-        depositToken.deposit{value: fee}(10E18);
+        uint256 fee = remoteVaultHop.quote(10E18, 30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2);
+        depositToken.deposit{ value: fee }(10E18);
         uint256 balance = IERC20(depositToken).balanceOf(address(this));
         console.log("Balance of deposit tokens:", balance);
 
@@ -62,17 +71,36 @@ contract RemoteVaultTest is BaseTest {
             pricePerShare: 885458600678000000
         });
         vm.prank(hop);
-        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(
+            30255,
+            bytes32(uint256(uint160(address(remoteVaultHop)))),
+            oft,
+            10e18,
+            abi.encode(message)
+        );
 
-        assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600678000000, "Price per share should be updated");
-        console.log("Price per share:", RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare());
+        assertEq(
+            RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2))
+                .pricePerShare(),
+            885458600678000000,
+            "Price per share should be updated"
+        );
+        console.log(
+            "Price per share:",
+            RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2))
+                .pricePerShare()
+        );
 
-        balance = IERC20(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).balanceOf(address(this));
+        balance = IERC20(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).balanceOf(
+            address(this)
+        );
         console.log("Balance of deposit tokens:", balance);
 
-        depositToken.redeem{value: fee}(balance);
+        depositToken.redeem{ value: fee }(balance);
 
-        balance = IERC20(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).balanceOf(address(this));
+        balance = IERC20(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).balanceOf(
+            address(this)
+        );
         console.log("Balance of deposit tokens:", balance);
 
         message = RemoteVaultHop.RemoteVaultMessage({
@@ -87,22 +115,42 @@ contract RemoteVaultTest is BaseTest {
         });
         deal(frxUSD, address(remoteVaultHop), 10E18);
         vm.prank(hop);
-        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(
+            30255,
+            bytes32(uint256(uint160(address(remoteVaultHop)))),
+            oft,
+            10e18,
+            abi.encode(message)
+        );
 
-        assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600678000000, "Price per share not yet updated");
+        assertEq(
+            RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2))
+                .pricePerShare(),
+            885458600678000000,
+            "Price per share not yet updated"
+        );
 
         balance = IERC20(frxUSD).balanceOf(address(this));
         console.log("Balance of frxUSD:", balance);
 
         // forward 50 blocks
         vm.roll(block.number + 50);
-        assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600678500000, "Price per share should be halfway updated");
+        assertEq(
+            RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2))
+                .pricePerShare(),
+            885458600678500000,
+            "Price per share should be halfway updated"
+        );
 
         // forward another 60 blocks
         vm.roll(block.number + 60);
-        assertEq(RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2)).pricePerShare(), 885458600679000000, "Price per share should be fully updated");
+        assertEq(
+            RemoteVaultDeposit(remoteVaultHop.depositToken(30255, 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2))
+                .pricePerShare(),
+            885458600679000000,
+            "Price per share should be fully updated"
+        );
     }
-
 
     function test_remote_hopCompose() public {
         setupFraxtal();
@@ -121,10 +169,16 @@ contract RemoteVaultTest is BaseTest {
 
         deal(frxUSD, address(remoteVaultHop), 10E18);
         vm.prank(hop);
-        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 10e18, abi.encode(message));
+        remoteVaultHop.hopCompose(
+            30255,
+            bytes32(uint256(uint160(address(remoteVaultHop)))),
+            oft,
+            10e18,
+            abi.encode(message)
+        );
 
         uint256 vaultTokens = IERC20(0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2).balanceOf(address(remoteVaultHop));
-        console.log("vaultTokens",vaultTokens);
+        console.log("vaultTokens", vaultTokens);
 
         message = RemoteVaultHop.RemoteVaultMessage({
             action: RemoteVaultHop.Action.Redeem,
@@ -137,11 +191,15 @@ contract RemoteVaultTest is BaseTest {
             pricePerShare: 0
         });
         vm.prank(hop);
-        remoteVaultHop.hopCompose(30255, bytes32(uint256(uint160(address(remoteVaultHop)))), oft, 0, abi.encode(message));
-
+        remoteVaultHop.hopCompose(
+            30255,
+            bytes32(uint256(uint160(address(remoteVaultHop)))),
+            oft,
+            0,
+            abi.encode(message)
+        );
 
         vaultTokens = IERC20(0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2).balanceOf(address(remoteVaultHop));
-        console.log("vaultTokens",vaultTokens);
-
+        console.log("vaultTokens", vaultTokens);
     }
 }

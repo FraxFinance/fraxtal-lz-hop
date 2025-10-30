@@ -33,13 +33,13 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
 
     // Local vault management
     /// @notice The vault share token by vault address
-    mapping(address => address) public vaultShares; 
+    mapping(address => address) public vaultShares;
     /// @notice The balance of shares owned by users in remote vaults
     mapping(address => mapping(uint32 => mapping(address => uint256))) public balance; // vault => srcEid => srcAddress => shares
 
     // Remote vault management
     /// @notice Remote vault hop address by eid
-    mapping(uint32 => address) public remoteVaultHops; 
+    mapping(uint32 => address) public remoteVaultHops;
     /// @notice Deposit token mapping for tracking user deposits in remote vaults
     mapping(uint32 => mapping(address => RemoteVaultDeposit)) public depositToken; // eid => vault => rvd
     /// @notice The token used for deposits and withdrawals
@@ -83,7 +83,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     event RemoteGasSet(uint32 eid, address vault, uint128 remoteGas);
     event Deposit(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
     event Redeem(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
- 
+
     constructor(address _token, address _oft, address _hop, uint32 _eid) Ownable(msg.sender) {
         TOKEN = IERC20(_token);
         OFT = _oft;
@@ -93,7 +93,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     }
 
     /// @notice Receive ETH payments
-    receive() external payable {}    
+    receive() external payable {}
 
     function deposit(uint256 _amount, uint32 _remoteEid, address _remoteVault, address _to) external payable {
         if (remoteVaultHops[_remoteEid] == address(0)) revert InvalidChain();
@@ -102,18 +102,27 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         uint256 fee = quote(_amount, _remoteEid, _remoteVault);
         if (msg.value < fee) revert InsufficientFee();
         SafeERC20.forceApprove(TOKEN, address(HOP), _amount);
-        bytes memory hopComposeMessage = abi.encode(RemoteVaultMessage({
-            action: Action.Deposit,
-            userEid: EID,
-            userAddress: _to,
-            remoteEid: _remoteEid,
-            remoteVault: _remoteVault,
-            amount: _amount,
-            remoteTimestamp: 0,
-            pricePerShare: 0
-        }));
+        bytes memory hopComposeMessage = abi.encode(
+            RemoteVaultMessage({
+                action: Action.Deposit,
+                userEid: EID,
+                userAddress: _to,
+                remoteEid: _remoteEid,
+                remoteVault: _remoteVault,
+                amount: _amount,
+                remoteTimestamp: 0,
+                pricePerShare: 0
+            })
+        );
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
-        HOP.sendOFT{ value: fee }(OFT, _remoteEid, bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))), _amount, _remoteGas, hopComposeMessage);
+        HOP.sendOFT{ value: fee }(
+            OFT,
+            _remoteEid,
+            bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))),
+            _amount,
+            _remoteGas,
+            hopComposeMessage
+        );
         if (msg.value > fee) {
             (bool success, ) = msg.sender.call{ value: msg.value - fee }("");
             if (!success) revert RefundFailed();
@@ -127,18 +136,27 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
 
         uint256 fee = quote(_amount, _remoteEid, _remoteVault);
         if (msg.value < fee) revert InsufficientFee();
-        bytes memory hopComposeMessage = abi.encode(RemoteVaultMessage({
-            action: Action.Redeem,
-            userEid: EID,
-            userAddress: _to,
-            remoteEid: _remoteEid,
-            remoteVault: _remoteVault,
-            amount: _amount,
-            remoteTimestamp: 0,
-            pricePerShare: 0
-        }));
+        bytes memory hopComposeMessage = abi.encode(
+            RemoteVaultMessage({
+                action: Action.Redeem,
+                userEid: EID,
+                userAddress: _to,
+                remoteEid: _remoteEid,
+                remoteVault: _remoteVault,
+                amount: _amount,
+                remoteTimestamp: 0,
+                pricePerShare: 0
+            })
+        );
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
-        HOP.sendOFT{ value: fee }(OFT, _remoteEid, bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))), 0, _remoteGas, hopComposeMessage);
+        HOP.sendOFT{ value: fee }(
+            OFT,
+            _remoteEid,
+            bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))),
+            0,
+            _remoteGas,
+            hopComposeMessage
+        );
         if (msg.value > fee) {
             (bool success, ) = msg.sender.call{ value: msg.value - fee }("");
             if (!success) revert RefundFailed();
@@ -147,28 +165,43 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     }
 
     function quote(uint256 _amount, uint32 _remoteEid, address _remoteVault) public view returns (uint256) {
-        bytes memory hopComposeMessage = abi.encode(RemoteVaultMessage({
-            action: Action.Redeem,
-            userEid: EID,
-            userAddress: msg.sender,
-            remoteEid: _remoteEid,
-            remoteVault: _remoteVault,
-            amount: _amount,
-            remoteTimestamp: 0,
-            pricePerShare: 0
-        }));
+        bytes memory hopComposeMessage = abi.encode(
+            RemoteVaultMessage({
+                action: Action.Redeem,
+                userEid: EID,
+                userAddress: msg.sender,
+                remoteEid: _remoteEid,
+                remoteVault: _remoteVault,
+                amount: _amount,
+                remoteTimestamp: 0,
+                pricePerShare: 0
+            })
+        );
 
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
 
         // Quote double hop to RemoteVault
-        uint256 fee = HOP.quote(OFT, _remoteEid, bytes32(uint256(uint160(address(this)))), _amount, _remoteGas, hopComposeMessage);
+        uint256 fee = HOP.quote(
+            OFT,
+            _remoteEid,
+            bytes32(uint256(uint160(address(this)))),
+            _amount,
+            _remoteGas,
+            hopComposeMessage
+        );
 
         // Quote double return hop to this contract
         fee += HOP.quote(OFT, EID, bytes32(uint256(uint160(address(this)))), _amount, _remoteGas, hopComposeMessage);
         return fee;
     }
 
-    function hopCompose(uint32 _srcEid, bytes32 _srcAddress, address _oft, uint256 _amount, bytes memory _data) external {
+    function hopCompose(
+        uint32 _srcEid,
+        bytes32 _srcAddress,
+        address _oft,
+        uint256 _amount,
+        bytes memory _data
+    ) external {
         if (msg.sender != address(HOP)) revert NotHop();
         if (_oft != OFT) revert InvalidOFT();
         if (bytes32(uint256(uint160(remoteVaultHops[_srcEid]))) != _srcAddress) revert InvalidChain();
@@ -176,12 +209,12 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         //(uint256 _actionUint, uint32 _userEid, address _userAddress, uint32 _vaultEid, address _vaultAddress, uint256 _amnt, uint256 _pricePerShare) = abi.decode(_data, (uint256, uint32, address, uint32, address, uint256, uint256));
         RemoteVaultMessage memory message = abi.decode(_data, (RemoteVaultMessage));
         if (message.action == Action.Deposit) {
-            if(_amount != message.amount) revert InvalidAmount();
+            if (_amount != message.amount) revert InvalidAmount();
             _handleDeposit(message);
         } else if (message.action == Action.Redeem) {
             _handleRedeem(message);
         } else if (message.action == Action.RedeemReturn) {
-            if(_amount != message.amount) revert InvalidAmount();
+            if (_amount != message.amount) revert InvalidAmount();
             _handleRedeemReturn(message);
         } else if (message.action == Action.DepositReturn) {
             _handleDepositReturn(message);
@@ -196,19 +229,35 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         balance[message.remoteVault][message.userEid][message.userAddress] += out;
 
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
-        bytes memory _data = abi.encode(RemoteVaultMessage({
-            action: Action.DepositReturn,
-            userEid: message.userEid,
-            userAddress: message.userAddress,
-            remoteEid: EID,
-            remoteVault: message.remoteVault,
-            amount: out,
-            remoteTimestamp: uint64(block.timestamp),
-            pricePerShare: uint128(_pricePerShare)
-        }));
+        bytes memory _data = abi.encode(
+            RemoteVaultMessage({
+                action: Action.DepositReturn,
+                userEid: message.userEid,
+                userAddress: message.userAddress,
+                remoteEid: EID,
+                remoteVault: message.remoteVault,
+                amount: out,
+                remoteTimestamp: uint64(block.timestamp),
+                pricePerShare: uint128(_pricePerShare)
+            })
+        );
 
-        uint256 fee = HOP.quote(OFT, message.userEid, bytes32(uint256(uint160(remoteVaultHops[message.userEid]))), 0, FRAXTAL_GAS, _data);
-        HOP.sendOFT{ value: fee }(OFT, message.userEid, bytes32(uint256(uint160(remoteVaultHops[message.userEid]))), 0, FRAXTAL_GAS, _data);
+        uint256 fee = HOP.quote(
+            OFT,
+            message.userEid,
+            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
+            0,
+            FRAXTAL_GAS,
+            _data
+        );
+        HOP.sendOFT{ value: fee }(
+            OFT,
+            message.userEid,
+            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
+            0,
+            FRAXTAL_GAS,
+            _data
+        );
     }
 
     function _handleRedeem(RemoteVaultMessage memory message) internal {
@@ -217,29 +266,51 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         balance[message.remoteVault][message.userEid][message.userAddress] -= message.amount;
         out = removeDust(out);
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
-        bytes memory _data = abi.encode(RemoteVaultMessage({
-            action: Action.RedeemReturn,
-            userEid: message.userEid,
-            userAddress: message.userAddress,
-            remoteEid: EID,
-            remoteVault: message.remoteVault,
-            amount: out,
-            remoteTimestamp: uint64(block.timestamp),
-            pricePerShare: uint128(_pricePerShare)
-        }));
-        uint256 fee = HOP.quote(OFT, message.userEid, bytes32(uint256(uint160(remoteVaultHops[message.userEid]))), out, FRAXTAL_GAS, _data);
+        bytes memory _data = abi.encode(
+            RemoteVaultMessage({
+                action: Action.RedeemReturn,
+                userEid: message.userEid,
+                userAddress: message.userAddress,
+                remoteEid: EID,
+                remoteVault: message.remoteVault,
+                amount: out,
+                remoteTimestamp: uint64(block.timestamp),
+                pricePerShare: uint128(_pricePerShare)
+            })
+        );
+        uint256 fee = HOP.quote(
+            OFT,
+            message.userEid,
+            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
+            out,
+            FRAXTAL_GAS,
+            _data
+        );
         SafeERC20.forceApprove(TOKEN, address(HOP), out);
-        HOP.sendOFT{ value: fee }(OFT, message.userEid, bytes32(uint256(uint160(remoteVaultHops[message.userEid]))), out, FRAXTAL_GAS, _data);
+        HOP.sendOFT{ value: fee }(
+            OFT,
+            message.userEid,
+            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
+            out,
+            FRAXTAL_GAS,
+            _data
+        );
     }
 
     function _handleRedeemReturn(RemoteVaultMessage memory message) internal {
         SafeERC20.safeTransfer(TOKEN, message.userAddress, message.amount);
-        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(message.remoteTimestamp, message.pricePerShare);
+        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
+            message.remoteTimestamp,
+            message.pricePerShare
+        );
     }
 
     function _handleDepositReturn(RemoteVaultMessage memory message) internal {
         depositToken[message.remoteEid][message.remoteVault].mint(message.userAddress, message.amount);
-        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(message.remoteTimestamp, message.pricePerShare);
+        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
+            message.remoteTimestamp,
+            message.pricePerShare
+        );
     }
 
     function setRemoteVaultHop(uint32 _eid, address _remoteVault) external onlyOwner {
@@ -273,5 +344,4 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     function removeDust(uint256 _amountLD) internal view returns (uint256) {
         return (_amountLD / DECIMAL_CONVERSION_RATE) * DECIMAL_CONVERSION_RATE;
     }
-
 }

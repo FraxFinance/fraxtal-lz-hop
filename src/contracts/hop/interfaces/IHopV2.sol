@@ -10,12 +10,18 @@ struct HopMessage {
 }
 
 interface IHopV2 {
-    
     // Mutable funcs
-    
+
     function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD) external payable;
 
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) external payable;
+    function sendOFT(
+        address _oft,
+        uint32 _dstEid,
+        bytes32 _recipient,
+        uint256 _amountLD,
+        uint128 _dstGas,
+        bytes memory _data
+    ) external payable;
 
     // views
 
@@ -46,5 +52,4 @@ interface IHopV2 {
     function approvedOft(address oft) external view returns (bool isApproved);
     function messageProcessed(bytes32 message) external view returns (bool isProcessed);
     function remoteHop(uint32 eid) external view returns (bytes32 hop);
-
 }

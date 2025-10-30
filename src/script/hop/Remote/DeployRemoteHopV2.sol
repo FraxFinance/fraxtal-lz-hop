@@ -8,7 +8,6 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 
 import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 
-
 interface IExecutor {
     function endpoint() external view returns (address);
     function localEidV2() external view returns (uint32);
@@ -29,7 +28,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
     address proxyAdmin;
     address endpoint;
     uint32 localEid;
-    
+
     address EXECUTOR;
     address DVN;
     address SEND_LIBRARY;
@@ -102,23 +101,10 @@ function deployRemoteHopV2(
 ) returns (address payable) {
     bytes memory initializeArgs = abi.encodeCall(
         RemoteHopV2.initialize,
-        (
-            _localEid,
-            _endpoint,
-            _fraxtalHop,
-            _numDVNs,
-            _EXECUTOR,
-            _DVN,
-            _TREASURY,
-            _approvedOfts
-        )
+        (_localEid, _endpoint, _fraxtalHop, _numDVNs, _EXECUTOR, _DVN, _TREASURY, _approvedOfts)
     );
 
     address implementation = address(new RemoteHopV2());
-    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(
-        implementation,
-        _proxyAdmin,
-        initializeArgs
-    );
+    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);
     return payable(address(proxy));
 }

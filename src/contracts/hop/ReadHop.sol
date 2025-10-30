@@ -131,7 +131,7 @@ contract ReadHop is Ownable2Step, IHopComposer {
             )
         });
 
-        if (fee < msg.value) revert InsufficientFee();
+        if (msg.value < fee) revert InsufficientFee();
 
         // Send message
         // Note that fees accrue in the ReadHop similar to RemoteHop.  User pays the target chain hopCompose() and destination chain readCompose()
@@ -145,6 +145,12 @@ contract ReadHop is Ownable2Step, IHopComposer {
             _dstGas: _targetGas,
             _data: abi.encode(readMessage)
         });
+
+        // refund excess fee
+        if (msg.value > fee) {
+            (bool success, ) = msg.sender.call{value: msg.value - fee}("");
+            require(success, "Refund failed");
+        }
     }
 
     function hopCompose(

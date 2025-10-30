@@ -25,7 +25,6 @@ import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer {
-    uint32 internal constant FRAXTAL_EID = 30255;
 
     struct RemoteHopV2Storage {
         /// @dev number of DVNs used to verify a message
@@ -78,17 +77,17 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         $.TREASURY = _TREASURY;
     }
 
-    function setNumDVNs(uint32 _numDVNs) external onlyOwner {
+    function setNumDVNs(uint32 _numDVNs) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.numDVNs = _numDVNs;
     }
 
-    function setHopFee(uint256 _hopFee) external onlyOwner {
+    function setHopFee(uint256 _hopFee) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.hopFee = _hopFee;
     }
 
-    function setExecutorOptions(uint32 eid, bytes memory _options) external onlyOwner {
+    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.executorOptions[eid] = _options;
     }

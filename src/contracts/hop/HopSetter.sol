@@ -14,7 +14,7 @@ contract HopSetter is OwnableUpgradeable {
     }
 
     function initialize(address _fraxtalHop, address _frxUsdOft) external initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init();
 
         fraxtalHop = IHopV2(_fraxtalHop);
         frxUsdOft = _frxUsdOft;

@@ -23,7 +23,7 @@ interface IDVN {
 }
 
 abstract contract DeployRemoteHopV2 is BaseScript {
-    address constant FRAXTAL_HOP = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
+    address constant FRAXTAL_HOP = 0xC87D7e85aFCc8D51056D8B2dB95a89045BbE60DC;
 
     address proxyAdmin;
     address endpoint;
@@ -65,11 +65,11 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         console.log("RemoteHop deployed at:", remoteHop);
     }
 
-    function _validateAddrs() internal view returns (bool) {
+    function _validateAddrs() internal view {
         (uint64 major, uint8 minor, uint8 endpointVersion) = ISendLibrary(SEND_LIBRARY).version();
         require(major == 3 && minor == 0 && endpointVersion == 2, "Invalid SendLibrary version");
 
-        require(IExecutor(EXECUTOR).endpoint() != endpoint, "Invalid executor endpoint");
+        require(IExecutor(EXECUTOR).endpoint() == endpoint, "Invalid executor endpoint");
         require(IExecutor(EXECUTOR).localEidV2() == localEid, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 

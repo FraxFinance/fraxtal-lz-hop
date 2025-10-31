@@ -8,6 +8,7 @@ import { IHopV2 } from "src/contracts/hop/interfaces/IHopV2.sol";
 contract HopSetter is OwnableUpgradeable {
     IHopV2 public fraxtalHop;
     address public frxUsdOft;
+    uint256 public localEid;
 
     constructor() {
         _disableInitializers();
@@ -18,6 +19,7 @@ contract HopSetter is OwnableUpgradeable {
 
         fraxtalHop = IHopV2(_fraxtalHop);
         frxUsdOft = _frxUsdOft;
+        localEid = fraxtalHop.localEid();
     }
 
     function recoverETH(uint256 value, address to) external onlyOwner {
@@ -26,7 +28,6 @@ contract HopSetter is OwnableUpgradeable {
     }
 
     function callRemoteHops(uint32[] memory eids, uint128 _dstGas, bytes memory _data) external onlyOwner {
-        uint32 localEid = fraxtalHop.localEid();
         for (uint256 i = 0; i < eids.length; i++) {
             uint32 eid = eids[i];
             bytes32 remoteHop = eid == localEid

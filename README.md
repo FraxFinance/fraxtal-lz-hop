@@ -87,7 +87,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | Base | [`0xDfA77cE8B723C5e13e20E8938A18648022b7Fe18`](https://basescan.org/address/0xDfA77cE8B723C5e13e20E8938A18648022b7Fe18) |
 
 #### HopSetter
-[`0x6eD705Ab913E38C0fA8F3b038e4588993EAeBf2B`](https://fraxscan.com/address/0x6eD705Ab913E38C0fA8F3b038e4588993EAeBf2B)
+[`0x24fe43E1667e8d139c61568C9bAf75EfBaE13502`](https://fraxscan.com/address/0x24fe43E1667e8d139c61568C9bAf75EfBaE13502)
 
 ### Mainnet
 | Chain | `RemoteHop` | `MintRedeemHop` |

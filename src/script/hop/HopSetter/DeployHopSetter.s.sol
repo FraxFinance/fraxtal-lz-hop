@@ -5,6 +5,7 @@ import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 
 import { HopSetter } from "src/contracts/hop/HopSetter.sol";
 
+// forge script src/script/hop/HopSetter/DeployHopSetter.s.sol --rpc-url https://rpc.frax.com --broadcast --verify --verifier etherscan --etherscan-api-key $TODO
 contract DeployHopSetter is BaseScript {
     function run() public broadcaster {
         address hopSetter = deployHopSetter(

@@ -9,10 +9,10 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
-import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
+import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is Ownable2StepUpgradeable {
+abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
     struct HopV2Storage {
         /// @dev EID of this chain
         uint32 localEid;

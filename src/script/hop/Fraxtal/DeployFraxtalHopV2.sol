@@ -10,7 +10,7 @@ import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 import "src/Constants.sol" as Constants;
 
 contract DeployFraxtalHopV2 is BaseScript {
-    address proxyAdmin;
+    address constant proxyAdmin = 0x223a681fc5c5522c85C96157c0efA18cd6c5405c;
 
     address constant frxUsdLockbox = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
     address constant sfrxUsdLockbox = 0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361;
@@ -28,31 +28,19 @@ contract DeployFraxtalHopV2 is BaseScript {
         approvedOfts.push(fxsLockbox);
         approvedOfts.push(fpiLockbox);
 
-        address hop = deployFraxtalHopV2(
-            proxyAdmin,
-            30255,
-            0x1a44076050125825900e736c501f859c50fE728c,
-            approvedOfts
-        );
+        address hop = deployFraxtalHopV2(proxyAdmin, 0x1a44076050125825900e736c501f859c50fE728c, approvedOfts);
         console.log("FraxtalHopV2 deployed at:", hop);
     }
 }
 
-function deployFraxtalHopV2(address _proxyAdmin, uint32 _localEid, address _endpoint, address[] memory _approvedOfts) returns (address payable) {
-    bytes memory initializeArgs = abi.encodeCall(
-        FraxtalHopV2.initialize,
-        (
-            _localEid,
-            _endpoint,
-            _approvedOfts
-        )
-    );
+function deployFraxtalHopV2(
+    address _proxyAdmin,
+    address _endpoint,
+    address[] memory _approvedOfts
+) returns (address payable) {
+    bytes memory initializeArgs = abi.encodeCall(FraxtalHopV2.initialize, (_endpoint, _approvedOfts));
 
-    address implementation = address (new FraxtalHopV2());
-    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(
-        implementation,
-        _proxyAdmin,
-        initializeArgs
-    );
+    address implementation = address(new FraxtalHopV2());
+    FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);
     return payable(address(proxy));
 }

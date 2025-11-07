@@ -5,7 +5,6 @@ import { DeployRemoteHop } from "./DeployRemoteHop.sol";
 // forge script src/script/hop/Remote/DeployRemoteHopBlast.sol --rpc-url https://rpc.blast.io --broadcast --verify --verifier etherscan --etherscan-api-key $BLASTSCAN_API_KEY
 /// @notice CHAIN DEPRECATED, NO LONGER IN USE.
 contract DeployRemoteHopBlast is DeployRemoteHop {
-
     constructor() {
         // EXECUTOR = 0x4208D6E27538189bB48E603D6123A94b8Abe0A0b;
         // DVN = 0xc097ab8CD7b053326DFe9fB3E3a31a0CCe3B526f;

@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/BaseScript.sol";
 import { RemoteVaultHop } from "src/contracts/hop/RemoteVaultHop.sol";
-import { DeployRemoteVaultHop } from  "./DeployRemoteVaultHop.sol";
+import { DeployRemoteVaultHop } from "./DeployRemoteVaultHop.sol";
 
 contract DeployRemoteVaultHopFraxtal is DeployRemoteVaultHop {
     constructor() {

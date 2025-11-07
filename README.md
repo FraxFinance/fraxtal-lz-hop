@@ -80,6 +80,15 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 ```
 
 ## Deployed Contracts
+### HopV2 Mainnet
+| Chain | `Hop` |
+| Fraxtal | [`0xC87D7e85aFCc8D51056D8B2dB95a89045BbE60DC`](https://fraxscan.com/address/0xc87d7e85afcc8d51056d8b2db95a89045bbe60dc) |
+| Arbitrum | [`0xEe44D634f97d8eE09850Ed04559E068D30276FE7`](https://arbiscan.io/address/0xee44d634f97d8ee09850ed04559e068d30276fe7) |
+| Base | [`0xDfA77cE8B723C5e13e20E8938A18648022b7Fe18`](https://basescan.org/address/0xDfA77cE8B723C5e13e20E8938A18648022b7Fe18) |
+
+#### HopSetter
+[`0x24fe43E1667e8d139c61568C9bAf75EfBaE13502`](https://fraxscan.com/address/0x24fe43E1667e8d139c61568C9bAf75EfBaE13502)
+
 ### Mainnet
 | Chain | `RemoteHop` | `MintRedeemHop` |
 | --- | ---| ---|
@@ -108,6 +117,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 |Scroll|[`0xF6f45CCB5E85D1400067ee66F9e168f83e86124E`](https://scrollscan.com/address/0xf6f45ccb5e85d1400067ee66f9e168f83e86124e)|[`0x91DDB0E0C36B901C6BF53B9Eb5ACa0Eb1465F558`](https://scrollscan.com/address/0x91ddb0e0c36b901c6bf53b9eb5aca0eb1465f558)|
 |Aurora|[`0x53e36c8380ff62d7964bfa4868a0045e58a52344`](https://explorer.aurora.dev/address/0x53e36C8380Ff62D7964BFa4868A0045E58A52344)|[`0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2`](https://explorer.aurora.dev/address/0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2)|
 | Katana | [`0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c`](https://explorer.katanarpc.com/address/0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c) | [`0xF6f45CCB5E85D1400067ee66F9e168f83e86124E`](https://explorer.katanarpc.com/address/0xF6f45CCB5E85D1400067ee66F9e168f83e86124E) |
+| Hyperliquid | [`0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2`](https://hyperevmscan.io/address/0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2) | [`0xb85A8FDa7F5e52E32fa5582847CFfFee9456a5Dc`](https://hyperevmscan.io/address/0xb85a8fda7f5e52e32fa5582847cfffee9456a5dc) |
 
 ### Testnet
 | Chain | `RemoteHop` |

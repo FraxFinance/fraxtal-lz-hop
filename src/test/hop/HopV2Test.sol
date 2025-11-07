@@ -41,18 +41,22 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
-        remoteHop = RemoteHopV2(deployRemoteHopV2(
-            proxyAdmin,
-            30110,
-            ENDPOINT,
-            OFTMsgCodec.addressToBytes32(address(hop)),
-            2,
-            EXECUTOR,
-            DVN,
-            TREASURY,
-            approvedOfts
-        ));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        remoteHop = RemoteHopV2(
+            deployRemoteHopV2(
+                proxyAdmin,
+                30110,
+                ENDPOINT,
+                OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
+                2,
+                EXECUTOR,
+                DVN,
+                TREASURY,
+                approvedOfts
+            )
+        );
         hop.setRemoteHop(30110, address(remoteHop));
         payable(address(hop)).call{ value: 100 ether }("");
     }
@@ -66,18 +70,22 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927);
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin,30255, ENDPOINT, approvedOfts));
-        remoteHop = RemoteHopV2(deployRemoteHopV2(
-            proxyAdmin,
-            30110,
-            ENDPOINT,
-            OFTMsgCodec.addressToBytes32(address(hop)),
-            2,
-            0x31CAe3B7fB82d847621859fb1585353c5720660D,
-            0x2f55C492897526677C5B68fb199ea31E2c126416,
-            0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
-            approvedOfts
-        ));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        remoteHop = RemoteHopV2(
+            deployRemoteHopV2(
+                proxyAdmin,
+                30110,
+                ENDPOINT,
+                OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
+                2,
+                0x31CAe3B7fB82d847621859fb1585353c5720660D,
+                0x2f55C492897526677C5B68fb199ea31E2c126416,
+                0x532410B245eB41f24Ed1179BA0f6ffD94738AE70,
+                approvedOfts
+            )
+        );
     }
 
     function setupEthereum() public {
@@ -89,18 +97,22 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x9033BAD7aA130a2466060A2dA71fAe2219781B4b);
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
-        remoteHop = RemoteHopV2(deployRemoteHopV2(
-            proxyAdmin,
-            30101,
-            ENDPOINT,
-            OFTMsgCodec.addressToBytes32(address(hop)),
-            2,
-            0x173272739Bd7Aa6e4e214714048a9fE699453059,
-            0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
-            0x5ebB3f2feaA15271101a927869B3A56837e73056,
-            approvedOfts
-        ));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        remoteHop = RemoteHopV2(
+            deployRemoteHopV2(
+                proxyAdmin,
+                30101,
+                ENDPOINT,
+                OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
+                2,
+                0x173272739Bd7Aa6e4e214714048a9fE699453059,
+                0x589dEDbD617e0CBcB916A9223F4d1300c294236b,
+                0x5ebB3f2feaA15271101a927869B3A56837e73056,
+                approvedOfts
+            )
+        );
     }
 
     function test_FraxtalHop_lzCompose_SendLocal_WithoutData() public {
@@ -110,7 +122,7 @@ contract HopV2Test is BaseTest {
         address sender = address(0x1234);
         address reciever = address(0x1234);
         deal(frxUSD, address(hop), 1e18);
-        
+
         bytes memory data;
         bytes memory composeMsg = abi.encode(
             HopMessage({
@@ -205,7 +217,7 @@ contract HopV2Test is BaseTest {
         vm.stopPrank();
 
         assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 0e18); // tokens send to other chain
-    }    
+    }
 
     function test_RemoteHop_lzCompose_SendLocal_WithoutData() public {
         setupArbitrum();
@@ -309,8 +321,7 @@ contract HopV2Test is BaseTest {
         vm.stopPrank();
 
         assertEq(IERC20(frxUSD).balanceOf(address(reciever)), 1e18);
-    }       
-
+    }
 
     function test_FraxtalHop_lzCompose_SendLocal_WithData_UntrustedMessage() public {
         setUpFraxtal();
@@ -377,11 +388,11 @@ contract HopV2Test is BaseTest {
         );
 
         vm.startPrank(ENDPOINT);
-        hop.lzCompose{value: 0.3e18}(_oApp, bytes32(0), message, address(0), "");
+        hop.lzCompose{ value: 0.3e18 }(_oApp, bytes32(0), message, address(0), "");
         vm.stopPrank();
 
         assertEq(IERC20(frxUSD).balanceOf(address(hop)), 0e18); // tokens send to other chain
-    }     
+    }
 
     function test_FraxtalSendOft() public {
         setUpFraxtal();
@@ -393,8 +404,8 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
-        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
+        hop.sendOFT{ value: fee + 0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -410,9 +421,16 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello");
+        uint256 fee = hop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 1000000, "Hello");
         console.log("fee:", fee);
-        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
+        hop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30110,
+            OFTMsgCodec.addressToBytes32(address(reciever)),
+            1e18,
+            1000000,
+            "Hello"
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -428,8 +446,15 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
-        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
+        remoteHop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30101,
+            OFTMsgCodec.addressToBytes32(address(reciever)),
+            1e18,
+            0,
+            ""
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -445,13 +470,26 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,1000000,"Hello");
-        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30101, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,1000000,"Hello");
+        uint256 fee = remoteHop.quote(
+            _oApp,
+            30101,
+            OFTMsgCodec.addressToBytes32(address(reciever)),
+            1e18,
+            1000000,
+            "Hello"
+        );
+        remoteHop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30101,
+            OFTMsgCodec.addressToBytes32(address(reciever)),
+            1e18,
+            1000000,
+            "Hello"
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
-    }    
-
+    }
 
     function test_FraxtalSendOftLocal() public {
         setUpFraxtal();
@@ -463,9 +501,9 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
         assertEq(fee, 0);
-        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        hop.sendOFT{ value: fee + 0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -482,11 +520,18 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(hop), 1e18);
-        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,0,"Hello");
+        uint256 fee = hop.quote(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18, 0, "Hello");
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
         emit Composed(30255, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
-        hop.sendOFT{value: fee+0.1E18 }(_oApp, 30255, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,0,"Hello");
+        hop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30255,
+            OFTMsgCodec.addressToBytes32(address(testComposer)),
+            1e18,
+            0,
+            "Hello"
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
@@ -503,14 +548,21 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18,0,"");
+        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)), 1e18, 0, "");
         assertEq(fee, 0);
-        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(reciever)),1e18,0,"");
+        remoteHop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30110,
+            OFTMsgCodec.addressToBytes32(address(reciever)),
+            1e18,
+            0,
+            ""
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
         assertEq(IERC20(frxUSD).balanceOf(address(reciever)), 1e18);
-    }    
+    }
 
     function test_ArbitrumSendOftWithHopComposeLocal() public {
         setupArbitrum();
@@ -522,14 +574,28 @@ contract HopV2Test is BaseTest {
         vm.deal(sender, 1 ether);
         vm.startPrank(sender);
         IERC20(frxUSD).approve(address(remoteHop), 1e18);
-        uint256 fee = remoteHop.quote(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)), 1e18,1000000,"Hello");
+        uint256 fee = remoteHop.quote(
+            _oApp,
+            30110,
+            OFTMsgCodec.addressToBytes32(address(testComposer)),
+            1e18,
+            1000000,
+            "Hello"
+        );
         assertEq(fee, 0);
         vm.expectEmit(true, true, true, true);
         emit Composed(30110, OFTMsgCodec.addressToBytes32(address(sender)), address(_oApp), 1e18, "Hello");
-        remoteHop.sendOFT{value: fee+0.1E18 }(_oApp, 30110, OFTMsgCodec.addressToBytes32(address(testComposer)),1e18,1000000,"Hello");
+        remoteHop.sendOFT{ value: fee + 0.1E18 }(
+            _oApp,
+            30110,
+            OFTMsgCodec.addressToBytes32(address(testComposer)),
+            1e18,
+            1000000,
+            "Hello"
+        );
         vm.stopPrank();
         console.log("tokens:", IERC20(frxUSD).balanceOf(address(sender)));
         assertEq(IERC20(frxUSD).balanceOf(address(sender)), 0);
         assertEq(IERC20(frxUSD).balanceOf(address(testComposer)), 1e18);
-    }     
+    }
 }

@@ -16,7 +16,7 @@ script = "src/script"
 # A list of paths to look for libraries in
 libs = ['lib', 'node_modules']
 # Whether or not to enable `vm.ffi`
-ffi = false
+ffi = true
 # Enables or disables the optimizer
 optimizer = true
 # The number of optimizer runs
@@ -31,6 +31,8 @@ cbor_metadata = false
 #gas_reports = [] 
 solc-version = '0.8.23'
 evm_version = 'cancun'
+fs_permissions = [{ access = "read-write", path = "./"}]
+
 
 [fuzz]
 # Amount of runs per fuzz test

@@ -30,20 +30,23 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         _disableInitializers();
     }
 
-    function initialize(
-        uint32 _localEid,
-        address _endpoint,
-        address[] memory _approvedOfts
-    ) external initializer {
-        __init_HopV2(_localEid, _endpoint, _approvedOfts);
+    function initialize(address _endpoint, address[] memory _approvedOfts) external initializer {
+        __init_HopV2(FRAXTAL_EID, _endpoint, _approvedOfts);
     }
 
     // receive ETH
     receive() external payable {}
 
-    function sendOFT(address _oft, uint32 _dstEid, bytes32 _recipient, uint256 _amountLD, uint128 _dstGas, bytes memory _data) public override payable {
-        if (_dstEid != localEid() && remoteHop(_dstEid) == bytes32(0)) revert InvalidDestinationChain();
-        
+    function sendOFT(
+        address _oft,
+        uint32 _dstEid,
+        bytes32 _recipient,
+        uint256 _amountLD,
+        uint128 _dstGas,
+        bytes memory _data
+    ) public payable override {
+        if (_dstEid != FRAXTAL_EID && remoteHop(_dstEid) == bytes32(0)) revert InvalidDestinationChain();
+
         super.sendOFT(_oft, _dstEid, _recipient, _amountLD, _dstGas, _data);
     }
 
@@ -65,11 +68,11 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
     ) external payable override {
         (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
         if (isDuplicateMessage) return;
-        
+
         // Extract the composed message from the delivered message using the MsgCodec
-        (HopMessage memory hopMessage) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
+        HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
-        
+
         // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
         // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
         // to ensure the HopMessage data is legitimate when passed to IHopComposer.hopCompose().
@@ -78,12 +81,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
 
-        if (hopMessage.dstEid == localEid()) {
-            _sendLocal({
-                _oft: _oft,
-                _amount: amountLD,
-                _hopMessage: hopMessage
-            });
+        if (hopMessage.dstEid == FRAXTAL_EID) {
+            _sendLocal({ _oft: _oft, _amount: amountLD, _hopMessage: hopMessage });
         } else {
             _sendToDestination({
                 _oft: _oft,
@@ -102,7 +101,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         sendParam.dstEid = _hopMessage.dstEid;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
-        
+
         if (_hopMessage.data.length == 0) {
             // There is no compose message to execute, therefore we know the recipeint should directly receive the tokens.
             sendParam.to = _hopMessage.recipient;
@@ -123,7 +122,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quoteHop(uint32, uint128, bytes memory) public view override returns (uint256) {
+    function quoteHop(uint32, uint128, bytes memory) public pure override returns (uint256) {
         return 0;
     }
 }

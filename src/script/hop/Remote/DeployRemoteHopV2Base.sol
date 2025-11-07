@@ -3,12 +3,16 @@ pragma solidity 0.8.23;
 
 import { DeployRemoteHopV2 } from "./DeployRemoteHopV2.sol";
 
-// forge script src/script/hop/Remote/DeployRemoteHopBase.sol --rpc-url https://mainnet.base.org --broadcast --verify --verifier etherscan --etherscan-api-key $BASESCAN_API_KEY
-contract DeployRemoteHopBaseV2 is DeployRemoteHopV2 {
+// forge script src/script/hop/Remote/DeployRemoteHopV2Base.sol --rpc-url https://mainnet.base.org --broadcast --verify --verifier etherscan --etherscan-api-key $BASESCAN_API_KEY
+contract DeployRemoteHopV2Base is DeployRemoteHopV2 {
     constructor() {
         EXECUTOR = 0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4;
         DVN = 0x9e059a54699a285714207b43B055483E78FAac25;
         SEND_LIBRARY = 0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2;
+
+        proxyAdmin = 0xF59C41A57AB4565AF7424F64981523DfD7A453c5;
+        endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
+        localEid = 30184;
 
         frxUsdOft = 0xe5020A6d073a794B6E7f05678707dE47986Fb0b6;
         sfrxUsdOft = 0x91A3f8a8d7a881fBDfcfEcd7A2Dc92a46DCfa14e;

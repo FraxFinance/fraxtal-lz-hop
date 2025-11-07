@@ -25,30 +25,24 @@ import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer {
-    uint32 internal constant FRAXTAL_EID = 30255;
 
     struct RemoteHopV2Storage {
         /// @dev number of DVNs used to verify a message
         uint32 numDVNs;
-
         /// @dev Hop fee charged to users to use the Hop service
         uint256 hopFee; // 10_000 based so 1 = 0.01%
-
         /// @dev Configuration of executor options by chain EID
         mapping(uint32 eid => bytes options) executorOptions;
-
         /// @dev Address of LZ executor
         address EXECUTOR;
-
         /// @dev Address of LZ DVN
         address DVN;
-
         /// @dev Address of LZ treasury
         address TREASURY;
     }
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.RemoteHopV2")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant RemoteHopV2StorageLocation = 
+    bytes32 private constant RemoteHopV2StorageLocation =
         0x092e031a5530f7fcb3ff5e857b626b93fc7001a81b918f0ab9aa9078c572b700;
 
     function _getRemoteHopV2Storage() private pure returns (RemoteHopV2Storage storage $) {
@@ -83,17 +77,17 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         $.TREASURY = _TREASURY;
     }
 
-    function setNumDVNs(uint32 _numDVNs) external onlyOwner {
+    function setNumDVNs(uint32 _numDVNs) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.numDVNs = _numDVNs;
     }
 
-    function setHopFee(uint256 _hopFee) external onlyOwner {
+    function setHopFee(uint256 _hopFee) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.hopFee = _hopFee;
     }
 
-    function setExecutorOptions(uint32 eid, bytes memory _options) external onlyOwner {
+    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.executorOptions[eid] = _options;
     }
@@ -108,11 +102,11 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         sendParam.dstEid = FRAXTAL_EID;
         sendParam.amountLD = _amountLD;
         sendParam.minAmountLD = _amountLD;
-        if (_hopMessage.dstEid == FRAXTAL_EID && _hopMessage.data.length == 0) { 
+        if (_hopMessage.dstEid == FRAXTAL_EID && _hopMessage.data.length == 0) {
             // Send directly to Fraxtal, no compose needed
             sendParam.to = _hopMessage.recipient;
         } else {
-            sendParam.to = remoteHop(FRAXTAL_EID); 
+            sendParam.to = remoteHop(FRAXTAL_EID);
 
             bytes memory options = OptionsBuilder.newOptions();
             if (_hopMessage.dstGas < 400_000) _hopMessage.dstGas = 400_000;
@@ -125,10 +119,14 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view override returns (uint256 finalFee) {
+    function quoteHop(
+        uint32 _dstEid,
+        uint128 _dstGas,
+        bytes memory _data
+    ) public view override returns (uint256 finalFee) {
         // No hop needed if Fraxtal is the destination
         if (_dstEid == FRAXTAL_EID) return 0;
-        
+
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
 
         uint256 dvnFee = ILayerZeroDVN($.DVN).getFee(_dstEid, 5, address(this), "");
@@ -136,7 +134,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
         if (_data.length != 0) {
             if (_dstGas < 400_000) _dstGas = 400_000;
-            options = abi.encodePacked(options,hex"010013030000", _dstGas);
+            options = abi.encodePacked(options, hex"010013030000", _dstGas);
         }
         uint256 executorFee = IExecutor($.EXECUTOR).getFee(_dstEid, address(this), 36, options);
         uint256 totalFee = dvnFee * $.numDVNs + executorFee;
@@ -165,9 +163,9 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         if (isDuplicateMessage) return;
 
         // Extract the composed message from the delivered message using the MsgCodec
-        (HopMessage memory hopMessage) = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
+        HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
         uint256 amount = OFTComposeMsgCodec.amountLD(_message);
-        
+
         // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
         // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
         // to ensure the HopMessage data is legitimate when passed to IHopComposer.hopCompose().
@@ -176,11 +174,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
 
-        _sendLocal({
-            _oft: _oft,
-            _amount: amount,
-            _hopMessage: hopMessage
-        });
+        _sendLocal({ _oft: _oft, _amount: amount, _hopMessage: hopMessage });
 
         emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
     }

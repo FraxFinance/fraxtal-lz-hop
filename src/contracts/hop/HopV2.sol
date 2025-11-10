@@ -321,11 +321,20 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function recoverERC20(
+        address tokenAddress,
+        address recipient,
+        uint256 tokenAmount
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
-    function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMessageProcessed(
+        address _oft,
+        uint32 _srcEid,
+        uint64 _nonce,
+        bytes32 _composeFrom
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));

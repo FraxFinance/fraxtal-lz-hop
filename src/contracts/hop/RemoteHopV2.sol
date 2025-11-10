@@ -25,7 +25,6 @@ import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer {
-
     struct RemoteHopV2Storage {
         /// @dev number of DVNs used to verify a message
         uint32 numDVNs;

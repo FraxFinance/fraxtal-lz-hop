@@ -94,7 +94,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         if (address(this) == self) revert CannotSendToImplementation();
     }
 
-    function readOFT(
+    function quoteReadOFT(
         uint32 _targetEid,
         uint32 _dstEid,
         uint128 _targetGas,
@@ -104,9 +104,31 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         bytes32 _dstAddress,
         uint64 _returnDataLen,
         bytes memory _data
-    ) external payable {
-        if (readHops(_targetEid) == bytes32(0)) revert InvalidEID();
+    ) external view returns (uint256 fee) {
+        (fee, ) = _quoteReadOFT(
+            _targetEid,
+            _dstEid,
+            _targetGas,
+            _dstGas,
+            _nonce,
+            _targetAddress,
+            _dstAddress,
+            _returnDataLen,
+            _data
+        );
+    }
 
+    function _quoteReadOFT(
+        uint32 _targetEid,
+        uint32 _dstEid,
+        uint128 _targetGas,
+        uint128 _dstGas,
+        uint256 _nonce,
+        bytes32 _targetAddress,
+        bytes32 _dstAddress,
+        uint64 _returnDataLen,
+        bytes memory _data
+    ) internal view returns (uint256 fee, ReadMessage memory readMessage) {
         // Craft ReadMessage with ReadHopMessage
         ReadHopMessage memory readHopMessage = ReadHopMessage({
             dstEid: _dstEid,
@@ -116,7 +138,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             data: _data
         });
 
-        ReadMessage memory readMessage = ReadMessage({
+        readMessage = ReadMessage({
             direction: Direction.Outbound,
             srcEid: eid(),
             nonce: _nonce,
@@ -128,7 +150,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         // get quote of (src => target), (target => dst)
 
         // (src => target)
-        uint256 fee = IHopV2(hop()).quote({
+        fee = IHopV2(hop()).quote({
             _oft: oft(),
             _dstEid: _targetEid,
             _recipient: readHops(_targetEid),
@@ -162,6 +184,32 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
                 })
             )
         });
+    }
+
+    function readOFT(
+        uint32 _targetEid,
+        uint32 _dstEid,
+        uint128 _targetGas,
+        uint128 _dstGas,
+        uint256 _nonce,
+        bytes32 _targetAddress,
+        bytes32 _dstAddress,
+        uint64 _returnDataLen,
+        bytes memory _data
+    ) external payable {
+        if (readHops(_targetEid) == bytes32(0)) revert InvalidEID();
+
+        (uint256 fee, ReadMessage memory readMessage) = _quoteReadOFT(
+            _targetEid,
+            _dstEid,
+            _targetGas,
+            _dstGas,
+            _nonce,
+            _targetAddress,
+            _dstAddress,
+            _returnDataLen,
+            _data
+        );
 
         if (msg.value < fee) revert InsufficientFee();
 

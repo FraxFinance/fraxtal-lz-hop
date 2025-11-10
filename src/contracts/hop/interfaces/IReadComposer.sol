@@ -1,7 +1,5 @@
 pragma solidity ^0.8.0;
 
-import { Direction, ReadMessage, ReadHopMessage, ReadComposeMessage } from "src/contracts/hop/ReadHop.sol";
-
 interface IReadComposer {
     function readCompose(
         uint32 _srcEid,

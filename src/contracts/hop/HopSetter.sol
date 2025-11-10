@@ -17,7 +17,7 @@ contract HopSetter is OwnableUpgradeable {
     receive() external payable {}
 
     function initialize(address _fraxtalHop, address _frxUsdOft) external initializer {
-        __Ownable_init();
+        __Ownable_init(msg.sender);
 
         fraxtalHop = IHopV2(_fraxtalHop);
         frxUsdOft = _frxUsdOft;

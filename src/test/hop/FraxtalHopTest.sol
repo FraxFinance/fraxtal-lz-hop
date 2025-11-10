@@ -42,6 +42,7 @@ contract FraxtalHopTest is BaseTest {
             approvedOfts
         );
         hop.setRemoteHop(30110, address(remoteHop));
+        vm.prank(address(1));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).call{ value: 1 ether }("");
     }

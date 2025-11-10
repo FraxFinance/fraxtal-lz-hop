@@ -73,6 +73,8 @@ abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
     }
 
     /// @notice Send an OFT to a destination with encoded data
+    /// @dev Check the FraxtalHopV2.remoteHop(_dstEid) to ensure the destination chain is supported.  If the destination
+    ///      is not supported, tokens/messages would be stuck on Fraxtal and require a team intervention to recover.
     /// @param _oft Address of OFT
     /// @param _dstEid Destination EID
     /// @param _recipient bytes32 representation of recipient

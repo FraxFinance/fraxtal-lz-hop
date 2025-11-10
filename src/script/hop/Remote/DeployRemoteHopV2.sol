@@ -27,8 +27,8 @@ interface IOFT {
 }
 
 abstract contract DeployRemoteHopV2 is BaseScript {
-    address constant FRAXTAL_HOP = 0xC87D7e85aFCc8D51056D8B2dB95a89045BbE60DC;
-    address constant HOP_SETTER = 0x24fe43E1667e8d139c61568C9bAf75EfBaE13502;
+    address constant FRAXTAL_HOP = 0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989;
+    address constant HOP_SETTER = 0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4;
 
     address proxyAdmin;
     address endpoint;
@@ -84,6 +84,8 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         require(IExecutor(EXECUTOR).endpoint() == endpoint, "Invalid executor endpoint");
         require(IExecutor(EXECUTOR).localEidV2() == localEid, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
+
+        require(msig != address(0), "msig is not set");
 
         require(isStringEqual(IERC20Metadata(IOFT(frxUsdOft).token()).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
         require(isStringEqual(IERC20Metadata(IOFT(sfrxUsdOft).token()).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");

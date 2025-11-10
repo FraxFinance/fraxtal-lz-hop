@@ -19,8 +19,8 @@
   "author": "Frax Finance",
   "license": "ISC",
   "devDependencies": {
-    "@openzeppelin/contracts": "^5.4.0",
-    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "@openzeppelin/contracts": "~5.4.0",
+    "@openzeppelin/contracts-upgradeable": "~5.4.0",
     "@openzeppelin/contracts-4.8.1": "npm:@openzeppelin/contracts@4.8.1",
     "@openzeppelin/contracts-upgradeable-4.8.1": "npm:@openzeppelin/contracts-upgradeable@4.8.1",
     "husky": "^8.0.3",

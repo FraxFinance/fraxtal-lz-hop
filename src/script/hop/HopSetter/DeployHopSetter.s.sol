@@ -8,9 +8,9 @@ import { HopSetter } from "src/contracts/hop/HopSetter.sol";
 // forge script src/script/hop/HopSetter/DeployHopSetter.s.sol --rpc-url https://rpc.frax.com --broadcast --verify --verifier etherscan --etherscan-api-key $TODO
 contract DeployHopSetter is BaseScript {
     function run() public broadcaster {
-        address hopSetter = deployHopSetter(
-            0x223a681fc5c5522c85C96157c0efA18cd6c5405c,
-            0xC87D7e85aFCc8D51056D8B2dB95a89045BbE60DC,
+        deployHopSetter(
+            0x223a681fc5c5522c85C96157c0efA18cd6c5405c, // ProxyAdmin
+            0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989, // fraxtal hop
             0x96A394058E2b84A89bac9667B19661Ed003cF5D4 // fraxtal frxUsd lockbox
         );
     }

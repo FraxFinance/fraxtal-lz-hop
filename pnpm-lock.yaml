@@ -12,17 +12,17 @@ importers:
         specifier: github:fraxfinance/LayerZero-v2-upgradeable
         version: https://codeload.github.com/fraxfinance/LayerZero-v2-upgradeable/tar.gz/6729706fab0e033aef57a4dc42cfcb2c7f959748
       '@layerzerolabs/lz-evm-protocol-v2':
-        specifier: ^3.0.145
-        version: 3.0.145(@openzeppelin/contracts-upgradeable@5.4.0(@openzeppelin/contracts@5.4.0))(@openzeppelin/contracts@5.4.0)(hardhat-deploy@0.12.4)(solidity-bytes-utils@https://codeload.github.com/GNSPS/solidity-bytes-utils/tar.gz/fc502455bb2a7e26a743378df042612dd50d1eb9)
+        specifier: ^3.0.115
+        version: 3.0.115(@openzeppelin/contracts-upgradeable@5.4.0(@openzeppelin/contracts@5.4.0))(@openzeppelin/contracts@5.4.0)(hardhat-deploy@0.12.4)(solidity-bytes-utils@https://codeload.github.com/GNSPS/solidity-bytes-utils/tar.gz/fc502455bb2a7e26a743378df042612dd50d1eb9)
       '@layerzerolabs/lz-v2-utilities':
         specifier: ^3.0.145
         version: 3.0.145
       '@layerzerolabs/oapp-evm':
         specifier: ^0.0.4
-        version: 0.0.4(42c5bee3af20ff98654bb4cf790b1307)
+        version: 0.0.4(0a3d4fe2dcf4024ae4022fb16d3ac113)
       '@layerzerolabs/oft-evm':
         specifier: ^0.1.0
-        version: 0.1.0(dc627665694af30d76eca174486ca58c)
+        version: 0.1.0(61cf51d2724a6ee6b7ef8254d2fd9b3c)
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
@@ -40,13 +40,13 @@ importers:
         version: https://codeload.github.com/GNSPS/solidity-bytes-utils/tar.gz/fc502455bb2a7e26a743378df042612dd50d1eb9
     devDependencies:
       '@openzeppelin/contracts':
-        specifier: ^5.4.0
+        specifier: ~5.4.0
         version: 5.4.0
       '@openzeppelin/contracts-4.8.1':
         specifier: npm:@openzeppelin/contracts@4.8.1
         version: '@openzeppelin/contracts@4.8.1'
       '@openzeppelin/contracts-upgradeable':
-        specifier: ^5.4.0
+        specifier: ~5.4.0
         version: 5.4.0(@openzeppelin/contracts@5.4.0)
       '@openzeppelin/contracts-upgradeable-4.8.1':
         specifier: npm:@openzeppelin/contracts-upgradeable@4.8.1

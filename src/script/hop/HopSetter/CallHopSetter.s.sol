@@ -32,44 +32,25 @@ contract CallHopSetter is BaseScript {
             (30168, hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0")
         );
 
-        bytes memory encodedCall = abi.encodeCall(
-            HopSetter.callRemoteHops,
-            (
-                eids,
-                dstGas,
-                data
-            )
-        );
+        bytes memory encodedCall = abi.encodeCall(HopSetter.callRemoteHops, (eids, dstGas, data));
 
         vm.prank(msig);
         (bool success, ) = address(hopSetter).call(encodedCall);
         require(success, "callRemoteHops failed");
 
-        txs.push(
-            SafeTx({
-                name: "HopSetter.callRemoteHops",
-                to: address(hopSetter),
-                value: 0,
-                data: encodedCall
-            })
-        );
+        txs.push(SafeTx({ name: "HopSetter.callRemoteHops", to: address(hopSetter), value: 0, data: encodedCall }));
     }
 
     function saveTxs() public {
         string memory root = vm.projectRoot();
         string memory filename = string(
-            abi.encodePacked(
-                root,
-                "/src/script/hop/HopSetter/txs/CallHopSetter_",
-                block.timestamp.toString(),
-                ".json"
-            )
+            abi.encodePacked(root, "/src/script/hop/HopSetter/txs/CallHopSetter_", block.timestamp.toString(), ".json")
         );
 
         if (txs.length > 0) {
             new SafeTxHelper().writeTxs(txs, filename);
         } else {
-            revert ("No txs to save");
+            revert("No txs to save");
         }
     }
 }

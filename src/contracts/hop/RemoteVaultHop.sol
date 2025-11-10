@@ -35,7 +35,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     /// @notice The vault share token by vault address
     mapping(address => address) public vaultShares;
     /// @notice The balance of shares owned by users in remote vaults
-    mapping(address => mapping(uint32 => mapping(address => uint256))) public balance; // vault => srcEid => srcAddress => shares
+    mapping(uint32 => mapping(address => uint256)) public balance; // vault => srcEid => srcAddress => shares
 
     // Remote vault management
     /// @notice Remote vault hop address by eid
@@ -226,7 +226,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     function _handleDeposit(RemoteVaultMessage memory message) internal {
         SafeERC20.forceApprove(TOKEN, message.remoteVault, message.amount);
         uint256 out = IERC4626(message.remoteVault).deposit(message.amount, address(this));
-        balance[message.remoteVault][message.userEid][message.userAddress] += out;
+        balance[message.remoteEid][message.remoteVault] += out;
 
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
         bytes memory _data = abi.encode(
@@ -263,7 +263,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     function _handleRedeem(RemoteVaultMessage memory message) internal {
         IERC20(vaultShares[message.remoteVault]).approve(address(message.remoteVault), message.amount);
         uint256 out = IERC4626(message.remoteVault).redeem(message.amount, address(this), address(this));
-        balance[message.remoteVault][message.userEid][message.userAddress] -= message.amount;
+        balance[message.remoteEid][message.remoteVault] -= message.amount;
         out = removeDust(out);
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
         bytes memory _data = abi.encode(

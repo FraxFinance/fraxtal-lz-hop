@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -9,10 +9,10 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTCom
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
-import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
+import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
+abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
 
     struct HopV2Storage {
@@ -79,6 +79,8 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
     }
 
     /// @notice Send an OFT to a destination with encoded data
+    /// @dev Check the FraxtalHopV2.remoteHop(_dstEid) to ensure the destination chain is supported.  If the destination
+    ///      is not supported, tokens/messages would be stuck on Fraxtal and require a team intervention to recover.
     /// @param _oft Address of OFT
     /// @param _dstEid Destination EID
     /// @param _recipient bytes32 representation of recipient
@@ -316,11 +318,20 @@ abstract contract HopV2 is AccessControlUpgradeable, IHopComposer {
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function recoverERC20(
+        address tokenAddress,
+        address recipient,
+        uint256 tokenAmount
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
-    function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMessageProcessed(
+        address _oft,
+        uint32 _srcEid,
+        uint64 _nonce,
+        bytes32 _composeFrom
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));

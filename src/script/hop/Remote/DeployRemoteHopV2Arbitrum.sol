@@ -14,6 +14,8 @@ contract DeployRemoteHopV2Arbitrum is DeployRemoteHopV2 {
         endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
         localEid = 30110;
 
+        msig = 0x3da490b19F300E7cb2280426C8aD536dB2df445c;
+
         frxUsdOft = 0x80Eede496655FB9047dd39d9f418d5483ED600df;
         sfrxUsdOft = 0x5Bff88cA1442c2496f7E475E9e7786383Bc070c0;
         frxEthOft = 0x43eDD7f3831b08FE70B7555ddD373C8bF65a9050;

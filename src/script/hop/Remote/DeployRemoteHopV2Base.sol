@@ -14,6 +14,8 @@ contract DeployRemoteHopV2Base is DeployRemoteHopV2 {
         endpoint = 0x1a44076050125825900e736c501f859c50fE728c;
         localEid = 30184;
 
+        msig = 0xCBfd4Ef00a8cf91Fd1e1Fe97dC05910772c15E53;
+
         frxUsdOft = 0xe5020A6d073a794B6E7f05678707dE47986Fb0b6;
         sfrxUsdOft = 0x91A3f8a8d7a881fBDfcfEcd7A2Dc92a46DCfa14e;
         frxEthOft = 0x7eb8d1E4E2D0C8b9bEDA7a97b305cF49F3eeE8dA;

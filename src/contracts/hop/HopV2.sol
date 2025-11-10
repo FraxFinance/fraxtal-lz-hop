@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -12,7 +12,7 @@ import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is AccessControlUpgradeable, IHopV2, IHopComposer {
+abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
 
     struct HopV2Storage {

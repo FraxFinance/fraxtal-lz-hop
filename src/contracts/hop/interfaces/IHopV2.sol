@@ -34,7 +34,7 @@ interface IHopV2 {
         bytes memory _data
     ) external view returns (uint256 fee);
 
-    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) view external returns (uint256 fee);
+    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) external view returns (uint256 fee);
 
     // Admin
 

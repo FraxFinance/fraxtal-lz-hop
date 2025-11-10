@@ -78,7 +78,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         _disableInitializers();
     }
 
-    function initialiaze(address _oft, address _hop, uint32 _eid) external initializer {
+    function initialize(address _oft, address _hop, uint32 _eid) external initializer {
         ReadHopStorage storage $ = _getReadHopStorage();
         $.oft = _oft;
         $.hop = _hop;

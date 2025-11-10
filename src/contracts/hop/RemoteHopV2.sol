@@ -163,7 +163,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
 
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
-        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
+        uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
 
         // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
         // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
@@ -173,9 +173,9 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
 
-        _sendLocal({ _oft: _oft, _amount: amount, _hopMessage: hopMessage });
+        _sendLocal({ _oft: _oft, _amount: amountLD, _hopMessage: hopMessage });
 
-        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
+        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amountLD);
     }
 
     function numDVNs() external view returns (uint32) {

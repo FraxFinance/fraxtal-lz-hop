@@ -15,6 +15,9 @@ import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
 
+    // keccak256("REMOTE_ADMIN_ROLE")
+    bytes32 public constant REMOTE_ADMIN_ROLE = 0x7504870cf250183030f060283f976f9f7212253a7a239db522c96ff3fe750c0b;
+
     struct HopV2Storage {
         /// @dev EID of this chain
         uint32 localEid;
@@ -47,9 +50,17 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     error HopPaused();
     error NotEndpoint();
     error NotHop();
+    error NotAuthorized();
     error InsufficientFee();
     error RefundFailed();
     error FailedRemoteSetCall();
+
+    modifier onlyAuthorized() {
+        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(REMOTE_ADMIN_ROLE, msg.sender))) {
+            revert NotAuthorized();
+        }
+        _;
+    }
 
     constructor() {
         _disableInitializers();
@@ -57,7 +68,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
 
     function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, address(this));
 
         HopV2Storage storage $ = _getHopV2Storage();
         $.localEid = _localEid;
@@ -298,12 +308,12 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     }
 
     // Admin functions
-    function pause(bool _paused) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause(bool _paused) public onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
         $.paused = _paused;
     }
 
-    function setApprovedOft(address _oft, bool _isApproved) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setApprovedOft(address _oft, bool _isApproved) public onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
         $.approvedOft[_oft] = _isApproved;
     }
@@ -312,7 +322,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
     }
 
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyAuthorized {
         _setRemoteHop(_eid, _remoteHop);
     }
 
@@ -325,7 +335,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         address tokenAddress,
         address recipient,
         uint256 tokenAmount
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyAuthorized {
         IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
@@ -334,7 +344,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         uint32 _srcEid,
         uint64 _nonce,
         bytes32 _composeFrom
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
@@ -342,7 +352,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
     }
 
-    function recoverETH(address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function recoverETH(address recipient, uint256 tokenAmount) public onlyAuthorized {
         (bool success, ) = payable(recipient).call{ value: tokenAmount }("");
         require(success);
     }

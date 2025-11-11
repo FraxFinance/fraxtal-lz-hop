@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import { IReadComposer } from "src/contracts/hop/interfaces/IReadComposer.sol";
 
 contract ReadComposerMock is IReadComposer {
-
     // decoded nonce fields
     bool public deposit;
     uint64 public amount;
@@ -15,7 +14,9 @@ contract ReadComposerMock is IReadComposer {
     uint256 public nonce;
     uint64 public readTimestamp;
     bool public success;
-    bytes public data; 
+    bytes public data;
+
+    // stored variables
 
     function readCompose(
         uint32 _srcEid,

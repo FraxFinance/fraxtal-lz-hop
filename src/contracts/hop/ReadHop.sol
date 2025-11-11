@@ -43,7 +43,6 @@ struct ReadComposeMessage {
 }
 
 contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
-
     using AddressConverter for address;
     using AddressConverter for bytes32;
 
@@ -58,7 +57,8 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
     }
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.ReadHop")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ReadHopStorageLocation = 0x740984363260482c9834914734d02a6e1d7a3087c1a76dc9471ddd3aa894c900;
+    bytes32 private constant ReadHopStorageLocation =
+        0x740984363260482c9834914734d02a6e1d7a3087c1a76dc9471ddd3aa894c900;
 
     function _getReadHopStorage() private pure returns (ReadHopStorage storage $) {
         assembly {
@@ -66,6 +66,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         }
     }
 
+    error AccessDenied();
     error InsufficientFee();
     error InvalidEID();
     error InvalidOFT();
@@ -217,7 +218,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         // Note that fees accrue in the ReadHop similar to RemoteHop.  User pays the target chain hopCompose() and destination chain readCompose()
         // in advance in the source chain token, and on the target and destination chain, there is an equivalent amount of gas available within
         // the ReadHop to execute the hopCompose()/readCompose()
-        IHopV2(hop()).sendOFT{value: fee}({
+        IHopV2(hop()).sendOFT{ value: fee }({
             _oft: oft(),
             _dstEid: _targetEid,
             _recipient: readHops(_targetEid),
@@ -228,7 +229,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         // refund excess fee
         if (msg.value > fee) {
-            (bool success, ) = msg.sender.call{value: msg.value - fee}("");
+            (bool success, ) = msg.sender.call{ value: msg.value - fee }("");
             require(success, "Refund failed");
         }
     }
@@ -244,11 +245,12 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         // if sender is admin, call self (allows remote-setting of readHops)
         if (_srcEid == FRAXTAL_EID && hasRole(DEFAULT_ADMIN_ROLE, _sender.toAddress())) {
+            if (msg.sender != hop()) revert AccessDenied();
             (bool success, ) = address(this).call(_data);
             if (!success) revert FailedRemoteSetCall();
             return;
         }
-        
+
         if (readHops(_srcEid) != _sender) revert NotReadHop();
 
         // Decode into read message
@@ -269,8 +271,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         (readHopMessage) = abi.decode(readMessage.message, (ReadHopMessage));
 
         // call target with data
-        (bool success, bytes memory data) = 
-            readHopMessage.targetAddress.toAddress().call(readHopMessage.data);
+        (bool success, bytes memory data) = readHopMessage.targetAddress.toAddress().call(readHopMessage.data);
 
         // ensure data fits params
         if (data.length > readHopMessage.returnDataLen) revert TooMuchDataReturned();
@@ -297,7 +298,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         });
 
         // send message
-        IHopV2(hop()).sendOFT{value: fee}({
+        IHopV2(hop()).sendOFT{ value: fee }({
             _oft: oft(),
             _dstEid: readHopMessage.dstEid,
             _recipient: readHops(readHopMessage.dstEid),
@@ -311,7 +312,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
     function _handleInboundMessage(ReadMessage memory readMessage) internal {
         ReadComposeMessage memory readComposeMessage;
         (readComposeMessage) = abi.decode(readMessage.message, (ReadComposeMessage));
-        
+
         // call dst with shared and compose message
         IReadComposer(readMessage.dstAddress.toAddress()).readCompose({
             _srcEid: readMessage.srcEid,

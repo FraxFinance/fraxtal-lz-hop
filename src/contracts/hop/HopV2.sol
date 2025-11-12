@@ -141,31 +141,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-    // Callback to set admin functions from the Fraxtal msig
-    function hopCompose(
-        uint32 _srcEid,
-        bytes32 _sender,
-        address _oft,
-        uint256 /* _amount */,
-        bytes memory _data
-    ) external override {
-        HopV2Storage storage $ = _getHopV2Storage();
-        // Only allow composes from trusted OFT
-        if (!$.approvedOft[_oft]) revert InvalidOFT();
-
-        // Only allow composes originating from fraxtal
-        if (_srcEid != FRAXTAL_EID) revert InvalidSourceEid();
-
-        // Only allow self-calls (via lzCompose())
-        if (msg.sender != address(this)) revert NotHop();
-
-        // Only allow composes where the sender is approved
-        _checkRole(DEFAULT_ADMIN_ROLE, address(uint160(uint256(_sender))));
-
-        (bool success, ) = address(this).call(_data);
-        if (!success) revert FailedRemoteSetCall();
-    }
-
     // Helper functions
 
     /// @notice Get the gas cost estimate of going from this chain to a destination chain

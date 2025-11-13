@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
 
-import { DeployRemoteHopV2 } from "./DeployRemoteHopV2.sol";
+import { DeployRemoteHopV2 } from "./DeployRemoteHopV2.s.sol";
 
-// forge script src/script/hop/Remote/DeployRemoteHopV2Base.sol --rpc-url https://mainnet.base.org --broadcast --verify --verifier etherscan --etherscan-api-key $BASESCAN_API_KEY
+// forge script src/script/hop/Remote/DeployRemoteHopV2Base.s.sol --rpc-url https://mainnet.base.org --broadcast --verify --verifier etherscan --etherscan-api-key $BASESCAN_API_KEY
 contract DeployRemoteHopV2Base is DeployRemoteHopV2 {
     constructor() {
         EXECUTOR = 0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4;

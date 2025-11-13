@@ -14,6 +14,8 @@ import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
 abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
+    /// @dev keccak256("PAUSER_ROLE")
+    bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
 
     struct HopV2Storage {
         /// @dev EID of this chain
@@ -298,21 +300,26 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     }
 
     // Admin functions
-    function pause(bool _paused) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseOn() external onlyRole(PAUSER_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
-        $.paused = _paused;
+        $.paused = true;
     }
 
-    function setApprovedOft(address _oft, bool _isApproved) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseOff() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.paused = false;
+    }
+
+    function setApprovedOft(address _oft, bool _isApproved) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.approvedOft[_oft] = _isApproved;
     }
 
-    function setRemoteHop(uint32 _eid, address _remoteHop) public {
-        setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
+    function setRemoteHop(uint32 _eid, address _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
     }
 
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRemoteHop(_eid, _remoteHop);
     }
 
@@ -321,12 +328,9 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recoverERC20(
-        address tokenAddress,
-        address recipient,
-        uint256 tokenAmount
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        IERC20(tokenAddress).transfer(recipient, tokenAmount);
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, ) = _target.call{ value: _value }(_data);
+        require(success);
     }
 
     function setMessageProcessed(
@@ -334,17 +338,12 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         uint32 _srcEid,
         uint64 _nonce,
         bytes32 _composeFrom
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
         $.messageProcessed[messageHash] = true;
         emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
-    }
-
-    function recoverETH(address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        (bool success, ) = payable(recipient).call{ value: tokenAmount }("");
-        require(success);
     }
 
     // Storage views
@@ -358,7 +357,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         return $.endpoint;
     }
 
-    function paused() external view returns (bool) {
+    function paused() public view returns (bool) {
         HopV2Storage storage $ = _getHopV2Storage();
         return $.paused;
     }

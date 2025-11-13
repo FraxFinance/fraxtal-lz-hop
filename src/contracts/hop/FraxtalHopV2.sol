@@ -66,6 +66,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
+        if (paused()) revert HopPaused();
+
         (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
         if (isDuplicateMessage) return;
 

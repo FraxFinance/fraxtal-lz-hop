@@ -76,17 +76,17 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         $.TREASURY = _TREASURY;
     }
 
-    function setNumDVNs(uint32 _numDVNs) public onlyAdmin {
+    function setNumDVNs(uint32 _numDVNs) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.numDVNs = _numDVNs;
     }
 
-    function setHopFee(uint256 _hopFee) public onlyAdmin {
+    function setHopFee(uint256 _hopFee) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.hopFee = _hopFee;
     }
 
-    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyAdmin {
+    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.executorOptions[eid] = _options;
     }

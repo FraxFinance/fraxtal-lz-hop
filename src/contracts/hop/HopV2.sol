@@ -17,9 +17,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     /// @dev keccak256("PAUSER_ROLE")
     bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
 
-    // keccak256("REMOTE_ADMIN_ROLE")
-    bytes32 public constant REMOTE_ADMIN_ROLE = 0x7504870cf250183030f060283f976f9f7212253a7a239db522c96ff3fe750c0b;
-
     struct HopV2Storage {
         /// @dev EID of this chain
         uint32 localEid;
@@ -57,19 +54,8 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     error RefundFailed();
     error FailedRemoteSetCall();
 
-    modifier onlyAdmin() {
-        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(REMOTE_ADMIN_ROLE, msg.sender))) {
-            revert NotAuthorized();
-        }
-        _;
-    }
-
     modifier onlyAuthorized() {
-        if (!(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            hasRole(REMOTE_ADMIN_ROLE, msg.sender) ||
-            hasRole(PAUSER_ROLE, msg.sender)
-        )) {
+        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(PAUSER_ROLE, msg.sender))) {
             revert NotAuthorized();
         }
         _;
@@ -301,21 +287,21 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         $.paused = true;
     }
 
-    function pauseOff() external onlyAdmin {
+    function pauseOff() external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.paused = false;
     }
 
-    function setApprovedOft(address _oft, bool _isApproved) external onlyAdmin {
+    function setApprovedOft(address _oft, bool _isApproved) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.approvedOft[_oft] = _isApproved;
     }
 
-    function setRemoteHop(uint32 _eid, address _remoteHop) external onlyAdmin {
+    function setRemoteHop(uint32 _eid, address _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
     }
 
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external onlyAdmin {
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRemoteHop(_eid, _remoteHop);
     }
 
@@ -324,7 +310,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recover(address _target, uint256 _value, bytes memory _data) external onlyAdmin {
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = _target.call{ value: _value }(_data);
         require(success);
     }
@@ -334,7 +320,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         uint32 _srcEid,
         uint64 _nonce,
         bytes32 _composeFrom
-    ) external onlyAdmin {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));

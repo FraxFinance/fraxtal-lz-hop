@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 contract FraxtalRemoteAdminRegistry is Ownable2Step {
-    mapping (uint32 eid => address remoteAdmin) public remoteAdmins;
+    mapping(uint32 eid => address remoteAdmin) public remoteAdmins;
 
     event RemoteAdminSet(uint32 indexed eid, address indexed remoteAdmin);
 

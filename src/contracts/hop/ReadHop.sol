@@ -13,7 +13,18 @@ enum Direction {
     Inbound
 }
 
-// TODO: is there a better convention around these ReadXMessage structs?
+/// @dev parameters to pass into readOFT()
+struct ReadParam {
+    uint32 targetEid;
+    uint32 dstEid;
+    uint128 targetGas;
+    uint128 dstGas;
+    uint256 nonce;
+    bytes32 targetAddress;
+    bytes32 dstAddress;
+    uint64 returnDataLen;
+    bytes data;
+}
 
 /// @dev Generic message passed from ReadHop to ReadHop where message is either an encoded
 // ReadOutboundMessage or ReadInboundMessage
@@ -50,9 +61,9 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
     address public immutable self = address(this);
 
     struct ReadHopStorage {
-        address oft;
+        address frxUsdOft;
         address hop;
-        uint32 eid;
+        uint32 localEid;
         mapping(uint32 eid => bytes32 readHop) readHops;
     }
 
@@ -79,12 +90,12 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         _disableInitializers();
     }
 
-    function initialize(address _oft, address _hop, uint32 _eid) external initializer {
+    function initialize(address _frxUsdOft, address _hop, uint32 _localEid) external initializer {
         ReadHopStorage storage $ = _getReadHopStorage();
-        $.oft = _oft;
+        $.frxUsdOft = _frxUsdOft;
         $.hop = _hop;
-        $.eid = _eid;
-        $.readHops[_eid] = address(this).toBytes32();
+        $.localEid = _localEid;
+        $.readHops[_localEid] = address(this).toBytes32();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, address(this));
@@ -95,56 +106,26 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         if (address(this) == self) revert CannotSendToImplementation();
     }
 
-    function quoteReadOFT(
-        uint32 _targetEid,
-        uint32 _dstEid,
-        uint128 _targetGas,
-        uint128 _dstGas,
-        uint256 _nonce,
-        bytes32 _targetAddress,
-        bytes32 _dstAddress,
-        uint64 _returnDataLen,
-        bytes memory _data
-    ) external view returns (uint256 fee) {
-        (fee, ) = _quoteReadOFT(
-            _targetEid,
-            _dstEid,
-            _targetGas,
-            _dstGas,
-            _nonce,
-            _targetAddress,
-            _dstAddress,
-            _returnDataLen,
-            _data
-        );
+    function quoteReadOFT(ReadParam calldata _param) external view returns (uint256 fee) {
+        (fee, ) = _quoteReadOFT(_param);
     }
 
-    function _quoteReadOFT(
-        uint32 _targetEid,
-        uint32 _dstEid,
-        uint128 _targetGas,
-        uint128 _dstGas,
-        uint256 _nonce,
-        bytes32 _targetAddress,
-        bytes32 _dstAddress,
-        uint64 _returnDataLen,
-        bytes memory _data
-    ) internal view returns (uint256 fee, ReadMessage memory readMsg) {
+    function _quoteReadOFT(ReadParam memory _param) internal view returns (uint256 fee, ReadMessage memory readMsg) {
         // Craft ReadMessage with ReadOutboundMessage
         ReadOutboundMessage memory readOutboundMsg = ReadOutboundMessage({
-            dstEid: _dstEid,
-            dstGas: _dstGas,
-            returnDataLen: _returnDataLen,
-            targetAddress: _targetAddress,
-            data: _data
+            dstEid: _param.dstEid,
+            dstGas: _param.dstGas,
+            returnDataLen: _param.returnDataLen,
+            targetAddress: _param.targetAddress,
+            data: _param.data
         });
 
         readMsg = ReadMessage({
             direction: Direction.Outbound,
-            srcEid: eid(),
-            nonce: _nonce,
+            srcEid: localEid(),
+            nonce: _param.nonce,
             srcAddress: msg.sender.toBytes32(),
-            dstAddress: _dstAddress,
+            dstAddress: _param.dstAddress,
             message: abi.encode(readOutboundMsg)
         });
 
@@ -152,65 +133,45 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         // (src => target)
         fee = IHopV2(hop()).quote({
-            _oft: oft(),
-            _dstEid: _targetEid,
-            _recipient: readHops(_targetEid),
+            _oft: frxUsdOft(),
+            _dstEid: _param.targetEid,
+            _recipient: readHops(_param.targetEid),
             _amountLD: 0,
-            _dstGas: _targetGas,
+            _dstGas: _param.targetGas,
             _data: abi.encode(readMsg)
         });
 
         // (target => dst)
         // Craft mock ReadInboundMessage with returnDataLen (enforced on target ReadHop)
-        bytes memory mockReturnData = new bytes(_returnDataLen);
+        bytes memory mockReturnData = new bytes(_param.returnDataLen);
         ReadInboundMessage memory mockReadInboundMsg = ReadInboundMessage({
             success: true,
             readTimestamp: type(uint64).max,
             data: mockReturnData
         });
         fee += IHopV2(hop()).quote({
-            _oft: oft(),
-            _dstEid: _dstEid,
-            _recipient: readHops(_dstEid),
+            _oft: frxUsdOft(),
+            _dstEid: _param.dstEid,
+            _recipient: readHops(_param.dstEid),
             _amountLD: 0,
-            _dstGas: _dstGas,
+            _dstGas: _param.dstGas,
             _data: abi.encode(
                 ReadMessage({
                     direction: Direction.Inbound,
-                    srcEid: eid(),
-                    nonce: _nonce,
+                    srcEid: localEid(),
+                    nonce: _param.nonce,
                     srcAddress: msg.sender.toBytes32(),
-                    dstAddress: _dstAddress,
+                    dstAddress: _param.dstAddress,
                     message: abi.encode(mockReadInboundMsg)
                 })
             )
         });
     }
 
-    function readOFT(
-        uint32 _targetEid,
-        uint32 _dstEid,
-        uint128 _targetGas,
-        uint128 _dstGas,
-        uint256 _nonce,
-        bytes32 _targetAddress,
-        bytes32 _dstAddress,
-        uint64 _returnDataLen,
-        bytes memory _data
-    ) external payable {
-        if (readHops(_targetEid) == bytes32(0)) revert InvalidEID();
+    function readOFT(ReadParam calldata _param) external payable {
+        if (readHops(_param.targetEid) == bytes32(0)) revert InvalidEID();
 
-        (uint256 fee, ReadMessage memory readMsg) = _quoteReadOFT(
-            _targetEid,
-            _dstEid,
-            _targetGas,
-            _dstGas,
-            _nonce,
-            _targetAddress,
-            _dstAddress,
-            _returnDataLen,
-            _data
-        );
+        (uint256 fee, ReadMessage memory readMsg) = _quoteReadOFT(_param);
 
         if (msg.value < fee) revert InsufficientFee();
 
@@ -219,11 +180,11 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         // in advance in the source chain token, and on the target and destination chain, there is an equivalent amount of gas available within
         // the ReadHop to execute the hopCompose()/readCompose()
         IHopV2(hop()).sendOFT{ value: fee }({
-            _oft: oft(),
-            _dstEid: _targetEid,
-            _recipient: readHops(_targetEid),
+            _oft: frxUsdOft(),
+            _dstEid: _param.targetEid,
+            _recipient: readHops(_param.targetEid),
             _amountLD: 0,
-            _dstGas: _targetGas,
+            _dstGas: _param.targetGas,
             _data: abi.encode(readMsg)
         });
 
@@ -241,7 +202,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         uint256 /* _amount */,
         bytes memory _data
     ) external {
-        if (_oft != oft()) revert InvalidOFT();
+        if (_oft != frxUsdOft()) revert InvalidOFT();
 
         // if sender is admin, call self (allows remote-setting of readHops)
         if (_srcEid == FRAXTAL_EID && hasRole(DEFAULT_ADMIN_ROLE, _sender.toAddress())) {
@@ -289,7 +250,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         // quote inbound sendOFT()
         uint256 fee = IHopV2(hop()).quote({
-            _oft: oft(),
+            _oft: frxUsdOft(),
             _dstEid: readOutboundMsg.dstEid,
             _recipient: readHops(readOutboundMsg.dstEid),
             _amountLD: 0,
@@ -299,7 +260,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         // send message
         IHopV2(hop()).sendOFT{ value: fee }({
-            _oft: oft(),
+            _oft: frxUsdOft(),
             _dstEid: readOutboundMsg.dstEid,
             _recipient: readHops(readOutboundMsg.dstEid),
             _amountLD: 0,
@@ -329,9 +290,9 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         $.readHops[_eid] = _readHop;
     }
 
-    function oft() public view returns (address) {
+    function frxUsdOft() public view returns (address) {
         ReadHopStorage storage $ = _getReadHopStorage();
-        return $.oft;
+        return $.frxUsdOft;
     }
 
     function hop() public view returns (address) {
@@ -339,9 +300,9 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         return $.hop;
     }
 
-    function eid() public view returns (uint32) {
+    function localEid() public view returns (uint32) {
         ReadHopStorage storage $ = _getReadHopStorage();
-        return $.eid;
+        return $.localEid;
     }
 
     function readHops(uint32 _eid) public view returns (bytes32) {

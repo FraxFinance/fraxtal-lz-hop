@@ -98,7 +98,6 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         $.readHops[_localEid] = address(this).toBytes32();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, address(this));
     }
 
     receive() external payable {
@@ -129,7 +128,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             message: abi.encode(readOutboundMsg)
         });
 
-        // get quote of (src => target), (target => dst)
+        // get cumulative cost of (src => target) + quote() + (target => dst)
 
         // (src => target)
         fee = IHopV2(hop()).quote({
@@ -140,6 +139,10 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             _dstGas: _param.targetGas,
             _data: abi.encode(readMsg)
         });
+
+        // quote() - called in ReadHop before sending consumes 250k gas as determined by `forge t --gas-report`
+        // TODO: how to charge in destination gas price? ie. charge Ethereum gas price when sending to Ethereum
+        fee += 250_000 * tx.gasprice;
 
         // (target => dst)
         // Craft mock ReadInboundMessage with returnDataLen (enforced on target ReadHop)
@@ -203,15 +206,6 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         bytes memory _data
     ) external {
         if (_oft != frxUsdOft()) revert InvalidOFT();
-
-        // if sender is admin, call self (allows remote-setting of readHops)
-        if (_srcEid == FRAXTAL_EID && hasRole(DEFAULT_ADMIN_ROLE, _sender.toAddress())) {
-            if (msg.sender != hop()) revert AccessDenied();
-            (bool success, ) = address(this).call(_data);
-            if (!success) revert FailedRemoteSetCall();
-            return;
-        }
-
         if (readHops(_srcEid) != _sender) revert NotReadHop();
 
         // Decode into read message

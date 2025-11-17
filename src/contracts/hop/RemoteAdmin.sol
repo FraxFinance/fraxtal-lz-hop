@@ -7,7 +7,7 @@ import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 contract RemoteAdmin is IHopComposer {
     uint32 internal constant FRAXTAL_EID = 30255;
 
-    address public immutable oft;
+    address public immutable frxUsdOft;
     address public immutable hopV2;
     bytes32 public immutable fraxtalMsig;
 
@@ -16,8 +16,8 @@ contract RemoteAdmin is IHopComposer {
     error InvalidOFT();
     error FailedRemoteCall();
 
-    constructor(address _oft, address _hopV2, address _fraxtalMsig) {
-        oft = _oft;
+    constructor(address _frxUsdOft, address _hopV2, address _fraxtalMsig) {
+        frxUsdOft = _frxUsdOft;
         hopV2 = _hopV2;
         fraxtalMsig = bytes32(uint256(uint160(_fraxtalMsig)));
     }
@@ -29,7 +29,8 @@ contract RemoteAdmin is IHopComposer {
         uint256 /* _amount */,
         bytes memory _data
     ) external override {
-        // Only allow composes from the hop where the original sender is the fraxtal msig
+        // Only allow composes from the RemoteHop via the hopCompose() call inside lzCompose()
+        // where the original sender is the fraxtal msig
         if (msg.sender != hopV2 || _sender != fraxtalMsig) {
             revert NotAuthorized();
         }
@@ -38,7 +39,7 @@ contract RemoteAdmin is IHopComposer {
             revert InvalidSourceEid();
         }
 
-        if (_oft != oft) {
+        if (_oft != frxUsdOft) {
             revert InvalidOFT();
         }
 

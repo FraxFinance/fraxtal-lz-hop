@@ -16,7 +16,7 @@ enum Direction {
 // TODO: is there a better convention around these ReadXMessage structs?
 
 /// @dev Generic message passed from ReadHop to ReadHop where message is either an encoded
-// ReadHopMessage or ReadComposeMessage
+// ReadOutboundMessage or ReadInboundMessage
 struct ReadMessage {
     Direction direction;
     uint32 srcEid;
@@ -27,7 +27,7 @@ struct ReadMessage {
 }
 
 /// @dev Data to be used on the target chain
-struct ReadHopMessage {
+struct ReadOutboundMessage {
     uint32 dstEid;
     uint128 dstGas;
     uint64 returnDataLen;
@@ -36,7 +36,7 @@ struct ReadHopMessage {
 }
 
 /// @dev Data to be used on the destination chain
-struct ReadComposeMessage {
+struct ReadInboundMessage {
     bool success;
     uint64 readTimestamp;
     bytes data;
@@ -129,9 +129,9 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         bytes32 _dstAddress,
         uint64 _returnDataLen,
         bytes memory _data
-    ) internal view returns (uint256 fee, ReadMessage memory readMessage) {
-        // Craft ReadMessage with ReadHopMessage
-        ReadHopMessage memory readHopMessage = ReadHopMessage({
+    ) internal view returns (uint256 fee, ReadMessage memory readMsg) {
+        // Craft ReadMessage with ReadOutboundMessage
+        ReadOutboundMessage memory readOutboundMsg = ReadOutboundMessage({
             dstEid: _dstEid,
             dstGas: _dstGas,
             returnDataLen: _returnDataLen,
@@ -139,13 +139,13 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             data: _data
         });
 
-        readMessage = ReadMessage({
+        readMsg = ReadMessage({
             direction: Direction.Outbound,
             srcEid: eid(),
             nonce: _nonce,
             srcAddress: msg.sender.toBytes32(),
             dstAddress: _dstAddress,
-            message: abi.encode(readHopMessage)
+            message: abi.encode(readOutboundMsg)
         });
 
         // get quote of (src => target), (target => dst)
@@ -157,13 +157,13 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             _recipient: readHops(_targetEid),
             _amountLD: 0,
             _dstGas: _targetGas,
-            _data: abi.encode(readMessage)
+            _data: abi.encode(readMsg)
         });
 
         // (target => dst)
-        // Craft mock ReadComposeMessage with returnDataLen (enforced on target ReadHop)
+        // Craft mock ReadInboundMessage with returnDataLen (enforced on target ReadHop)
         bytes memory mockReturnData = new bytes(_returnDataLen);
-        ReadComposeMessage memory mockReadComposeMessage = ReadComposeMessage({
+        ReadInboundMessage memory mockReadInboundMsg = ReadInboundMessage({
             success: true,
             readTimestamp: type(uint64).max,
             data: mockReturnData
@@ -181,7 +181,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
                     nonce: _nonce,
                     srcAddress: msg.sender.toBytes32(),
                     dstAddress: _dstAddress,
-                    message: abi.encode(mockReadComposeMessage)
+                    message: abi.encode(mockReadInboundMsg)
                 })
             )
         });
@@ -200,7 +200,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
     ) external payable {
         if (readHops(_targetEid) == bytes32(0)) revert InvalidEID();
 
-        (uint256 fee, ReadMessage memory readMessage) = _quoteReadOFT(
+        (uint256 fee, ReadMessage memory readMsg) = _quoteReadOFT(
             _targetEid,
             _dstEid,
             _targetGas,
@@ -224,7 +224,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             _recipient: readHops(_targetEid),
             _amountLD: 0,
             _dstGas: _targetGas,
-            _data: abi.encode(readMessage)
+            _data: abi.encode(readMsg)
         });
 
         // refund excess fee
@@ -254,73 +254,73 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         if (readHops(_srcEid) != _sender) revert NotReadHop();
 
         // Decode into read message
-        ReadMessage memory readMessage;
-        (readMessage) = abi.decode(_data, (ReadMessage));
+        ReadMessage memory readMsg;
+        (readMsg) = abi.decode(_data, (ReadMessage));
 
-        if (uint8(readMessage.direction) == uint8(Direction.Outbound)) {
-            _handleOutboundMessage(readMessage);
-        } else if (uint8(readMessage.direction) == uint8(Direction.Inbound)) {
-            _handleInboundMessage(readMessage);
+        if (uint8(readMsg.direction) == uint8(Direction.Outbound)) {
+            _handleOutboundMessage(readMsg);
+        } else if (uint8(readMsg.direction) == uint8(Direction.Inbound)) {
+            _handleInboundMessage(readMsg);
         }
     }
 
     /// @dev Read the target contract and send the data to the destination
-    function _handleOutboundMessage(ReadMessage memory readMessage) internal {
-        // decode into ReadHopMessage
-        ReadHopMessage memory readHopMessage;
-        (readHopMessage) = abi.decode(readMessage.message, (ReadHopMessage));
+    function _handleOutboundMessage(ReadMessage memory readMsg) internal {
+        // decode into ReadOutboundMessage
+        ReadOutboundMessage memory readOutboundMsg;
+        (readOutboundMsg) = abi.decode(readMsg.message, (ReadOutboundMessage));
 
         // call target with data
-        (bool success, bytes memory data) = readHopMessage.targetAddress.toAddress().call(readHopMessage.data);
+        (bool success, bytes memory data) = readOutboundMsg.targetAddress.toAddress().call(readOutboundMsg.data);
 
         // ensure data fits params
-        if (data.length > readHopMessage.returnDataLen) revert TooMuchDataReturned();
+        if (data.length > readOutboundMsg.returnDataLen) revert TooMuchDataReturned();
 
-        // craft ReadComposeMessage
-        ReadComposeMessage memory readComposeMessage = ReadComposeMessage({
+        // craft ReadInboundMessage
+        ReadInboundMessage memory readInboundMsg = ReadInboundMessage({
             success: success,
             readTimestamp: uint64(block.timestamp),
             data: data
         });
 
         // update ReadMessage
-        readMessage.direction = Direction.Inbound;
-        readMessage.message = abi.encode(readComposeMessage);
+        readMsg.direction = Direction.Inbound;
+        readMsg.message = abi.encode(readInboundMsg);
 
         // quote inbound sendOFT()
         uint256 fee = IHopV2(hop()).quote({
             _oft: oft(),
-            _dstEid: readHopMessage.dstEid,
-            _recipient: readHops(readHopMessage.dstEid),
+            _dstEid: readOutboundMsg.dstEid,
+            _recipient: readHops(readOutboundMsg.dstEid),
             _amountLD: 0,
-            _dstGas: readHopMessage.dstGas,
-            _data: abi.encode(readMessage)
+            _dstGas: readOutboundMsg.dstGas,
+            _data: abi.encode(readMsg)
         });
 
         // send message
         IHopV2(hop()).sendOFT{ value: fee }({
             _oft: oft(),
-            _dstEid: readHopMessage.dstEid,
-            _recipient: readHops(readHopMessage.dstEid),
+            _dstEid: readOutboundMsg.dstEid,
+            _recipient: readHops(readOutboundMsg.dstEid),
             _amountLD: 0,
-            _dstGas: readHopMessage.dstGas,
-            _data: abi.encode(readMessage)
+            _dstGas: readOutboundMsg.dstGas,
+            _data: abi.encode(readMsg)
         });
     }
 
     /// @dev push the read data to the recipient
-    function _handleInboundMessage(ReadMessage memory readMessage) internal {
-        ReadComposeMessage memory readComposeMessage;
-        (readComposeMessage) = abi.decode(readMessage.message, (ReadComposeMessage));
+    function _handleInboundMessage(ReadMessage memory readMsg) internal {
+        ReadInboundMessage memory readInboundMsg;
+        (readInboundMsg) = abi.decode(readMsg.message, (ReadInboundMessage));
 
         // call dst with shared and compose message
-        IReadComposer(readMessage.dstAddress.toAddress()).readCompose({
-            _srcEid: readMessage.srcEid,
-            _srcAddress: readMessage.srcAddress,
-            _nonce: readMessage.nonce,
-            _readTimestamp: readComposeMessage.readTimestamp,
-            _success: readComposeMessage.success,
-            _data: readComposeMessage.data
+        IReadComposer(readMsg.dstAddress.toAddress()).readCompose({
+            _srcEid: readMsg.srcEid,
+            _srcAddress: readMsg.srcAddress,
+            _nonce: readMsg.nonce,
+            _readTimestamp: readInboundMsg.readTimestamp,
+            _success: readInboundMsg.success,
+            _data: readInboundMsg.data
         });
     }
 

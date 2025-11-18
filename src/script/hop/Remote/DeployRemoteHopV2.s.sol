@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/BaseScript.sol";
 import { RemoteHopV2 } from "src/contracts/hop/RemoteHopV2.sol";
+import { HopV2 } from "src/contracts/hop/HopV2.sol";
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -129,6 +130,38 @@ function deployRemoteHopV2(
     RemoteHopV2(payable(address(proxy))).setExecutorOptions(
         30168,
         hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0"
+    );
+
+    // grant Pauser roles to msig signers
+    // carter
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0x13Fe84D36d7a507Bb4bdAC6dCaF13a10961fc470
+    );
+    // sam
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0x17e06ce6914E3969f7BD37D8b2a563890cA1c96e
+    );
+    // dhruvin
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0x8d8290d49e88D16d81C6aDf6C8774eD88762274A
+    );
+    // travis
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0xcbc616D595D38483e6AdC45C7E426f44bF230928
+    );
+    // thomas
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0x381e2495e683868F693AA5B1414F712f21d34b40
+    );
+    // nader
+    HopV2(address(proxy)).grantRole(
+        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
+        0x6e74053a3798e0fC9a9775F7995316b27f21c4D2
     );
 
     return payable(address(proxy));

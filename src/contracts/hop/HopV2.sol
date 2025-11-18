@@ -12,7 +12,7 @@ import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
+abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     uint32 internal constant FRAXTAL_EID = 30255;
     /// @dev keccak256("PAUSER_ROLE")
     bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
@@ -49,9 +49,17 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     error HopPaused();
     error NotEndpoint();
     error NotHop();
+    error NotAuthorized();
     error InsufficientFee();
     error RefundFailed();
     error FailedRemoteSetCall();
+
+    modifier onlyAuthorized() {
+        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(PAUSER_ROLE, msg.sender))) {
+            revert NotAuthorized();
+        }
+        _;
+    }
 
     constructor() {
         _disableInitializers();
@@ -59,7 +67,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
 
     function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, address(this));
 
         HopV2Storage storage $ = _getHopV2Storage();
         $.localEid = _localEid;
@@ -131,31 +138,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         _handleMsgValue(sendFee);
 
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
-    }
-
-    // Callback to set admin functions from the Fraxtal msig
-    function hopCompose(
-        uint32 _srcEid,
-        bytes32 _sender,
-        address _oft,
-        uint256 /* _amount */,
-        bytes memory _data
-    ) external override {
-        HopV2Storage storage $ = _getHopV2Storage();
-        // Only allow composes from trusted OFT
-        if (!$.approvedOft[_oft]) revert InvalidOFT();
-
-        // Only allow composes originating from fraxtal
-        if (_srcEid != FRAXTAL_EID) revert InvalidSourceEid();
-
-        // Only allow self-calls (via lzCompose())
-        if (msg.sender != address(this)) revert NotHop();
-
-        // Only allow composes where the sender is approved
-        _checkRole(DEFAULT_ADMIN_ROLE, address(uint160(uint256(_sender))));
-
-        (bool success, ) = address(this).call(_data);
-        if (!success) revert FailedRemoteSetCall();
     }
 
     // Helper functions
@@ -300,7 +282,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     }
 
     // Admin functions
-    function pauseOn() external onlyRole(PAUSER_ROLE) {
+    function pauseOn() external onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
         $.paused = true;
     }

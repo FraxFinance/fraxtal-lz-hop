@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -12,7 +12,11 @@ import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
+abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
+    uint32 internal constant FRAXTAL_EID = 30255;
+    /// @dev keccak256("PAUSER_ROLE")
+    bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
+
     struct HopV2Storage {
         /// @dev EID of this chain
         uint32 localEid;
@@ -41,17 +45,28 @@ abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
     error InvalidOFT();
+    error InvalidSourceEid();
     error HopPaused();
     error NotEndpoint();
+    error NotHop();
+    error NotAuthorized();
     error InsufficientFee();
     error RefundFailed();
+    error FailedRemoteSetCall();
+
+    modifier onlyAuthorized() {
+        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(PAUSER_ROLE, msg.sender))) {
+            revert NotAuthorized();
+        }
+        _;
+    }
 
     constructor() {
         _disableInitializers();
     }
 
     function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
-        __Ownable2Step_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         HopV2Storage storage $ = _getHopV2Storage();
         $.localEid = _localEid;
@@ -267,21 +282,26 @@ abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
     }
 
     // Admin functions
-    function pause(bool _paused) external onlyOwner {
+    function pauseOn() external onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
-        $.paused = _paused;
+        $.paused = true;
     }
 
-    function setApprovedOft(address _oft, bool _isApproved) external onlyOwner {
+    function pauseOff() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.paused = false;
+    }
+
+    function setApprovedOft(address _oft, bool _isApproved) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.approvedOft[_oft] = _isApproved;
     }
 
-    function setRemoteHop(uint32 _eid, address _remoteHop) external {
-        setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
+    function setRemoteHop(uint32 _eid, address _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
     }
 
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyOwner {
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRemoteHop(_eid, _remoteHop);
     }
 
@@ -290,20 +310,22 @@ abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
-        IERC20(tokenAddress).transfer(recipient, tokenAmount);
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, ) = _target.call{ value: _value }(_data);
+        require(success);
     }
 
-    function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) external onlyOwner {
+    function setMessageProcessed(
+        address _oft,
+        uint32 _srcEid,
+        uint64 _nonce,
+        bytes32 _composeFrom
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
         $.messageProcessed[messageHash] = true;
         emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
-    }
-
-    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
-        payable(recipient).call{ value: tokenAmount }("");
     }
 
     // Storage views
@@ -317,7 +339,7 @@ abstract contract HopV2 is Ownable2StepUpgradeable, IHopV2 {
         return $.endpoint;
     }
 
-    function paused() external view returns (bool) {
+    function paused() public view returns (bool) {
         HopV2Storage storage $ = _getHopV2Storage();
         return $.paused;
     }

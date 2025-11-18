@@ -80,6 +80,16 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 ```
 
 ## Deployed Contracts
+### HopV2 Mainnet
+| Chain | `Hop` |
+| --- | --- |
+| Fraxtal | [`0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989`](https://fraxscan.com/address/0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989) |
+| Arbitrum | [`0x79152c303AD5aE429eDefa4553CB1Ad2c6EE1396`](https://arbiscan.io/address/0x79152c303AD5aE429eDefa4553CB1Ad2c6EE1396) |
+| Base | [`0x66ea762cCA7AC7A9457367286bA8DF380fAbe279`](https://basescan.org/address/0x66ea762cCA7AC7A9457367286bA8DF380fAbe279) |
+
+#### HopSetter
+[`0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4`](https://fraxscan.com/address/0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4)
+
 ### Mainnet
 | Chain | `RemoteHop` | `MintRedeemHop` |
 | --- | ---| ---|

@@ -14,8 +14,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 
-import { deployRemoteHopV2 } from "src/script/hop/Remote/DeployRemoteHopV2.sol";
-import { deployFraxtalHopV2 } from "src/script/hop/Fraxtal/DeployFraxtalHopV2.sol";
+import { deployRemoteHopV2 } from "src/script/hop/Remote/DeployRemoteHopV2.s.sol";
+import { deployFraxtalHopV2 } from "src/script/hop/Fraxtal/DeployFraxtalHopV2.s.sol";
 
 contract HopV2Test is BaseTest {
     FraxtalHopV2 hop;
@@ -41,13 +41,15 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,
                 30110,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
                 2,
                 EXECUTOR,
                 DVN,
@@ -68,13 +70,15 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927);
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,
                 30110,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
                 2,
                 0x31CAe3B7fB82d847621859fb1585353c5720660D,
                 0x2f55C492897526677C5B68fb199ea31E2c126416,
@@ -93,13 +97,15 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x9033BAD7aA130a2466060A2dA71fAe2219781B4b);
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,
                 30101,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
+                address(1), // hopSetter
+                address(1), // msig
                 2,
                 0x173272739Bd7Aa6e4e214714048a9fE699453059,
                 0x589dEDbD617e0CBcB916A9223F4d1300c294236b,

@@ -81,11 +81,11 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 
 ## Deployed Contracts
 ### HopV2 Mainnet
-| Chain | `Hop` |
-| --- | --- |
-| Fraxtal | [`0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989`](https://fraxscan.com/address/0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989) |
-| Arbitrum | [`0x79152c303AD5aE429eDefa4553CB1Ad2c6EE1396`](https://arbiscan.io/address/0x79152c303AD5aE429eDefa4553CB1Ad2c6EE1396) |
-| Base | [`0x66ea762cCA7AC7A9457367286bA8DF380fAbe279`](https://basescan.org/address/0x66ea762cCA7AC7A9457367286bA8DF380fAbe279) |
+| Chain | `Hop` | `RemoteAdmin` |
+| --- | --- | --- |
+| Fraxtal | [`0x1b93526eA567d59B7FD38126bb74D72818166C51`](https://fraxscan.com/address/0x1b93526eA567d59B7FD38126bb74D72818166C51) | [`0x5B9d0ad83b62159589a4CED620492EE099571CA8`](https://fraxscan.com/address/0x5B9d0ad83b62159589a4CED620492EE099571CA8) |
+| Arbitrum | [`0x3A5cDA3Ac66Aa80573402610c94B74eD6cdb2F23`](https://arbiscan.io/address/0x3A5cDA3Ac66Aa80573402610c94B74eD6cdb2F23) | [`0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586`](https://arbiscan.io/address/0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586) |
+| Base | [`0x56B75e191801614b5b84CcFe87cdDD76f57AaD64`](https://basescan.org/address/0x56B75e191801614b5b84CcFe87cdDD76f57AaD64) | [`0xa9E4C0108c4d06d563d995a4B3487f81D8F5A053`](https://basescan.org/address/0xa9E4C0108c4d06d563d995a4B3487f81D8F5A053) |
 
 #### HopSetter
 [`0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4`](https://fraxscan.com/address/0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4)

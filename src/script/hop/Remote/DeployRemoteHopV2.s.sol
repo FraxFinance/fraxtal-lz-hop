@@ -70,11 +70,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         });
         console.log("RemoteHopV2 deployed at:", remoteHop);
 
-        address remoteAdmin = address(new RemoteAdmin(
-            frxUsdOft,
-            remoteHop,
-            msig
-        ));
+        address remoteAdmin = address(new RemoteAdmin(frxUsdOft, remoteHop, msig));
         console.log("RemoteAdmin deployed at:", remoteAdmin);
 
         // grant Pauser roles to msig signers

@@ -35,11 +35,7 @@ contract DeployFraxtalHopV2 is BaseScript {
         address hop = deployFraxtalHopV2(proxyAdmin, 0x1a44076050125825900e736c501f859c50fE728c, approvedOfts);
         console.log("FraxtalHopV2 deployed at:", hop);
 
-        address remoteAdmin = address(new RemoteAdmin(
-            frxUsdLockbox,
-            hop,
-            msig
-        ));
+        address remoteAdmin = address(new RemoteAdmin(frxUsdLockbox, hop, msig));
         console.log("RemoteAdmin deployed at:", remoteAdmin);
 
         // grant Pauser roles to msig msig owners

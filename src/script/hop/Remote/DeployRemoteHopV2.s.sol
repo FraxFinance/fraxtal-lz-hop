@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/BaseScript.sol";
 import { RemoteHopV2 } from "src/contracts/hop/RemoteHopV2.sol";
-import { HopV2 } from "src/contracts/hop/HopV2.sol";
+import { RemoteAdmin } from "src/contracts/hop/RemoteAdmin.sol";
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -28,8 +28,7 @@ interface IOFT {
 }
 
 abstract contract DeployRemoteHopV2 is BaseScript {
-    address constant FRAXTAL_HOP = 0xa69C42C78BcAe9cA0aDE8c7fC356508b6962C989;
-    address constant HOP_SETTER = 0xB09016c8A46cA072A2BD293B5bdDD92Ef5e30Bf4;
+    address constant FRAXTAL_HOP = 0x1b93526eA567d59B7FD38126bb74D72818166C51;
 
     address proxyAdmin;
     address endpoint;
@@ -63,19 +62,41 @@ abstract contract DeployRemoteHopV2 is BaseScript {
             _localEid: localEid,
             _endpoint: endpoint,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
-            _hopSetter: HOP_SETTER,
-            _msig: msig,
             _numDVNs: 3,
             _EXECUTOR: EXECUTOR,
             _DVN: DVN,
             _TREASURY: ISendLibrary(SEND_LIBRARY).treasury(),
             _approvedOfts: approvedOfts
         });
+        console.log("RemoteHopV2 deployed at:", remoteHop);
 
-        // revoke deployer admin role
+        address remoteAdmin = address(new RemoteAdmin(
+            frxUsdOft,
+            remoteHop,
+            msig
+        ));
+        console.log("RemoteAdmin deployed at:", remoteAdmin);
+
+        // grant Pauser roles to msig signers
+        bytes32 PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
+
+        // carter
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x13Fe84D36d7a507Bb4bdAC6dCaF13a10961fc470);
+        // sam
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x17e06ce6914E3969f7BD37D8b2a563890cA1c96e);
+        // dhruvin
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x8d8290d49e88D16d81C6aDf6C8774eD88762274A);
+        // travis
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0xcbc616D595D38483e6AdC45C7E426f44bF230928);
+        // thomas
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x381e2495e683868F693AA5B1414F712f21d34b40);
+        // nader
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x6e74053a3798e0fC9a9775F7995316b27f21c4D2);
+
+        // transfer admin role to msig & RemoteAdmin and renounce from deployer
+        RemoteHopV2(payable(remoteHop)).grantRole(bytes32(0), msig);
+        RemoteHopV2(payable(remoteHop)).grantRole(bytes32(0), remoteAdmin);
         RemoteHopV2(payable(remoteHop)).renounceRole(bytes32(0), vm.addr(privateKey));
-
-        console.log("RemoteHop deployed at:", remoteHop);
     }
 
     function _validateAddrs() internal view {
@@ -87,6 +108,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 
         require(msig != address(0), "msig is not set");
+        require(proxyAdmin != address(0), "proxyAdmin is not set");
 
         require(isStringEqual(IERC20Metadata(IOFT(frxUsdOft).token()).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
         require(isStringEqual(IERC20Metadata(IOFT(sfrxUsdOft).token()).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
@@ -106,8 +128,6 @@ function deployRemoteHopV2(
     uint32 _localEid,
     address _endpoint,
     bytes32 _fraxtalHop,
-    address _hopSetter,
-    address _msig,
     uint32 _numDVNs,
     address _EXECUTOR,
     address _DVN,
@@ -122,46 +142,10 @@ function deployRemoteHopV2(
     address implementation = address(new RemoteHopV2());
     FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);
 
-    // add HopSetter/msig as admin
-    RemoteHopV2(payable(address(proxy))).grantRole(bytes32(0), _hopSetter);
-    RemoteHopV2(payable(address(proxy))).grantRole(bytes32(0), _msig);
-
     // set solana enforced options
     RemoteHopV2(payable(address(proxy))).setExecutorOptions(
         30168,
         hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0"
-    );
-
-    // grant Pauser roles to msig signers
-    // carter
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0x13Fe84D36d7a507Bb4bdAC6dCaF13a10961fc470
-    );
-    // sam
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0x17e06ce6914E3969f7BD37D8b2a563890cA1c96e
-    );
-    // dhruvin
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0x8d8290d49e88D16d81C6aDf6C8774eD88762274A
-    );
-    // travis
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0xcbc616D595D38483e6AdC45C7E426f44bF230928
-    );
-    // thomas
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0x381e2495e683868F693AA5B1414F712f21d34b40
-    );
-    // nader
-    HopV2(address(proxy)).grantRole(
-        0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a,
-        0x6e74053a3798e0fC9a9775F7995316b27f21c4D2
     );
 
     return payable(address(proxy));

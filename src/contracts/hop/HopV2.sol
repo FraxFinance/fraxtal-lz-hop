@@ -12,8 +12,10 @@ import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopComposer {
+abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     uint32 internal constant FRAXTAL_EID = 30255;
+    /// @dev keccak256("PAUSER_ROLE")
+    bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
 
     struct HopV2Storage {
         /// @dev EID of this chain
@@ -47,9 +49,17 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     error HopPaused();
     error NotEndpoint();
     error NotHop();
+    error NotAuthorized();
     error InsufficientFee();
     error RefundFailed();
     error FailedRemoteSetCall();
+
+    modifier onlyAuthorized() {
+        if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(PAUSER_ROLE, msg.sender))) {
+            revert NotAuthorized();
+        }
+        _;
+    }
 
     constructor() {
         _disableInitializers();
@@ -57,7 +67,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
 
     function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, address(this));
 
         HopV2Storage storage $ = _getHopV2Storage();
         $.localEid = _localEid;
@@ -131,31 +140,6 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         emit SendOFT(_oft, msg.sender, _dstEid, _recipient, _amountLD);
     }
 
-    // Callback to set admin functions from the Fraxtal msig
-    function hopCompose(
-        uint32 _srcEid,
-        bytes32 _sender,
-        address _oft,
-        uint256 /* _amount */,
-        bytes memory _data
-    ) external override {
-        HopV2Storage storage $ = _getHopV2Storage();
-        // Only allow composes from trusted OFT
-        if (!$.approvedOft[_oft]) revert InvalidOFT();
-
-        // Only allow composes originating from fraxtal
-        if (_srcEid != FRAXTAL_EID) revert InvalidSourceEid();
-
-        // Only allow self-calls (via lzCompose())
-        if (msg.sender != address(this)) revert NotHop();
-
-        // Only allow composes where the sender is approved
-        _checkRole(DEFAULT_ADMIN_ROLE, address(uint160(uint256(_sender))));
-
-        (bool success, ) = address(this).call(_data);
-        if (!success) revert FailedRemoteSetCall();
-    }
-
     // Helper functions
 
     /// @notice Get the gas cost estimate of going from this chain to a destination chain
@@ -173,9 +157,12 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         uint128 _dstGas,
         bytes memory _data
     ) public view returns (uint256) {
+        uint32 localEid_ = localEid();
+        if (_dstEid == localEid_) return 0;
+
         // generate hop message
         HopMessage memory hopMessage = HopMessage({
-            srcEid: localEid(),
+            srcEid: localEid_,
             dstEid: _dstEid,
             dstGas: _dstGas,
             sender: bytes32(uint256(uint160(msg.sender))),
@@ -295,21 +282,26 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
     }
 
     // Admin functions
-    function pause(bool _paused) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseOn() external onlyAuthorized {
         HopV2Storage storage $ = _getHopV2Storage();
-        $.paused = _paused;
+        $.paused = true;
     }
 
-    function setApprovedOft(address _oft, bool _isApproved) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseOff() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.paused = false;
+    }
+
+    function setApprovedOft(address _oft, bool _isApproved) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.approvedOft[_oft] = _isApproved;
     }
 
-    function setRemoteHop(uint32 _eid, address _remoteHop) public {
-        setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
+    function setRemoteHop(uint32 _eid, address _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setRemoteHop(_eid, bytes32(uint256(uint160(_remoteHop))));
     }
 
-    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRemoteHop(_eid, _remoteHop);
     }
 
@@ -318,12 +310,9 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         $.remoteHop[_eid] = _remoteHop;
     }
 
-    function recoverERC20(
-        address tokenAddress,
-        address recipient,
-        uint256 tokenAmount
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        IERC20(tokenAddress).transfer(recipient, tokenAmount);
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, ) = _target.call{ value: _value }(_data);
+        require(success);
     }
 
     function setMessageProcessed(
@@ -331,17 +320,12 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         uint32 _srcEid,
         uint64 _nonce,
         bytes32 _composeFrom
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
 
         bytes32 messageHash = keccak256(abi.encode(_oft, _srcEid, _nonce, _composeFrom));
         $.messageProcessed[messageHash] = true;
         emit MessageHash(_oft, _srcEid, _nonce, _composeFrom);
-    }
-
-    function recoverETH(address recipient, uint256 tokenAmount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        (bool success, ) = payable(recipient).call{ value: tokenAmount }("");
-        require(success);
     }
 
     // Storage views
@@ -355,7 +339,7 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2, IHopCompo
         return $.endpoint;
     }
 
-    function paused() external view returns (bool) {
+    function paused() public view returns (bool) {
         HopV2Storage storage $ = _getHopV2Storage();
         return $.paused;
     }

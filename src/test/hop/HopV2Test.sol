@@ -14,8 +14,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 
-import { deployRemoteHopV2 } from "src/script/hop/Remote/DeployRemoteHopV2.sol";
-import { deployFraxtalHopV2 } from "src/script/hop/Fraxtal/DeployFraxtalHopV2.sol";
+import { deployRemoteHopV2 } from "src/script/hop/Remote/DeployRemoteHopV2.s.sol";
+import { deployFraxtalHopV2 } from "src/script/hop/Fraxtal/DeployFraxtalHopV2.s.sol";
 
 contract HopV2Test is BaseTest {
     FraxtalHopV2 hop;

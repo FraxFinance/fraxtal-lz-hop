@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import { IHopV2 } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 import { IReadComposer } from "src/contracts/hop/interfaces/IReadComposer.sol";
+import { IReadHop, ReadParam } from "src/contracts/hop/interfaces/IReadHop.sol";
 
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
@@ -13,19 +14,6 @@ enum Direction {
     Inbound
 }
 
-/// @dev parameters to pass into readOFT()
-struct ReadParam {
-    uint32 targetEid;
-    uint32 dstEid;
-    uint128 targetGas;
-    uint128 dstGas;
-    uint256 nonce;
-    bytes32 targetAddress;
-    bytes32 dstAddress;
-    uint64 returnDataLen;
-    bytes data;
-}
-
 /// @dev Generic message passed from ReadHop to ReadHop where message is either an encoded
 // ReadOutboundMessage or ReadInboundMessage
 struct ReadMessage {
@@ -33,16 +21,14 @@ struct ReadMessage {
     uint32 srcEid;
     uint256 nonce;
     bytes32 srcAddress;
-    bytes32 dstAddress;
+    bytes32 targetAddress;
     bytes message;
 }
 
 /// @dev Data to be used on the target chain
 struct ReadOutboundMessage {
-    uint32 dstEid;
-    uint128 dstGas;
+    uint128 srcGas;
     uint64 returnDataLen;
-    bytes32 targetAddress;
     bytes data;
 }
 
@@ -53,7 +39,7 @@ struct ReadInboundMessage {
     bytes data;
 }
 
-contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
+contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer, IReadHop {
     using AddressConverter for address;
     using AddressConverter for bytes32;
 
@@ -112,10 +98,8 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
     function _quoteReadOFT(ReadParam memory _param) internal view returns (uint256 fee, ReadMessage memory readMsg) {
         // Craft ReadMessage with ReadOutboundMessage
         ReadOutboundMessage memory readOutboundMsg = ReadOutboundMessage({
-            dstEid: _param.dstEid,
-            dstGas: _param.dstGas,
+            srcGas: _param.srcGas,
             returnDataLen: _param.returnDataLen,
-            targetAddress: _param.targetAddress,
             data: _param.data
         });
 
@@ -124,7 +108,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
             srcEid: localEid(),
             nonce: _param.nonce,
             srcAddress: msg.sender.toBytes32(),
-            dstAddress: _param.dstAddress,
+            targetAddress: _param.targetAddress,
             message: abi.encode(readOutboundMsg)
         });
 
@@ -154,17 +138,17 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         });
         fee += IHopV2(hop()).quote({
             _oft: frxUsdOft(),
-            _dstEid: _param.dstEid,
-            _recipient: readHops(_param.dstEid),
+            _dstEid: localEid(),
+            _recipient: address(this).toBytes32(),
             _amountLD: 0,
-            _dstGas: _param.dstGas,
+            _dstGas: _param.srcGas,
             _data: abi.encode(
                 ReadMessage({
                     direction: Direction.Inbound,
                     srcEid: localEid(),
                     nonce: _param.nonce,
                     srcAddress: msg.sender.toBytes32(),
-                    dstAddress: _param.dstAddress,
+                    targetAddress: _param.targetAddress,
                     message: abi.encode(mockReadInboundMsg)
                 })
             )
@@ -226,7 +210,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         (readOutboundMsg) = abi.decode(readMsg.message, (ReadOutboundMessage));
 
         // call target with data
-        (bool success, bytes memory data) = readOutboundMsg.targetAddress.toAddress().staticcall(readOutboundMsg.data);
+        (bool success, bytes memory data) = readMsg.targetAddress.toAddress().staticcall(readOutboundMsg.data);
 
         // ensure data fits params
         if (data.length > readOutboundMsg.returnDataLen) revert TooMuchDataReturned();
@@ -245,20 +229,20 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         // quote inbound sendOFT()
         uint256 fee = IHopV2(hop()).quote({
             _oft: frxUsdOft(),
-            _dstEid: readOutboundMsg.dstEid,
-            _recipient: readHops(readOutboundMsg.dstEid),
+            _dstEid: readMsg.srcEid,
+            _recipient: readHops(readMsg.srcEid),
             _amountLD: 0,
-            _dstGas: readOutboundMsg.dstGas,
+            _dstGas: readOutboundMsg.srcGas,
             _data: abi.encode(readMsg)
         });
 
         // send message
         IHopV2(hop()).sendOFT{ value: fee }({
             _oft: frxUsdOft(),
-            _dstEid: readOutboundMsg.dstEid,
-            _recipient: readHops(readOutboundMsg.dstEid),
+            _dstEid: readMsg.srcEid,
+            _recipient: readHops(readMsg.srcEid),
             _amountLD: 0,
-            _dstGas: readOutboundMsg.dstGas,
+            _dstGas: readOutboundMsg.srcGas,
             _data: abi.encode(readMsg)
         });
     }
@@ -269,9 +253,8 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         (readInboundMsg) = abi.decode(readMsg.message, (ReadInboundMessage));
 
         // call dst with shared and compose message
-        IReadComposer(readMsg.dstAddress.toAddress()).readCompose({
-            _srcEid: readMsg.srcEid,
-            _srcAddress: readMsg.srcAddress,
+        IReadComposer(readMsg.srcAddress.toAddress()).readCompose({
+            _targetAddress: readMsg.targetAddress,
             _nonce: readMsg.nonce,
             _readTimestamp: readInboundMsg.readTimestamp,
             _success: readInboundMsg.success,

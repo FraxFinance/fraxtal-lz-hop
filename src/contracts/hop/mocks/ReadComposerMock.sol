@@ -9,8 +9,7 @@ contract ReadComposerMock is IReadComposer {
     address public recipient;
 
     // readCompose params
-    uint32 public srcEid;
-    bytes32 public srcAddress;
+    bytes32 public targetAddress;
     uint256 public nonce;
     uint64 public readTimestamp;
     bool public success;
@@ -19,15 +18,13 @@ contract ReadComposerMock is IReadComposer {
     // stored variables
 
     function readCompose(
-        uint32 _srcEid,
-        bytes32 _srcAddress,
+        bytes32 _targetAddress,
         uint256 _nonce,
         uint64 _readTimestamp,
         bool _success,
         bytes memory _data
     ) external override {
-        srcEid = _srcEid;
-        srcAddress = _srcAddress;
+        targetAddress = _targetAddress;
         nonce = _nonce;
         readTimestamp = _readTimestamp;
         success = _success;

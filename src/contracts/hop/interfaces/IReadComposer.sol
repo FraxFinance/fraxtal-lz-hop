@@ -2,8 +2,7 @@ pragma solidity ^0.8.0;
 
 interface IReadComposer {
     function readCompose(
-        uint32 _srcEid,
-        bytes32 _srcAddress,
+        bytes32 _targetAddress,
         uint256 _nonce,
         uint64 _readTimestamp,
         bool _success,

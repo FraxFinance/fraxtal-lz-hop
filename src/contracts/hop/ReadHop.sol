@@ -226,7 +226,7 @@ contract ReadHop is AccessControlEnumerableUpgradeable, IHopComposer {
         (readOutboundMsg) = abi.decode(readMsg.message, (ReadOutboundMessage));
 
         // call target with data
-        (bool success, bytes memory data) = readOutboundMsg.targetAddress.toAddress().call(readOutboundMsg.data);
+        (bool success, bytes memory data) = readOutboundMsg.targetAddress.toAddress().staticcall(readOutboundMsg.data);
 
         // ensure data fits params
         if (data.length > readOutboundMsg.returnDataLen) revert TooMuchDataReturned();

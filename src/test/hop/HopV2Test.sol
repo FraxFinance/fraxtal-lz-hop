@@ -48,8 +48,6 @@ contract HopV2Test is BaseTest {
                 30110,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
-                address(1), // hopSetter
-                address(1), // msig
                 2,
                 EXECUTOR,
                 DVN,
@@ -77,8 +75,6 @@ contract HopV2Test is BaseTest {
                 30110,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
-                address(1), // hopSetter
-                address(1), // msig
                 2,
                 0x31CAe3B7fB82d847621859fb1585353c5720660D,
                 0x2f55C492897526677C5B68fb199ea31E2c126416,
@@ -104,8 +100,6 @@ contract HopV2Test is BaseTest {
                 30101,
                 ENDPOINT,
                 OFTMsgCodec.addressToBytes32(address(hop)),
-                address(1), // hopSetter
-                address(1), // msig
                 2,
                 0x173272739Bd7Aa6e4e214714048a9fE699453059,
                 0x589dEDbD617e0CBcB916A9223F4d1300c294236b,

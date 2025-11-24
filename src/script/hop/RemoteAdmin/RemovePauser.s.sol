@@ -7,7 +7,6 @@ import { SafeTxHelper, SafeTx } from "frax-std/SafeTxHelper.sol";
 
 // forge script src/script/hop/RemoteAdmin/RemovePauser.s.sol --rpc-url https://rpc.frax.com
 contract RemovePauserScript is BaseScript {
-
     /// @dev signer is the person we are removing the role from
     address public signer = 0x13Fe84D36d7a507Bb4bdAC6dCaF13a10961fc470;
     address public fraxtalMsig = 0x5f25218ed9474b721d6a38c115107428E832fA2E;
@@ -49,17 +48,10 @@ contract RemovePauserScript is BaseScript {
     }
 
     function run() external {
-
-        for (uint256 i=0; i < hopDatas.length; i++) {
+        for (uint256 i = 0; i < hopDatas.length; i++) {
             HopData memory hopData = hopDatas[i];
-            
-            bytes memory remoteCall = abi.encodeCall(
-                IAccessControl.revokeRole,
-                (
-                    PAUSER_ROLE,
-                    signer
-                )
-            );
+
+            bytes memory remoteCall = abi.encodeCall(IAccessControl.revokeRole, (PAUSER_ROLE, signer));
             bytes memory data = abi.encode(hopData.hop, remoteCall);
 
             uint256 fee = IHopV2(fraxtalHop).quote({
@@ -86,22 +78,12 @@ contract RemovePauserScript is BaseScript {
             (bool success, ) = fraxtalHop.call{ value: fee }(localCall);
             require(success, "sendOFT() failed");
 
-            txs.push(SafeTx({
-                name: "sendOFT",
-                to: fraxtalHop,
-                value: fee,
-                data: localCall
-            }));
+            txs.push(SafeTx({ name: "sendOFT", to: fraxtalHop, value: fee, data: localCall }));
         }
 
         // save to file
         string memory root = vm.projectRoot();
-        string memory filename = string(
-            abi.encodePacked(
-                root,
-                "/src/script/hop/RemoteAdmin/txs/RemovePauser.json"
-            )
-        );
+        string memory filename = string(abi.encodePacked(root, "/src/script/hop/RemoteAdmin/txs/RemovePauser.json"));
         new SafeTxHelper().writeTxs(txs, filename);
     }
 }

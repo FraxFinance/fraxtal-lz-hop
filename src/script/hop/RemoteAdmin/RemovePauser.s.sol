@@ -35,14 +35,14 @@ contract RemovePauserScript is BaseScript {
             HopData({
                 eid: 30110, // arbitrum
                 hop: 0x3A5cDA3Ac66Aa80573402610c94B74eD6cdb2F23,
-                remoteAdmin: 0xd593Df4E2E3156C5707bB6AE4ba26fd4A9A04586
+                remoteAdmin: 0x5e16A600c65947E65F7dd6fE8687e1781A0674b1
             })
         );
         hopDatas.push(
             HopData({
                 eid: 30184, // base
                 hop: 0x56B75e191801614b5b84CcFe87cdDD76f57AaD64,
-                remoteAdmin: 0xa9E4C0108c4d06d563d995a4B3487f81D8F5A053
+                remoteAdmin: 0x46D2487CdbeA04411C49e6c55aCE805bfA8f5dE5
             })
         );
     }

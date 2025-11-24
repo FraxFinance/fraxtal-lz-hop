@@ -29,6 +29,7 @@ interface IOFT {
 
 abstract contract DeployRemoteHopV2 is BaseScript {
     address constant FRAXTAL_HOP = 0x1b93526eA567d59B7FD38126bb74D72818166C51;
+    address constant FRAXTAL_MSIG = 0x5f25218ed9474b721d6a38c115107428E832fA2E;
 
     address proxyAdmin;
     address endpoint;
@@ -70,7 +71,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         });
         console.log("RemoteHopV2 deployed at:", remoteHop);
 
-        address remoteAdmin = address(new RemoteAdmin(frxUsdOft, remoteHop, msig));
+        address remoteAdmin = address(new RemoteAdmin(frxUsdOft, remoteHop, FRAXTAL_MSIG));
         console.log("RemoteAdmin deployed at:", remoteAdmin);
 
         // grant Pauser roles to msig signers

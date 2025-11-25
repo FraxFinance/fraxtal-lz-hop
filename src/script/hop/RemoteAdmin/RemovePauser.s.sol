@@ -24,13 +24,13 @@ contract RemovePauserScript is BaseScript {
     SafeTx[] public txs;
 
     constructor() {
-        hopDatas.push(
-            HopData({
-                eid: 30255, // fraxtal
-                hop: fraxtalHop,
-                remoteAdmin: 0x5B9d0ad83b62159589a4CED620492EE099571CA8
-            })
-        );
+        // hopDatas.push(
+        //     HopData({
+        //         eid: 30255, // fraxtal
+        //         hop: fraxtalHop,
+        //         remoteAdmin: 0x5B9d0ad83b62159589a4CED620492EE099571CA8
+        //     })
+        // );
         hopDatas.push(
             HopData({
                 eid: 30110, // arbitrum
@@ -62,8 +62,8 @@ contract RemovePauserScript is BaseScript {
                 _dstGas: dstGas,
                 _data: data
             });
-            // increase fee by 25% to be safe if gas increases between quote and send
-            fee = (fee * 125) / 100;
+            // increase fee by 50% to be safe if gas increases between quote and send
+            fee = (fee * 150) / 100;
 
             bytes memory localCall = abi.encodeWithSignature(
                 "sendOFT(address,uint32,bytes32,uint256,uint128,bytes)",

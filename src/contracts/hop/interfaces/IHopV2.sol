@@ -34,15 +34,16 @@ interface IHopV2 {
         bytes memory _data
     ) external view returns (uint256 fee);
 
-    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) view external returns (uint256 fee);
+    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) external view returns (uint256 fee);
 
     // Admin
 
-    function pause(bool _paused) external;
+    function pauseOn() external;
+    function pauseOff() external;
     function setApprovedOft(address _oft, bool _isApproved) external;
     function setRemoteHop(uint32 _eid, address _remoteHop) external;
     function setRemoteHop(uint32 _eid, bytes32 _remoteHop) external;
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external;
+    function recover(address _target, uint256 _value, bytes memory _data) external;
     function setMessageProcessed(address _oft, uint32 _srcEid, uint64 _nonce, bytes32 _composeFrom) external;
 
     // Storage views

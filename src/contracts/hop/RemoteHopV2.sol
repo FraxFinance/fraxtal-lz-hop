@@ -25,8 +25,6 @@ import { HopV2, HopMessage } from "src/contracts/hop/HopV2.sol";
 
 /// @author Frax Finance: https://github.com/FraxFinance
 contract RemoteHopV2 is HopV2, IOAppComposer {
-    uint32 internal constant FRAXTAL_EID = 30255;
-
     struct RemoteHopV2Storage {
         /// @dev number of DVNs used to verify a message
         uint32 numDVNs;
@@ -78,17 +76,17 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
         $.TREASURY = _TREASURY;
     }
 
-    function setNumDVNs(uint32 _numDVNs) external onlyOwner {
+    function setNumDVNs(uint32 _numDVNs) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.numDVNs = _numDVNs;
     }
 
-    function setHopFee(uint256 _hopFee) external onlyOwner {
+    function setHopFee(uint256 _hopFee) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.hopFee = _hopFee;
     }
 
-    function setExecutorOptions(uint32 eid, bytes memory _options) external onlyOwner {
+    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
         RemoteHopV2Storage storage $ = _getRemoteHopV2Storage();
         $.executorOptions[eid] = _options;
     }
@@ -165,7 +163,7 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
 
         // Extract the composed message from the delivered message using the MsgCodec
         HopMessage memory hopMessage = abi.decode(OFTComposeMsgCodec.composeMsg(_message), (HopMessage));
-        uint256 amount = OFTComposeMsgCodec.amountLD(_message);
+        uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
 
         // An untrusted hop message means that the composer on the source chain is not the RemoteHop.  When the composer
         // is not the RemoteHop, they can craft any arbitrary HopMessage.  In these cases, overwrite the srcEid and sender
@@ -175,9 +173,9 @@ contract RemoteHopV2 is HopV2, IOAppComposer {
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
 
-        _sendLocal({ _oft: _oft, _amount: amount, _hopMessage: hopMessage });
+        _sendLocal({ _oft: _oft, _amount: amountLD, _hopMessage: hopMessage });
 
-        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amount);
+        emit Hop(_oft, address(uint160(uint256(hopMessage.recipient))), amountLD);
     }
 
     function numDVNs() external view returns (uint32) {

@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 import { BaseScript } from "frax-std/BaseScript.sol";
 import { console } from "frax-std/BaseScript.sol";
 import { RemoteHopV2 } from "src/contracts/hop/RemoteHopV2.sol";
+import { RemoteAdmin } from "src/contracts/hop/RemoteAdmin.sol";
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -22,8 +23,13 @@ interface IDVN {
     function vid() external view returns (uint32);
 }
 
+interface IOFT {
+    function token() external view returns (address);
+}
+
 abstract contract DeployRemoteHopV2 is BaseScript {
-    address constant FRAXTAL_HOP = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
+    address constant FRAXTAL_HOP = 0x1b93526eA567d59B7FD38126bb74D72818166C51;
+    address constant FRAXTAL_MSIG = 0x5f25218ed9474b721d6a38c115107428E832fA2E;
 
     address proxyAdmin;
     address endpoint;
@@ -33,6 +39,7 @@ abstract contract DeployRemoteHopV2 is BaseScript {
     address DVN;
     address SEND_LIBRARY;
 
+    address msig;
     address frxUsdOft;
     address sfrxUsdOft;
     address frxEthOft;
@@ -62,25 +69,50 @@ abstract contract DeployRemoteHopV2 is BaseScript {
             _TREASURY: ISendLibrary(SEND_LIBRARY).treasury(),
             _approvedOfts: approvedOfts
         });
-        console.log("RemoteHop deployed at:", remoteHop);
+        console.log("RemoteHopV2 deployed at:", remoteHop);
+
+        address remoteAdmin = address(new RemoteAdmin(frxUsdOft, remoteHop, FRAXTAL_MSIG));
+        console.log("RemoteAdmin deployed at:", remoteAdmin);
+
+        // grant Pauser roles to msig signers
+        bytes32 PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
+
+        // carter
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x13Fe84D36d7a507Bb4bdAC6dCaF13a10961fc470);
+        // sam
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x17e06ce6914E3969f7BD37D8b2a563890cA1c96e);
+        // dhruvin
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x8d8290d49e88D16d81C6aDf6C8774eD88762274A);
+        // travis
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0xcbc616D595D38483e6AdC45C7E426f44bF230928);
+        // thomas
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x381e2495e683868F693AA5B1414F712f21d34b40);
+        // nader
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x6e74053a3798e0fC9a9775F7995316b27f21c4D2);
+
+        // transfer admin role to msig & RemoteAdmin and renounce from deployer
+        RemoteHopV2(payable(remoteHop)).grantRole(bytes32(0), msig);
+        RemoteHopV2(payable(remoteHop)).grantRole(bytes32(0), remoteAdmin);
+        RemoteHopV2(payable(remoteHop)).renounceRole(bytes32(0), vm.addr(privateKey));
     }
 
-    function _validateAddrs() internal view returns (bool) {
+    function _validateAddrs() internal view {
         (uint64 major, uint8 minor, uint8 endpointVersion) = ISendLibrary(SEND_LIBRARY).version();
         require(major == 3 && minor == 0 && endpointVersion == 2, "Invalid SendLibrary version");
 
-        require(IExecutor(EXECUTOR).endpoint() != endpoint, "Invalid executor endpoint");
+        require(IExecutor(EXECUTOR).endpoint() == endpoint, "Invalid executor endpoint");
         require(IExecutor(EXECUTOR).localEidV2() == localEid, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 
-        require(isStringEqual(IERC20Metadata(frxUsdOft).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
-        require(isStringEqual(IERC20Metadata(sfrxUsdOft).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
-        require(isStringEqual(IERC20Metadata(frxEthOft).symbol(), "frxETH"), "frxEthOft != frxETH");
-        require(isStringEqual(IERC20Metadata(sfrxEthOft).symbol(), "sfrxETH"), "sfrxEthOft != sfrxETH");
-        require(isStringEqual(IERC20Metadata(wFraxOft).symbol(), "WFRAX"), "wFraxOft != WFRAX");
-        require(isStringEqual(IERC20Metadata(fpiOft).symbol(), "FPI"), "fpiOft != FPI");
+        require(msig != address(0), "msig is not set");
+        require(proxyAdmin != address(0), "proxyAdmin is not set");
 
-        // TODO: validate ProxyAdmin
+        require(isStringEqual(IERC20Metadata(IOFT(frxUsdOft).token()).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
+        require(isStringEqual(IERC20Metadata(IOFT(sfrxUsdOft).token()).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
+        require(isStringEqual(IERC20Metadata(IOFT(frxEthOft).token()).symbol(), "frxETH"), "frxEthOft != frxETH");
+        require(isStringEqual(IERC20Metadata(IOFT(sfrxEthOft).token()).symbol(), "sfrxETH"), "sfrxEthOft != sfrxETH");
+        require(isStringEqual(IERC20Metadata(IOFT(wFraxOft).token()).symbol(), "WFRAX"), "wFraxOft != WFRAX");
+        require(isStringEqual(IERC20Metadata(IOFT(fpiOft).token()).symbol(), "FPI"), "fpiOft != FPI");
     }
 
     function isStringEqual(string memory _a, string memory _b) public pure returns (bool) {
@@ -106,5 +138,12 @@ function deployRemoteHopV2(
 
     address implementation = address(new RemoteHopV2());
     FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);
+
+    // set solana enforced options
+    RemoteHopV2(payable(address(proxy))).setExecutorOptions(
+        30168,
+        hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0"
+    );
+
     return payable(address(proxy));
 }

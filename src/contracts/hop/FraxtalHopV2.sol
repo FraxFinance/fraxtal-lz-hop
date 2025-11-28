@@ -30,8 +30,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         _disableInitializers();
     }
 
-    function initialize(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) external initializer {
-        __init_HopV2(_localEid, _endpoint, _approvedOfts);
+    function initialize(address _endpoint, address[] memory _approvedOfts) external initializer {
+        __init_HopV2(FRAXTAL_EID, _endpoint, _approvedOfts);
     }
 
     // receive ETH
@@ -45,7 +45,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         uint128 _dstGas,
         bytes memory _data
     ) public payable override {
-        if (_dstEid != localEid() && remoteHop(_dstEid) == bytes32(0)) revert InvalidDestinationChain();
+        if (_dstEid != FRAXTAL_EID && remoteHop(_dstEid) == bytes32(0)) revert InvalidDestinationChain();
 
         super.sendOFT(_oft, _dstEid, _recipient, _amountLD, _dstGas, _data);
     }
@@ -66,6 +66,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         address /*Executor*/,
         bytes calldata /*Executor Data*/
     ) external payable override {
+        if (paused()) revert HopPaused();
+
         (bool isTrustedHopMessage, bool isDuplicateMessage) = _validateComposeMessage(_oft, _message);
         if (isDuplicateMessage) return;
 
@@ -81,7 +83,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
             hopMessage.sender = OFTComposeMsgCodec.composeFrom(_message);
         }
 
-        if (hopMessage.dstEid == localEid()) {
+        if (hopMessage.dstEid == FRAXTAL_EID) {
             _sendLocal({ _oft: _oft, _amount: amountLD, _hopMessage: hopMessage });
         } else {
             _sendToDestination({
@@ -122,7 +124,7 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         }
     }
 
-    function quoteHop(uint32, uint128, bytes memory) public view override returns (uint256) {
+    function quoteHop(uint32, uint128, bytes memory) public pure override returns (uint256) {
         return 0;
     }
 }

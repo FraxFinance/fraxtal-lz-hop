@@ -29,7 +29,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     uint256 public immutable DECIMAL_CONVERSION_RATE;
     uint128 public constant DEFAULT_REMOTE_GAS = 400000;
     uint32 public constant FRAXTAL_EID = 30255;
-    uint32 public constant FRAXTAL_GAS = 400000;
+    uint32 public constant LOCAL_GAS = 400000;
 
     // Local vault management
     /// @notice The vault share token by vault address
@@ -165,6 +165,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     }
 
     function quote(uint256 _amount, uint32 _remoteEid, address _remoteVault) public view returns (uint256) {
+        if (_remoteEid == EID) return 0;
         bytes memory hopComposeMessage = abi.encode(
             RemoteVaultMessage({
                 action: Action.Redeem,
@@ -180,7 +181,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
 
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
 
-        // Quote double hop to RemoteVault
+        // Fee for remote chain and Fraxtal hop if needed
         uint256 fee = HOP.quote(
             OFT,
             _remoteEid,
@@ -189,9 +190,14 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             _remoteGas,
             hopComposeMessage
         );
-
-        // Quote double return hop to this contract
-        fee += HOP.quote(OFT, EID, bytes32(uint256(uint160(address(this)))), _amount, _remoteGas, hopComposeMessage);
+        // Fee for return on local chain
+        fee+= HOP.quoteHop(EID, LOCAL_GAS, hopComposeMessage);
+        if (EID != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
+            // Include Fraxtal hop fee for the return message
+            uint256 hopFeeDestination = HOP.quoteHop(_remoteEid, _remoteGas, hopComposeMessage);
+            uint256 fraxtalFee = fee - hopFeeDestination;
+            fee += fraxtalFee;
+        }
         return fee;
     }
 
@@ -247,7 +253,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             message.userEid,
             bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
             0,
-            FRAXTAL_GAS,
+            LOCAL_GAS,
             _data
         );
         HOP.sendOFT{ value: fee }(
@@ -255,7 +261,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             message.userEid,
             bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
             0,
-            FRAXTAL_GAS,
+            LOCAL_GAS,
             _data
         );
     }
@@ -283,7 +289,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             message.userEid,
             bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
             out,
-            FRAXTAL_GAS,
+            LOCAL_GAS,
             _data
         );
         SafeERC20.forceApprove(TOKEN, address(HOP), out);
@@ -292,7 +298,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             message.userEid,
             bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
             out,
-            FRAXTAL_GAS,
+            LOCAL_GAS,
             _data
         );
     }

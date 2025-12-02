@@ -164,8 +164,13 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         emit Redeem(_to, _remoteEid, _remoteVault, _amount);
     }
 
+    /// @notice Quotes the cost to hop to a remote vault and back.  This can be either through:
+    ///     - (1) A => Fraxtal then (2) A <= Fraxtal
+    ///     - (1) A => Fraxtal => B then (2) A <= Fraxtal <= B
+    ///     - A => A or Fraxtal => Fraxtal (no hop needed)
+    ///     - (1) Fraxtal => A then (2) Fraxtal <= A
     function quote(uint256 _amount, uint32 _remoteEid, address _remoteVault) public view returns (uint256) {
-        if (_remoteEid == EID) return 0;
+        if (_remoteEid == EID) return 0; // No hop needed (A => A or Fraxtal => Fraxtal)
         bytes memory hopComposeMessage = abi.encode(
             RemoteVaultMessage({
                 action: Action.Redeem,
@@ -182,6 +187,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
 
         // Fee for remote chain and Fraxtal hop if needed
+        // Returns either A => Fraxtal or A => Fraxtal => B or Fraxtal => A
         uint256 fee = HOP.quote(
             OFT,
             _remoteEid,
@@ -190,13 +196,12 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             _remoteGas,
             hopComposeMessage
         );
-        // Fee for return on local chain
+        // Fee for return on local chain (A <= Fraxtal or Fraxtal <= A)
         fee += HOP.quoteHop(EID, LOCAL_GAS, hopComposeMessage);
+
         if (EID != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
-            // Include Fraxtal hop fee for the return message
-            uint256 hopFeeDestination = HOP.quoteHop(_remoteEid, _remoteGas, hopComposeMessage);
-            uint256 fraxtalFee = fee - hopFeeDestination;
-            fee += fraxtalFee;
+            // Include Fraxtal hop fee for the return message (Fraxtal <= B)
+            fee += HOP.quoteHop(FRAXTAL_EID, LOCAL_GAS, hopComposeMessage);
         }
         return fee;
     }

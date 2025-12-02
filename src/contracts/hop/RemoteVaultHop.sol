@@ -352,6 +352,11 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         emit RemoteGasSet(_eid, _vault, _gas);
     }
 
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyOwner {
+        (bool success, ) = _target.call{ value: _value }(_data);
+        require(success);
+    }
+
     function removeDust(uint256 _amountLD) internal view returns (uint256) {
         return (_amountLD / DECIMAL_CONVERSION_RATE) * DECIMAL_CONVERSION_RATE;
     }

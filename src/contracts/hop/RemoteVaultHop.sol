@@ -191,7 +191,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             hopComposeMessage
         );
         // Fee for return on local chain
-        fee+= HOP.quoteHop(EID, LOCAL_GAS, hopComposeMessage);
+        fee += HOP.quoteHop(EID, LOCAL_GAS, hopComposeMessage);
         if (EID != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
             // Include Fraxtal hop fee for the return message
             uint256 hopFeeDestination = HOP.quoteHop(_remoteEid, _remoteGas, hopComposeMessage);

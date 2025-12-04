@@ -2,12 +2,13 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IHopComposer } from "./interfaces/IHopComposer.sol";
 import { IHopV2 } from "./interfaces/IHopV2.sol";
 import { RemoteVaultDeposit } from "./RemoteVaultDeposit.sol";
 import { IOFT2 } from "./interfaces/IOFT2.sol";
+import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 
 // ====================================================================
 // |     ______                   _______                             |
@@ -21,29 +22,42 @@ import { IOFT2 } from "./interfaces/IOFT2.sol";
 // ====================================================================
 
 /// @author Frax Finance: https://github.com/FraxFinance
-contract RemoteVaultHop is Ownable2Step, IHopComposer {
-    IERC20 public immutable TOKEN;
-    address public immutable OFT;
-    IHopV2 public immutable HOP;
-    uint32 public immutable EID; // This chain's EID on LayerZero
-    uint256 public immutable DECIMAL_CONVERSION_RATE;
-    uint128 public constant DEFAULT_REMOTE_GAS = 400000;
-    uint32 public constant FRAXTAL_EID = 30255;
-    uint32 public constant LOCAL_GAS = 400000;
+contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
+    uint128 public constant DEFAULT_REMOTE_GAS = 400_000;
+    uint32 public constant FRAXTAL_EID = 30_255;
+    uint32 public constant LOCAL_GAS = 400_000;
 
-    // Local vault management
-    /// @notice The vault share token by vault address
-    mapping(address => address) public vaultShares;
-    /// @notice The balance of shares owned by users in remote vaults
-    mapping(uint32 => mapping(address => uint256)) public balance; // vault => srcEid => srcAddress => shares
+    struct RemoteVaultHopStorage {
+        IERC20 TOKEN;
+        address OFT;
+        IHopV2 HOP;
+        uint32 EID; // This chain's EID on LayerZero
+        uint256 DECIMAL_CONVERSION_RATE;
+        address implementation;
+        address proxyAdmin;
+        // Local vault management
+        /// @notice The vault share token by vault address
+        mapping(address => address) vaultShares;
+        /// @notice The balance of shares owned by users in remote vaults
+        mapping(uint32 => mapping(address => uint256)) balance; // vault => srcEid => srcAddress => shares
+        // Remote vault management
+        /// @notice Remote vault hop address by eid
+        mapping(uint32 => address) remoteVaultHops;
+        /// @notice Deposit token mapping for tracking user deposits in remote vaults
+        mapping(uint32 => mapping(address => RemoteVaultDeposit)) depositToken; // eid => vault => rvd
+        /// @notice The token used for deposits and withdrawals
+        mapping(uint32 => mapping(address => uint128)) remoteGas; // eid => vault => remote gas
+    }
 
-    // Remote vault management
-    /// @notice Remote vault hop address by eid
-    mapping(uint32 => address) public remoteVaultHops;
-    /// @notice Deposit token mapping for tracking user deposits in remote vaults
-    mapping(uint32 => mapping(address => RemoteVaultDeposit)) public depositToken; // eid => vault => rvd
-    /// @notice The token used for deposits and withdrawals
-    mapping(uint32 => mapping(address => uint128)) public remoteGas; // eid => vault => remote gas
+    // keccak256(abi.encode(uint256(keccak256("frax.storage.RemoteVaultHop")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant RemoteVaultHopStorageLocation =
+        0xb011a2b9c7887d2611adbf2b472db6b2906944d90d3561a6da3a04c2dbdb4400;
+
+    function _getRemoteVaultHopStorage() private pure returns (RemoteVaultHopStorage storage $) {
+        assembly {
+            $.slot := RemoteVaultHopStorageLocation
+        }
+    }
 
     /// @notice Message structure for cross-chain communication
     /// @dev Used in hopCompose to decode incoming messages
@@ -84,28 +98,49 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     event Deposit(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
     event Redeem(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
 
-    constructor(address _token, address _oft, address _hop, uint32 _eid) Ownable(msg.sender) {
-        TOKEN = IERC20(_token);
-        OFT = _oft;
-        HOP = IHopV2(_hop);
-        EID = _eid;
-        DECIMAL_CONVERSION_RATE = IOFT2(OFT).decimalConversionRate();
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address _token,
+        address _oft,
+        address _hop,
+        uint32 _eid,
+        address _proxyAdmin
+    ) external initializer {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        $.TOKEN = IERC20(_token);
+        $.OFT = _oft;
+        $.HOP = IHopV2(_hop);
+        $.EID = _eid;
+        $.DECIMAL_CONVERSION_RATE = IOFT2(_oft).decimalConversionRate();
+
+        $.proxyAdmin = _proxyAdmin;
+
+        $.implementation = address(new RemoteVaultDeposit());
     }
 
     /// @notice Receive ETH payments
     receive() external payable {}
 
     function deposit(uint256 _amount, uint32 _remoteEid, address _remoteVault, address _to) external payable {
-        if (remoteVaultHops[_remoteEid] == address(0)) revert InvalidChain();
-        if (address(depositToken[_remoteEid][_remoteVault]) != msg.sender) revert InvalidCaller();
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+
+        if ($.remoteVaultHops[_remoteEid] == address(0)) revert InvalidChain();
+        if (address($.depositToken[_remoteEid][_remoteVault]) != msg.sender) revert InvalidCaller();
 
         uint256 fee = quote(_amount, _remoteEid, _remoteVault);
         if (msg.value < fee) revert InsufficientFee();
-        SafeERC20.forceApprove(TOKEN, address(HOP), _amount);
+
+        IHopV2 HOP_ = $.HOP; // gas
+        SafeERC20.forceApprove($.TOKEN, address(HOP_), _amount);
         bytes memory hopComposeMessage = abi.encode(
             RemoteVaultMessage({
                 action: Action.Deposit,
-                userEid: EID,
+                userEid: $.EID,
                 userAddress: _to,
                 remoteEid: _remoteEid,
                 remoteVault: _remoteVault,
@@ -115,10 +150,10 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             })
         );
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
-        HOP.sendOFT{ value: fee }(
-            OFT,
+        HOP_.sendOFT{ value: fee }(
+            $.OFT,
             _remoteEid,
-            bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))),
+            bytes32(uint256(uint160($.remoteVaultHops[_remoteEid]))),
             _amount,
             _remoteGas,
             hopComposeMessage
@@ -131,15 +166,17 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     }
 
     function redeem(uint256 _amount, uint32 _remoteEid, address _remoteVault, address _to) external payable {
-        if (remoteVaultHops[_remoteEid] == address(0)) revert InvalidChain();
-        if (address(depositToken[_remoteEid][_remoteVault]) != msg.sender) revert InvalidCaller();
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+
+        if ($.remoteVaultHops[_remoteEid] == address(0)) revert InvalidChain();
+        if (address($.depositToken[_remoteEid][_remoteVault]) != msg.sender) revert InvalidCaller();
 
         uint256 fee = quote(_amount, _remoteEid, _remoteVault);
         if (msg.value < fee) revert InsufficientFee();
         bytes memory hopComposeMessage = abi.encode(
             RemoteVaultMessage({
                 action: Action.Redeem,
-                userEid: EID,
+                userEid: $.EID,
                 userAddress: _to,
                 remoteEid: _remoteEid,
                 remoteVault: _remoteVault,
@@ -149,10 +186,10 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             })
         );
         uint128 _remoteGas = getRemoteVaultGas(_remoteEid, _remoteVault);
-        HOP.sendOFT{ value: fee }(
-            OFT,
+        $.HOP.sendOFT{ value: fee }(
+            $.OFT,
             _remoteEid,
-            bytes32(uint256(uint160(remoteVaultHops[_remoteEid]))),
+            bytes32(uint256(uint160($.remoteVaultHops[_remoteEid]))),
             0,
             _remoteGas,
             hopComposeMessage
@@ -170,11 +207,15 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     ///     - A => A or Fraxtal => Fraxtal (no hop needed)
     ///     - (1) Fraxtal => A then (2) Fraxtal <= A
     function quote(uint256 _amount, uint32 _remoteEid, address _remoteVault) public view returns (uint256) {
-        if (_remoteEid == EID) return 0; // No hop needed (A => A or Fraxtal => Fraxtal)
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        uint32 EID_ = $.EID; // gas
+        IHopV2 HOP_ = $.HOP; // gas
+
+        if (_remoteEid == EID_) return 0; // No hop needed (A => A or Fraxtal => Fraxtal)
         bytes memory hopComposeMessage = abi.encode(
             RemoteVaultMessage({
                 action: Action.Redeem,
-                userEid: EID,
+                userEid: EID_,
                 userAddress: msg.sender,
                 remoteEid: _remoteEid,
                 remoteVault: _remoteVault,
@@ -188,8 +229,8 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
 
         // Fee for remote chain and Fraxtal hop if needed
         // Returns either A => Fraxtal or A => Fraxtal => B or Fraxtal => A
-        uint256 fee = HOP.quote(
-            OFT,
+        uint256 fee = HOP_.quote(
+            $.OFT,
             _remoteEid,
             bytes32(uint256(uint160(address(this)))),
             _amount,
@@ -197,11 +238,11 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             hopComposeMessage
         );
         // Fee for return on local chain (A <= Fraxtal or Fraxtal <= A)
-        fee += HOP.quoteHop(EID, LOCAL_GAS, hopComposeMessage);
+        fee += HOP_.quoteHop(EID_, LOCAL_GAS, hopComposeMessage);
 
-        if (EID != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
+        if (EID_ != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
             // Include Fraxtal hop fee for the return message (Fraxtal <= B)
-            fee += HOP.quoteHop(FRAXTAL_EID, LOCAL_GAS, hopComposeMessage);
+            fee += HOP_.quoteHop(FRAXTAL_EID, LOCAL_GAS, hopComposeMessage);
         }
         return fee;
     }
@@ -213,10 +254,11 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
         uint256 _amount,
         bytes memory _data
     ) external {
-        if (msg.sender != address(HOP)) revert NotHop();
-        if (_oft != OFT) revert InvalidOFT();
-        if (bytes32(uint256(uint160(remoteVaultHops[_srcEid]))) != _srcAddress) revert InvalidChain();
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
 
+        if (msg.sender != address($.HOP)) revert NotHop();
+        if (_oft != $.OFT) revert InvalidOFT();
+        if (bytes32(uint256(uint160($.remoteVaultHops[_srcEid]))) != _srcAddress) revert InvalidChain();
         //(uint256 _actionUint, uint32 _userEid, address _userAddress, uint32 _vaultEid, address _vaultAddress, uint256 _amnt, uint256 _pricePerShare) = abi.decode(_data, (uint256, uint32, address, uint32, address, uint256, uint256));
         RemoteVaultMessage memory message = abi.decode(_data, (RemoteVaultMessage));
         if (message.action == Action.Deposit) {
@@ -235,9 +277,11 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
     }
 
     function _handleDeposit(RemoteVaultMessage memory message) internal {
-        SafeERC20.forceApprove(TOKEN, message.remoteVault, message.amount);
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+
+        SafeERC20.forceApprove($.TOKEN, message.remoteVault, message.amount);
         uint256 out = IERC4626(message.remoteVault).deposit(message.amount, address(this));
-        balance[message.remoteEid][message.remoteVault] += out;
+        $.balance[message.remoteEid][message.remoteVault] += out;
 
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
         bytes memory _data = abi.encode(
@@ -245,7 +289,7 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
                 action: Action.DepositReturn,
                 userEid: message.userEid,
                 userAddress: message.userAddress,
-                remoteEid: EID,
+                remoteEid: $.EID,
                 remoteVault: message.remoteVault,
                 amount: out,
                 remoteTimestamp: uint64(block.timestamp),
@@ -253,28 +297,20 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
             })
         );
 
-        uint256 fee = HOP.quote(
-            OFT,
-            message.userEid,
-            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
-            0,
-            LOCAL_GAS,
-            _data
-        );
-        HOP.sendOFT{ value: fee }(
-            OFT,
-            message.userEid,
-            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
-            0,
-            LOCAL_GAS,
-            _data
-        );
+        IHopV2 HOP_ = $.HOP; // gas
+        address OFT_ = $.OFT; // gas
+        bytes32 remoteVaultHop = bytes32(uint256(uint160($.remoteVaultHops[message.userEid])));
+
+        uint256 fee = HOP_.quote(OFT_, message.userEid, remoteVaultHop, 0, LOCAL_GAS, _data);
+        HOP_.sendOFT{ value: fee }(OFT_, message.userEid, remoteVaultHop, 0, LOCAL_GAS, _data);
     }
 
     function _handleRedeem(RemoteVaultMessage memory message) internal {
-        IERC20(vaultShares[message.remoteVault]).approve(address(message.remoteVault), message.amount);
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+
+        IERC20($.vaultShares[message.remoteVault]).approve(address(message.remoteVault), message.amount);
         uint256 out = IERC4626(message.remoteVault).redeem(message.amount, address(this), address(this));
-        balance[message.remoteEid][message.remoteVault] -= message.amount;
+        $.balance[message.remoteEid][message.remoteVault] -= message.amount;
         out = removeDust(out);
         uint256 _pricePerShare = IERC4626(message.remoteVault).convertToAssets(1E18);
         bytes memory _data = abi.encode(
@@ -282,82 +318,142 @@ contract RemoteVaultHop is Ownable2Step, IHopComposer {
                 action: Action.RedeemReturn,
                 userEid: message.userEid,
                 userAddress: message.userAddress,
-                remoteEid: EID,
+                remoteEid: $.EID,
                 remoteVault: message.remoteVault,
                 amount: out,
                 remoteTimestamp: uint64(block.timestamp),
                 pricePerShare: uint128(_pricePerShare)
             })
         );
-        uint256 fee = HOP.quote(
-            OFT,
-            message.userEid,
-            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
-            out,
-            LOCAL_GAS,
-            _data
-        );
-        SafeERC20.forceApprove(TOKEN, address(HOP), out);
-        HOP.sendOFT{ value: fee }(
-            OFT,
-            message.userEid,
-            bytes32(uint256(uint160(remoteVaultHops[message.userEid]))),
-            out,
-            LOCAL_GAS,
-            _data
-        );
+
+        IHopV2 HOP_ = $.HOP; // gas
+        address OFT_ = $.OFT; // gas
+        bytes32 remoteVaultHop = bytes32(uint256(uint160($.remoteVaultHops[message.userEid])));
+
+        uint256 fee = HOP_.quote(OFT_, message.userEid, remoteVaultHop, out, LOCAL_GAS, _data);
+        SafeERC20.forceApprove($.TOKEN, address(HOP_), out);
+        HOP_.sendOFT{ value: fee }(OFT_, message.userEid, remoteVaultHop, out, LOCAL_GAS, _data);
     }
 
     function _handleRedeemReturn(RemoteVaultMessage memory message) internal {
-        SafeERC20.safeTransfer(TOKEN, message.userAddress, message.amount);
-        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        SafeERC20.safeTransfer($.TOKEN, message.userAddress, message.amount);
+
+        $.depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
             message.remoteTimestamp,
             message.pricePerShare
         );
     }
 
     function _handleDepositReturn(RemoteVaultMessage memory message) internal {
-        depositToken[message.remoteEid][message.remoteVault].mint(message.userAddress, message.amount);
-        depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        $.depositToken[message.remoteEid][message.remoteVault].mint(message.userAddress, message.amount);
+        $.depositToken[message.remoteEid][message.remoteVault].setPricePerShare(
             message.remoteTimestamp,
             message.pricePerShare
         );
     }
 
-    function setRemoteVaultHop(uint32 _eid, address _remoteVault) external onlyOwner {
-        remoteVaultHops[_eid] = _remoteVault;
+    function setRemoteVaultHop(uint32 _eid, address _remoteVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        $.remoteVaultHops[_eid] = _remoteVault;
         emit RemoteVaultHopSet(_eid, _remoteVault);
     }
 
-    function addLocalVault(address _vault, address _share) external onlyOwner {
-        vaultShares[_vault] = _share;
+    function addLocalVault(address _vault, address _share) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        $.vaultShares[_vault] = _share;
         emit VaultAdded(_vault, _share);
     }
 
-    function addRemoteVault(uint32 _eid, address _vault, string memory name, string memory symbol) external onlyOwner {
-        if (address(depositToken[_eid][_vault]) != address(0)) revert VaultExists();
-        depositToken[_eid][_vault] = new RemoteVaultDeposit(_eid, _vault, address(TOKEN), name, symbol);
+    function addRemoteVault(
+        uint32 _eid,
+        address _vault,
+        string memory name,
+        string memory symbol
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        if (address($.depositToken[_eid][_vault]) != address(0)) revert VaultExists();
+        FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(
+            address($.implementation),
+            $.proxyAdmin,
+            abi.encodeCall(RemoteVaultDeposit.initialize, (_eid, _vault, address($.TOKEN), name, symbol))
+        );
+        $.depositToken[_eid][_vault] = RemoteVaultDeposit(payable(address(proxy)));
         emit RemoteVaultAdded(_eid, _vault, name, symbol);
     }
 
     function getRemoteVaultGas(uint32 _eid, address _vault) public view returns (uint128) {
-        uint128 _remoteGas = remoteGas[_eid][_vault];
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        uint128 _remoteGas = $.remoteGas[_eid][_vault];
         if (_remoteGas == 0) _remoteGas = DEFAULT_REMOTE_GAS;
         return _remoteGas;
     }
 
-    function setRemoteVaultGas(uint32 _eid, address _vault, uint128 _gas) external onlyOwner {
-        if (address(depositToken[_eid][_vault]) == address(0)) revert InvalidVault();
-        remoteGas[_eid][_vault] = _gas;
+    function setRemoteVaultGas(uint32 _eid, address _vault, uint128 _gas) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        if (address($.depositToken[_eid][_vault]) == address(0)) revert InvalidVault();
+        $.remoteGas[_eid][_vault] = _gas;
         emit RemoteGasSet(_eid, _vault, _gas);
     }
 
-    function recover(address _target, uint256 _value, bytes memory _data) external onlyOwner {
+    function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = _target.call{ value: _value }(_data);
         require(success);
     }
 
     function removeDust(uint256 _amountLD) internal view returns (uint256) {
-        return (_amountLD / DECIMAL_CONVERSION_RATE) * DECIMAL_CONVERSION_RATE;
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return (_amountLD / $.DECIMAL_CONVERSION_RATE) * $.DECIMAL_CONVERSION_RATE;
+    }
+
+    function TOKEN() external view returns (IERC20) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.TOKEN;
+    }
+
+    function OFT() external view returns (address) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.OFT;
+    }
+
+    function HOP() external view returns (IHopV2) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.HOP;
+    }
+
+    function EID() external view returns (uint32) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.EID;
+    }
+
+    function DECIMAL_CONVERSION_RATE() external view returns (uint256) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.DECIMAL_CONVERSION_RATE;
+    }
+
+    function vaultShares(address _vault) external view returns (address) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.vaultShares[_vault];
+    }
+
+    function balance(uint32 _eid, address _vault) external view returns (uint256) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.balance[_eid][_vault];
+    }
+
+    function remoteVaultHops(uint32 _eid) external view returns (address) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.remoteVaultHops[_eid];
+    }
+
+    function depositToken(uint32 _eid, address _vault) external view returns (RemoteVaultDeposit) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.depositToken[_eid][_vault];
+    }
+
+    function remoteGas(uint32 _eid, address _vault) external view returns (uint128) {
+        RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
+        return $.remoteGas[_eid][_vault];
     }
 }

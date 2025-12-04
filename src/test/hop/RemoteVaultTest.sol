@@ -7,6 +7,7 @@ import { IHopV2 } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { RemoteVaultHop } from "src/contracts/hop/RemoteVaultHop.sol";
 import { RemoteVaultDeposit } from "src/contracts/hop/RemoteVaultDeposit.sol";
+import { FraxUpgradeableProxy } from "frax-std/FraxUpgradeableProxy.sol";
 
 contract RemoteVaultTest is BaseTest {
     RemoteVaultHop remoteVaultHop;
@@ -22,7 +23,17 @@ contract RemoteVaultTest is BaseTest {
         oft = frxUSD;
         hop = 0x10f2773F54CA36d456d6513806aA24f5169D6765;
         uint32 eid = 30184;
-        remoteVaultHop = new RemoteVaultHop(frxUSD, oft, hop, eid);
+        bytes memory initializeArgs = abi.encodeCall(
+            RemoteVaultHop.initialize,
+            (frxUSD, oft, hop, eid, address(1)) // proxyAdmin
+        );
+        address implementation = address(new RemoteVaultHop());
+        FraxUpgradeableProxy vaultHopProxy = new FraxUpgradeableProxy(
+            implementation,
+            address(1), // proxyAdmin
+            initializeArgs
+        );
+        remoteVaultHop = RemoteVaultHop(payable(address(vaultHopProxy)));
         remoteVaultHop.setRemoteVaultHop(30255, address(remoteVaultHop));
         remoteVaultHop.addRemoteVault(
             30255,
@@ -38,7 +49,17 @@ contract RemoteVaultTest is BaseTest {
         oft = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
         hop = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
         uint32 eid = 30255;
-        remoteVaultHop = new RemoteVaultHop(frxUSD, oft, hop, eid);
+        bytes memory initializeArgs = abi.encodeCall(
+            RemoteVaultHop.initialize,
+            (frxUSD, oft, hop, eid, address(1)) // proxyAdmin
+        );
+        address implementation = address(new RemoteVaultHop());
+        FraxUpgradeableProxy vaultHopProxy = new FraxUpgradeableProxy(
+            implementation,
+            address(1), // proxyAdmin
+            initializeArgs
+        );
+        remoteVaultHop = RemoteVaultHop(payable(address(vaultHopProxy)));
         remoteVaultHop.setRemoteVaultHop(30184, address(remoteVaultHop));
         remoteVaultHop.setRemoteVaultHop(30255, address(remoteVaultHop));
         remoteVaultHop.addLocalVault(

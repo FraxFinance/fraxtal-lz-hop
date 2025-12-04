@@ -11,5 +11,6 @@ contract DeployRemoteVaultHopBase is DeployRemoteVaultHop {
         frxUsdOft = 0xe5020A6d073a794B6E7f05678707dE47986Fb0b6;
         HOPV2 = 0x10f2773F54CA36d456d6513806aA24f5169D6765;
         EID = 30184;
+        proxyAdmin = 0xF59C41A57AB4565AF7424F64981523DfD7A453c5;
     }
 }

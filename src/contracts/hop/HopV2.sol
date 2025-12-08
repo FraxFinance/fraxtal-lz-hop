@@ -33,7 +33,6 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         mapping(bytes32 message => bool isProcessed) messageProcessed;
         /// @dev Mapping to track the Hop on a remote chain
         mapping(uint32 eid => bytes32 hop) remoteHop;
-
         /// @dev number of DVNs used to verify a message
         uint32 numDVNs;
         /// @dev Hop fee charged to users to use the Hop service
@@ -79,7 +78,7 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     }
 
     function __init_HopV2(
-        uint32 _localEid, 
+        uint32 _localEid,
         address _endpoint,
         uint32 _numDVNs,
         address _EXECUTOR,
@@ -200,10 +199,11 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
             _hopMessage: hopMessage
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        uint256 hopFeeOnFraxtal = (_dstEid==FRAXTAL_EID  || localEid_== FRAXTAL_EID) ? 0 : quoteHop(_dstEid, _dstGas, _data);
+        uint256 hopFeeOnFraxtal = (_dstEid == FRAXTAL_EID || localEid_ == FRAXTAL_EID)
+            ? 0
+            : quoteHop(_dstEid, _dstGas, _data);
         return fee.nativeFee + hopFeeOnFraxtal;
     }
-
 
     /// @notice Get a gas cost estimate of executing a hop on Fraxtal to a destination chain
     /// @param _dstEid Destination EID
@@ -286,7 +286,9 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Return the total amount charged in the send.  On fraxtal, this is only the native fee as there is no hop needed.
-        uint256 hopFeeOnFraxtal = (_hopMessage.dstEid==FRAXTAL_EID  || localEid()== FRAXTAL_EID) ? 0 : quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
+        uint256 hopFeeOnFraxtal = (_hopMessage.dstEid == FRAXTAL_EID || localEid() == FRAXTAL_EID)
+            ? 0
+            : quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
         return fee.nativeFee + hopFeeOnFraxtal;
     }
 
@@ -376,7 +378,7 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
         HopV2Storage storage $ = _getHopV2Storage();
         $.executorOptions[eid] = _options;
-    }    
+    }
 
     function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = _target.call{ value: _value }(_data);
@@ -433,7 +435,7 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     }
 
     function hopFee() external view returns (uint256) {
-       HopV2Storage storage $ = _getHopV2Storage();
+        HopV2Storage storage $ = _getHopV2Storage();
         return $.hopFee;
     }
 
@@ -461,5 +463,5 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     function _generateSendParam(
         uint256 _amountLD,
         HopMessage memory _hopMessage
-    ) internal view virtual returns (SendParam memory) {}    
+    ) internal view virtual returns (SendParam memory) {}
 }

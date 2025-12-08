@@ -242,7 +242,8 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
         if (EID_ != FRAXTAL_EID && _remoteEid != FRAXTAL_EID) {
             // Include Fraxtal hop fee for the return message (Fraxtal <= B)
-            fee += HOP_.quoteHop(FRAXTAL_EID, LOCAL_GAS, hopComposeMessage);
+            uint128 fraxtalGas = 1_000_000;
+            fee += HOP_.quoteHop(FRAXTAL_EID, fraxtalGas, hopComposeMessage);
         }
         return fee;
     }

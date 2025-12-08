@@ -6,13 +6,16 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { OFTComposeMsgCodec } from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
+import { ILayerZeroDVN } from "src/contracts/hop/interfaces/ILayerZeroDVN.sol";
+import { ILayerZeroTreasury } from "src/contracts/hop/interfaces/ILayerZeroTreasury.sol";
 import { IExecutor } from "src/contracts/hop/interfaces/IExecutor.sol";
+
 import { SendParam, MessagingFee, IOFT } from "@fraxfinance/layerzero-v2-upgradeable/oapp/contracts/oft/interfaces/IOFT.sol";
 import { IOFT2 } from "src/contracts/hop/interfaces/IOFT2.sol";
 import { IHopV2, HopMessage } from "src/contracts/hop/interfaces/IHopV2.sol";
 import { IHopComposer } from "src/contracts/hop/interfaces/IHopComposer.sol";
 
-abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
+contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     uint32 internal constant FRAXTAL_EID = 30255;
     /// @dev keccak256("PAUSER_ROLE")
     bytes32 internal constant PAUSER_ROLE = 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a;
@@ -30,6 +33,19 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         mapping(bytes32 message => bool isProcessed) messageProcessed;
         /// @dev Mapping to track the Hop on a remote chain
         mapping(uint32 eid => bytes32 hop) remoteHop;
+
+        /// @dev number of DVNs used to verify a message
+        uint32 numDVNs;
+        /// @dev Hop fee charged to users to use the Hop service
+        uint256 hopFee; // 10_000 based so 1 = 0.01%
+        /// @dev Configuration of executor options by chain EID
+        mapping(uint32 eid => bytes options) executorOptions;
+        /// @dev Address of LZ executor
+        address EXECUTOR;
+        /// @dev Address of LZ DVN
+        address DVN;
+        /// @dev Address of LZ treasury
+        address TREASURY;
     }
 
     // keccak256(abi.encode(uint256(keccak256("frax.storage.HopV2")) - 1)) & ~bytes32(uint256(0xff))
@@ -65,7 +81,15 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         _disableInitializers();
     }
 
-    function __init_HopV2(uint32 _localEid, address _endpoint, address[] memory _approvedOfts) internal {
+    function __init_HopV2(
+        uint32 _localEid, 
+        address _endpoint,
+        uint32 _numDVNs,
+        address _EXECUTOR,
+        address _DVN,
+        address _TREASURY,
+        address[] memory _approvedOfts
+    ) internal {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         HopV2Storage storage $ = _getHopV2Storage();
@@ -74,6 +98,10 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         for (uint256 i = 0; i < _approvedOfts.length; i++) {
             $.approvedOft[_approvedOfts[i]] = true;
         }
+        $.numDVNs = _numDVNs;
+        $.EXECUTOR = _EXECUTOR;
+        $.DVN = _DVN;
+        $.TREASURY = _TREASURY;
     }
 
     // Public methods
@@ -175,7 +203,34 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
             _hopMessage: hopMessage
         });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);
-        return fee.nativeFee + quoteHop(_dstEid, _dstGas, _data);
+        uint256 hopFeeOnFraxtal = (_dstEid==FRAXTAL_EID  || localEid_== FRAXTAL_EID) ? 0 : quoteHop(_dstEid, _dstGas, _data);
+        return fee.nativeFee + hopFeeOnFraxtal;
+    }
+
+
+    /// @notice Get a gas cost estimate of executing a hop on Fraxtal to a destination chain
+    /// @param _dstEid Destination EID
+    /// @param _dstGas Amount of gas to forward to the destination
+    /// @param _data Encoded data to pass to the destination
+    function quoteHop(
+        uint32 _dstEid,
+        uint128 _dstGas,
+        bytes memory _data
+    ) public view override returns (uint256 finalFee) {
+        HopV2Storage storage $ = _getHopV2Storage();
+
+        uint256 dvnFee = ILayerZeroDVN($.DVN).getFee(_dstEid, 5, address(this), "");
+        bytes memory options = $.executorOptions[_dstEid];
+        if (options.length == 0) options = hex"01001101000000000000000000000000000493E0";
+        if (_data.length != 0) {
+            if (_dstGas < 400_000) _dstGas = 400_000;
+            options = abi.encodePacked(options, hex"010013030000", _dstGas);
+        }
+        uint256 executorFee = IExecutor($.EXECUTOR).getFee(_dstEid, address(this), 36, options);
+        uint256 totalFee = dvnFee * $.numDVNs + executorFee;
+        uint256 treasuryFee = ILayerZeroTreasury($.TREASURY).getFee(address(this), _dstEid, totalFee, false);
+        finalFee = totalFee + treasuryFee;
+        finalFee = (finalFee * (10_000 + $.hopFee)) / 10_000;
     }
 
     /// @notice Remove the dust amount of OFT so that the message passed is the message received
@@ -234,7 +289,8 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         IOFT(_oft).send{ value: fee.nativeFee }(sendParam, fee, address(this));
 
         // Return the total amount charged in the send.  On fraxtal, this is only the native fee as there is no hop needed.
-        return fee.nativeFee + quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
+        uint256 hopFeeOnFraxtal = (_hopMessage.dstEid==FRAXTAL_EID  || localEid()== FRAXTAL_EID) ? 0 : quoteHop(_hopMessage.dstEid, _hopMessage.dstGas, _hopMessage.data);
+        return fee.nativeFee + hopFeeOnFraxtal;
     }
 
     /// @dev Check the incoming message integrity
@@ -310,6 +366,21 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         $.remoteHop[_eid] = _remoteHop;
     }
 
+    function setNumDVNs(uint32 _numDVNs) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.numDVNs = _numDVNs;
+    }
+
+    function setHopFee(uint256 _hopFee) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.hopFee = _hopFee;
+    }
+
+    function setExecutorOptions(uint32 eid, bytes memory _options) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        $.executorOptions[eid] = _options;
+    }    
+
     function recover(address _target, uint256 _value, bytes memory _data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = _target.call{ value: _value }(_data);
         require(success);
@@ -359,12 +430,39 @@ abstract contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
         return $.remoteHop[eid];
     }
 
-    // virtual functions to override
+    function numDVNs() external view returns (uint32) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        return $.numDVNs;
+    }
 
-    /// @notice Quote the hop of a send. Returns 0 when originating from fraxtal as the destination only receives and does not hop further.
-    function quoteHop(uint32 _dstEid, uint128 _dstGas, bytes memory _data) public view virtual returns (uint256) {}
+    function hopFee() external view returns (uint256) {
+       HopV2Storage storage $ = _getHopV2Storage();
+        return $.hopFee;
+    }
+
+    function executorOptions(uint32 eid) external view returns (bytes memory) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        return $.executorOptions[eid];
+    }
+
+    function EXECUTOR() external view returns (address) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        return $.EXECUTOR;
+    }
+
+    function DVN() external view returns (address) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        return $.DVN;
+    }
+
+    function TREASURY() external view returns (address) {
+        HopV2Storage storage $ = _getHopV2Storage();
+        return $.TREASURY;
+    }
+
+    // virtual functions to override
     function _generateSendParam(
         uint256 _amountLD,
         HopMessage memory _hopMessage
-    ) internal view virtual returns (SendParam memory) {}
+    ) internal view virtual returns (SendParam memory) {}    
 }

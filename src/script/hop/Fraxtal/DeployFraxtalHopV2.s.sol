@@ -24,6 +24,10 @@ contract DeployFraxtalHopV2 is BaseScript {
     address constant fpiLockbox = 0x75c38D46001b0F8108c4136216bd2694982C20FC;
     address[] approvedOfts;
 
+    address constant EXECUTOR = 0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d;
+    address constant DVN = 0xcCE466a522984415bC91338c232d98869193D46e;
+    address constant TREASURY = 0xc1B621b18187F74c8F6D52a6F709Dd2780C09821;
+
     function run() public broadcaster {
         approvedOfts.push(frxUsdLockbox);
         approvedOfts.push(sfrxUsdLockbox);
@@ -32,7 +36,7 @@ contract DeployFraxtalHopV2 is BaseScript {
         approvedOfts.push(fxsLockbox);
         approvedOfts.push(fpiLockbox);
 
-        address hop = deployFraxtalHopV2(proxyAdmin, 0x1a44076050125825900e736c501f859c50fE728c, approvedOfts);
+        address hop = deployFraxtalHopV2(proxyAdmin, 30255, 0x1a44076050125825900e736c501f859c50fE728c, 3,  EXECUTOR, DVN, TREASURY, approvedOfts);
         console.log("FraxtalHopV2 deployed at:", hop);
 
         address remoteAdmin = address(new RemoteAdmin(frxUsdLockbox, hop, msig));
@@ -63,10 +67,15 @@ contract DeployFraxtalHopV2 is BaseScript {
 
 function deployFraxtalHopV2(
     address _proxyAdmin,
+    uint32 _LOCALEID,
     address _endpoint,
+    uint32 _NUMDVN,
+    address _EXECUTOR,
+    address _DVN,
+    address _TREASURY,
     address[] memory _approvedOfts
 ) returns (address payable) {
-    bytes memory initializeArgs = abi.encodeCall(FraxtalHopV2.initialize, (_endpoint, _approvedOfts));
+    bytes memory initializeArgs = abi.encodeCall(FraxtalHopV2.initialize, (_LOCALEID, _endpoint, _NUMDVN, _EXECUTOR, _DVN, _TREASURY, _approvedOfts));
 
     address implementation = address(new FraxtalHopV2());
     FraxUpgradeableProxy proxy = new FraxUpgradeableProxy(implementation, _proxyAdmin, initializeArgs);

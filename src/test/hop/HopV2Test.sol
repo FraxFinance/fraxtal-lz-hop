@@ -41,7 +41,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x75c38D46001b0F8108c4136216bd2694982C20FC);
 
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 23464636);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, 3,  EXECUTOR, DVN, TREASURY, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,
@@ -68,7 +68,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x90581eCa9469D8D7F5D3B60f4715027aDFCf7927);
 
         vm.createSelectFork(vm.envString("ARBITRUM_MAINNET_URL"), 316670752);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, 3,  EXECUTOR, DVN, TREASURY, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,
@@ -93,7 +93,7 @@ contract HopV2Test is BaseTest {
         approvedOfts.push(0x9033BAD7aA130a2466060A2dA71fAe2219781B4b);
 
         vm.createSelectFork(vm.envString("ETHEREUM_MAINNET_URL"), 22124047);
-        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, ENDPOINT, approvedOfts));
+        hop = FraxtalHopV2(deployFraxtalHopV2(proxyAdmin, 30255, ENDPOINT, 3,  EXECUTOR, DVN, TREASURY, approvedOfts));
         remoteHop = RemoteHopV2(
             deployRemoteHopV2(
                 proxyAdmin,

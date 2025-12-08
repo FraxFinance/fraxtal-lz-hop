@@ -30,9 +30,17 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         _disableInitializers();
     }
 
-    function initialize(address _endpoint, address[] memory _approvedOfts) external initializer {
-        __init_HopV2(FRAXTAL_EID, _endpoint, _approvedOfts);
-    }
+    function initialize(
+        uint32 _localEid,
+        address _endpoint,
+        uint32 _numDVNs,
+        address _EXECUTOR,
+        address _DVN,
+        address _TREASURY,
+        address[] memory _approvedOfts
+    ) external initializer {
+        __init_HopV2(_localEid, _endpoint, _numDVNs,_EXECUTOR,_DVN,_TREASURY,_approvedOfts);
+    }    
 
     // receive ETH
     receive() external payable {}
@@ -122,9 +130,5 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
 
             sendParam.composeMsg = abi.encode(_hopMessage);
         }
-    }
-
-    function quoteHop(uint32, uint128, bytes memory) public pure override returns (uint256) {
-        return 0;
     }
 }

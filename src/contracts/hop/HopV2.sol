@@ -61,14 +61,11 @@ contract HopV2 is AccessControlEnumerableUpgradeable, IHopV2 {
     event MessageHash(address oft, uint32 indexed srcEid, uint64 indexed nonce, bytes32 indexed composeFrom);
 
     error InvalidOFT();
-    error InvalidSourceEid();
     error HopPaused();
     error NotEndpoint();
-    error NotHop();
     error NotAuthorized();
     error InsufficientFee();
     error RefundFailed();
-    error FailedRemoteSetCall();
 
     modifier onlyAuthorized() {
         if (!(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(PAUSER_ROLE, msg.sender))) {

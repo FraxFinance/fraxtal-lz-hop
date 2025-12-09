@@ -4,6 +4,7 @@ pragma solidity 0.8.23;
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { RemoteVaultHop } from "src/contracts/hop/RemoteVaultHop.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // ====================================================================
@@ -59,6 +60,9 @@ contract RemoteVaultDeposit is ERC20Upgradeable, OwnableUpgradeable {
     /// @notice Emitted when tokens are burned
     event Burn(address indexed from, uint256 amount);
 
+    /// @notice Emitted when the price per share is updated
+    event PricePerShareUpdated(uint64 remoteTimestamp, uint128 pricePerShare);
+
     constructor() {
         _disableInitializers();
     }
@@ -104,21 +108,27 @@ contract RemoteVaultDeposit is ERC20Upgradeable, OwnableUpgradeable {
         uint256 ppsUpdateBlock = $.ppsUpdateBlock;
         uint128 previousPps = $.previousPps;
 
-        if (block.number > ppsUpdateBlock + 100) return pps;
-        else return previousPps + (uint256(pps - previousPps) * (block.number - ppsUpdateBlock)) / 100;
+        if (block.number > ppsUpdateBlock + 99) return pps;
+
+        int256 currentPpsInt = int256(uint256(pps));
+        int256 previousPpsInt = int256(uint256(previousPps));
+        int256 delta = currentPpsInt - previousPpsInt;
+        int256 interpolated = previousPpsInt + (delta * int256(block.number - ppsUpdateBlock)) / 100;
+
+        return uint256(interpolated);
     }
 
     /// @notice Set the price per share of the remote vault
     /// @dev Can only be called by the owner (RemoteVault contract)
     function setPricePerShare(uint64 _remoteTimestamp, uint128 _pricePerShare) external onlyOwner {
         RemoteVaultDepositStorage storage $ = _getRemoteVaultDepositStorage();
-
         if (_pricePerShare > 0 && _remoteTimestamp > $.ppsRemoteTimestamp) {
             $.previousPps = uint128(pricePerShare());
             if ($.previousPps == 0) $.previousPps = _pricePerShare;
             $.ppsUpdateBlock = uint64(block.number);
             $.ppsRemoteTimestamp = _remoteTimestamp;
             $.pps = _pricePerShare;
+            emit PricePerShareUpdated(_remoteTimestamp, _pricePerShare);
         }
     }
 
@@ -129,7 +139,7 @@ contract RemoteVaultDeposit is ERC20Upgradeable, OwnableUpgradeable {
     function deposit(uint256 _amount, address _to) public payable {
         RemoteVaultDepositStorage storage $ = _getRemoteVaultDepositStorage();
 
-        IERC20($.ASSET).transferFrom(msg.sender, address($.REMOTE_VAULT_HOP), _amount);
+        SafeERC20.safeTransferFrom(IERC20($.ASSET), msg.sender, address($.REMOTE_VAULT_HOP), _amount);
         RemoteVaultHop(payable($.REMOTE_VAULT_HOP)).deposit{ value: msg.value }(
             _amount,
             $.VAULT_CHAIN_ID,

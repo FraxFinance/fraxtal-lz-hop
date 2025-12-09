@@ -79,7 +79,6 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
         RedeemReturn
     }
 
-    error ZeroAmount();
     error InvalidChain();
     error InvalidOFT();
     error InsufficientFee();
@@ -96,7 +95,9 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
     event RemoteVaultHopSet(uint32 eid, address remoteVaultHop);
     event RemoteGasSet(uint32 eid, address vault, uint128 remoteGas);
     event Deposit(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
+    event DepositReturn(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
     event Redeem(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
+    event RedeemReturn(address indexed to, uint32 indexed remoteEid, address indexed remoteVault, uint256 amount);
 
     constructor() {
         _disableInitializers();
@@ -308,8 +309,7 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
     function _handleRedeem(RemoteVaultMessage memory message) internal {
         RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
-
-        IERC20($.vaultShares[message.remoteVault]).approve(address(message.remoteVault), message.amount);
+        SafeERC20.forceApprove(IERC20($.vaultShares[message.remoteVault]), address(message.remoteVault), message.amount);
         uint256 out = IERC4626(message.remoteVault).redeem(message.amount, address(this), address(this));
         $.balance[message.remoteEid][message.remoteVault] -= message.amount;
         out = removeDust(out);
@@ -344,6 +344,7 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
             message.remoteTimestamp,
             message.pricePerShare
         );
+        emit RedeemReturn(message.userAddress, message.remoteEid, message.remoteVault, message.amount);
     }
 
     function _handleDepositReturn(RemoteVaultMessage memory message) internal {
@@ -353,6 +354,7 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
             message.remoteTimestamp,
             message.pricePerShare
         );
+        emit DepositReturn(message.userAddress, message.remoteEid, message.remoteVault, message.amount);
     }
 
     function setRemoteVaultHop(uint32 _eid, address _remoteVault) external onlyRole(DEFAULT_ADMIN_ROLE) {

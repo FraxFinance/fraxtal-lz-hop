@@ -39,8 +39,8 @@ contract FraxtalHopV2 is HopV2, IOAppComposer {
         address _TREASURY,
         address[] memory _approvedOfts
     ) external initializer {
-        __init_HopV2(_localEid, _endpoint, _numDVNs,_EXECUTOR,_DVN,_TREASURY,_approvedOfts);
-    }    
+        __init_HopV2(_localEid, _endpoint, _numDVNs, _EXECUTOR, _DVN, _TREASURY, _approvedOfts);
+    }
 
     // receive ETH
     receive() external payable {}

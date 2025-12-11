@@ -89,6 +89,8 @@ abstract contract DeployRemoteHopV2 is BaseScript {
         RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x381e2495e683868F693AA5B1414F712f21d34b40);
         // nader
         RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0x6e74053a3798e0fC9a9775F7995316b27f21c4D2);
+        // dennis
+        RemoteHopV2(payable(remoteHop)).grantRole(PAUSER_ROLE, 0xC6EF452b0de9E95Ccb153c2A5A7a90154aab3419);
 
         // transfer admin role to msig & RemoteAdmin and renounce from deployer
         RemoteHopV2(payable(remoteHop)).grantRole(bytes32(0), msig);

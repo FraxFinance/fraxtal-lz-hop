@@ -83,9 +83,10 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 ### HopV2 Mainnet
 | Chain | `Hop` | `RemoteAdmin` |
 | --- | --- | --- |
-| Fraxtal | [`0x1b93526eA567d59B7FD38126bb74D72818166C51`](https://fraxscan.com/address/0x1b93526eA567d59B7FD38126bb74D72818166C51) | [`0x5B9d0ad83b62159589a4CED620492EE099571CA8`](https://fraxscan.com/address/0x5B9d0ad83b62159589a4CED620492EE099571CA8) |
-| Arbitrum | [`0x3A5cDA3Ac66Aa80573402610c94B74eD6cdb2F23`](https://arbiscan.io/address/0x3A5cDA3Ac66Aa80573402610c94B74eD6cdb2F23) | [`0x5e16A600c65947E65F7dd6fE8687e1781A0674b1`](https://arbiscan.io/address/0x5e16A600c65947E65F7dd6fE8687e1781A0674b1) |
-| Base | [`0x56B75e191801614b5b84CcFe87cdDD76f57AaD64`](https://basescan.org/address/0x56B75e191801614b5b84CcFe87cdDD76f57AaD64) | [`0x46D2487CdbeA04411C49e6c55aCE805bfA8f5dE5`](https://basescan.org/address/0x46D2487CdbeA04411C49e6c55aCE805bfA8f5dE5) |
+| Fraxtal | [`0xe8Cd13de17CeC6FCd9dD5E0a1465Da240f951536`](https://fraxscan.com/address/0xe8Cd13de17CeC6FCd9dD5E0a1465Da240f951536) | [`0xDC3369C18Ff9C077B803C98b6260a186aDE9A426`](https://fraxscan.com/address/0xDC3369C18Ff9C077B803C98b6260a186aDE9A426) |
+| Arbitrum | [`0xf307Ad241E1035062Ed11F444740f108B8D036a6`](https://arbiscan.io/address/0xf307Ad241E1035062Ed11F444740f108B8D036a6) | [`0x03047fA366900b4cBf5E8F9FEEce97553f20370e`](https://arbiscan.io/address/0x03047fA366900b4cBf5E8F9FEEce97553f20370e) |
+| Base | [`0x22beDD55A0D29Eb31e75C70F54fADa7Ca94339B9`](https://basescan.org/address/0x22beDD55A0D29Eb31e75C70F54fADa7Ca94339B9) | [`0xF333d66C7e47053b96bC153Bfdfaa05c8BEe7307`](https://basescan.org/address/0xF333d66C7e47053b96bC153Bfdfaa05c8BEe7307) |
+| Ethereum | [`0xFd3B410b82a00B2651b42A13837204c5e3D92e27`](https://etherscan.io/address/0xFd3B410b82a00B2651b42A13837204c5e3D92e27) | [`0xa2db46c06e0B643A926ef60d1fEB744A7385a593`](https://etherscan.io/address/0xa2db46c06e0B643A926ef60d1fEB744A7385a593) |
 
 
 ### Mainnet

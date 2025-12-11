@@ -38,6 +38,7 @@ contract FraxtalMintRedeemHopTest2 is BaseTest {
             0x88Aa7854D3b2dAA5e37E7Ce73A1F39669623a361 // sfrxUsdOft
         );
         hop.setRemoteHop(30110, address(remoteHop));
+        vm.prank(address(1));
         remoteHop.setFraxtalHop(address(hop));
         payable(address(hop)).call{ value: 1 ether }("");
     }

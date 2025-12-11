@@ -309,7 +309,11 @@ contract RemoteVaultHop is AccessControlEnumerableUpgradeable, IHopComposer {
 
     function _handleRedeem(RemoteVaultMessage memory message) internal {
         RemoteVaultHopStorage storage $ = _getRemoteVaultHopStorage();
-        SafeERC20.forceApprove(IERC20($.vaultShares[message.remoteVault]), address(message.remoteVault), message.amount);
+        SafeERC20.forceApprove(
+            IERC20($.vaultShares[message.remoteVault]),
+            address(message.remoteVault),
+            message.amount
+        );
         uint256 out = IERC4626(message.remoteVault).redeem(message.amount, address(this), address(this));
         $.balance[message.remoteEid][message.remoteVault] -= message.amount;
         out = removeDust(out);

@@ -29,8 +29,8 @@ bytecode_hash = "none"
 cbor_metadata = false
 # Contracts to track with --gas-report
 #gas_reports = [] 
-solc-version = '0.8.23'
-evm_version = 'cancun'
+solc_version = '0.8.23'
+evm_version = 'shanghai'
 fs_permissions = [{ access = "read-write", path = "./"}]
 
 

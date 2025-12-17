@@ -28,7 +28,7 @@ abstract contract DeployRemoteVaultHop is BaseScript {
                 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2
             );
         } else {
-            vaultHop.setRemoteVaultHop(30255, 0x68Ca8194c743E9b00806C6D32D16152BA5368Eee);
+            vaultHop.setRemoteVaultHop(30255, 0x10AF0e184CfEEB8167e82B1Fa7d0AA243453e902);
             vaultHop.addRemoteVault(
                 30255,
                 0x8EdA613EC96992D3C42BCd9aC2Ae58a92929Ceb2,

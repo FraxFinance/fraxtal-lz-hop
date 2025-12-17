@@ -21,7 +21,7 @@ contract RemoteVaultTest is BaseTest {
         vm.createSelectFork(vm.envString("BASE_MAINNET_URL"), 36482910);
         frxUSD = 0xe5020A6d073a794B6E7f05678707dE47986Fb0b6;
         oft = frxUSD;
-        hop = 0x10f2773F54CA36d456d6513806aA24f5169D6765;
+        hop = 0x22beDD55A0D29Eb31e75C70F54fADa7Ca94339B9;
         uint32 eid = 30184;
         bytes memory initializeArgs = abi.encodeCall(
             RemoteVaultHop.initialize,
@@ -47,7 +47,7 @@ contract RemoteVaultTest is BaseTest {
         vm.createSelectFork(vm.envString("FRAXTAL_MAINNET_URL"), 26472666);
         frxUSD = 0xFc00000000000000000000000000000000000001;
         oft = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
-        hop = 0xB0f86D71568047B80bc105D77C63F8a6c5AEB5a8;
+        hop = 0xe8Cd13de17CeC6FCd9dD5E0a1465Da240f951536;
         uint32 eid = 30255;
         bytes memory initializeArgs = abi.encodeCall(
             RemoteVaultHop.initialize,

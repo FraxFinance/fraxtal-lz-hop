@@ -20,11 +20,11 @@ contract TestHopV2 is BaseScript {
 
         // hop arguments
         address oft = 0x96A394058E2b84A89bac9667B19661Ed003cF5D4;
-        uint32 dstEid = 30110;
+        uint32 dstEid = 30184;
         bytes32 recipient = bytes32(uint256(uint160(0x378699c6F0f77033024b3b1F3796d67a9AC82D5D)));
         uint256 amountLD = 0.0001e18;
-        uint128 dstGas = 0;
-        bytes memory data = "hello world 2";
+        uint128 dstGas = 250_000;
+        bytes memory data = "hello world";
 
         // quote cost of send
         uint256 fee = hopV2.quote(oft, dstEid, recipient, amountLD, dstGas, data);

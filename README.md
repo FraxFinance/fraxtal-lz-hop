@@ -109,6 +109,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 |Aurora|[`0x53e36c8380ff62d7964bfa4868a0045e58a52344`](https://explorer.aurora.dev/address/0x53e36C8380Ff62D7964BFa4868A0045E58A52344)|[`0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2`](https://explorer.aurora.dev/address/0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2)|
 | Katana | [`0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c`](https://explorer.katanarpc.com/address/0x5d8EB59A12Bc98708702305A7b032f4b69Dd5b5c) | [`0xF6f45CCB5E85D1400067ee66F9e168f83e86124E`](https://explorer.katanarpc.com/address/0xF6f45CCB5E85D1400067ee66F9e168f83e86124E) |
 | Hyperliquid | [`0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2`](https://hyperevmscan.io/address/0x8EbB34b1880B2EA5e458082590B3A2c9Ea7C41A2) | [`0xb85A8FDa7F5e52E32fa5582847CFfFee9456a5Dc`](https://hyperevmscan.io/address/0xb85a8fda7f5e52e32fa5582847cfffee9456a5dc) |
+| Monad | [`0x40f66fff44dbbee88058185f2cfe287558d7e532`](https://monadscan.com/address/0x40f66fff44dbbee88058185f2cfe287558d7e532) | [`0x92e6892706053ee85fc1178affcb3803118d2c4f`](https://monadscan.com/address/0x92e6892706053ee85fc1178affcb3803118d2c4f) |
 
 ### Testnet
 | Chain | `RemoteHop` |

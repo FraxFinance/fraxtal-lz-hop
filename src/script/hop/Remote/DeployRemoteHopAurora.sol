@@ -50,6 +50,11 @@ contract DeployRemoteHopAurora is BaseScript {
         approvedOfts.push(wFraxOft);
         approvedOfts.push(fpiOft);
 
+        uint32[] memory _eids = new uint32[](1);
+        _eids[0] = 30168;
+        bytes[] memory _executorOptions = new bytes[](1);
+        _executorOptions[0] = hex"0100210100000000000000000000000000030D40000000000000000000000000002DC6C0";
+
         RemoteHop remoteHop = new RemoteHop({
             _owner: owner,
             _fraxtalHop: bytes32(uint256(uint160(FRAXTAL_HOP))),
@@ -57,7 +62,9 @@ contract DeployRemoteHopAurora is BaseScript {
             _EXECUTOR: EXECUTOR,
             _DVN: DVN,
             _TREASURY: ISendLibrary(SEND_LIBRARY).treasury(),
-            _approvedOfts: approvedOfts
+            _approvedOfts: approvedOfts,
+            _eids: _eids,
+            _executorOptions: _executorOptions
         });
         console.log("RemoteHop deployed at:", address(remoteHop));
 

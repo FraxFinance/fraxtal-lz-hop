@@ -119,7 +119,7 @@ contract FraxtalLZCurveComposer is IOAppComposer, Initializable, FraxtalConstant
 
         // Swap
         IERC20(nToken).approve(curve, _amount);
-        /// @dev: can have amountOut as 0 as net slippage is checked via _minAmountLD in _send()
+        /// @dev can have amountOut as 0 as net slippage is checked via _minAmountLD in _send()
         uint256 amountOut = ICurve(curve).exchange({ i: int128(0), j: int128(1), _dx: _amount, _min_dy: 0 });
 
         // Send OFT to destination chain

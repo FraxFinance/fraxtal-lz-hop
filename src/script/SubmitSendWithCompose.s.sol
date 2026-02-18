@@ -21,7 +21,7 @@ contract SubmitSendWithCompose is BaseScript {
         // https://docs.layerzero.network/v2/developers/evm/protocol-gas-settings/options#lzcompose-option
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 100_000, 0);
         // bytes memory options = OptionsBuilder.newOptions();
-        /// @dev: fails when second argument too high
+        /// @dev fails when second argument too high
         bytes memory composeMsg = abi.encode(0xb0E1650A9760e0f383174af042091fc544b8356f, uint256(0));
         SendParam memory sendParam = SendParam({
             dstEid: uint32(30255), // fraxtal

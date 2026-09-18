@@ -24,8 +24,32 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.1
 
       - run: pnpm i
       - run: pnpm lint:check
       - run: forge build
       # - run: forge test
+      # Tempo mainnet-fork canary. The Tempo hop depends on live precompile behaviour that no
+      # Solidity spec documents any more (contract-context FeeManager.setUserToken, StablecoinDEX
+      # quote-vs-fill rounding, the LZEndpointDollar whitelist); the source of truth is
+      # tempoxyz/tempo `crates/precompiles/src/`. Tempo's precompiles only exist in forge's EVM under
+      # `--network tempo`, so this is kept out of the default step. A Tempo node release that changed
+      # any of this fails here before it can hurt.
+      - name: Tempo fork canary
+        env:
+          TEMPO_RPC_URL: ${{ secrets.TEMPO_RPC_URL || 'https://rpc.tempo.xyz' }}
+        run: >-
+          forge test --network tempo --evm-version shanghai --match-path
+          'src/test/hop/RemoteMintRedeemHopTempo*.t.sol'
+      # Fraxtal hub compose budget for the Tempo lane: measures the live hub's lzCompose against the
+      # 1M compose option the hop hard-codes, so a change in the ERC4626 mint/redeemer or the DVN set
+      # shows up here before composes start needing manual retries. Cancun because the mint/redeemer
+      # uses transient storage.
+      - name: Fraxtal compose-gas check
+        env:
+          FRAXTAL_RPC_URL: ${{ secrets.FRAXTAL_RPC_URL || 'https://rpc.frax.com' }}
+        run: >-
+          forge test --evm-version cancun --match-path
+          'src/test/hop/FraxtalMintRedeemHopTempoLaneTest.t.sol'

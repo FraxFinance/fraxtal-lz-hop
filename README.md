@@ -36,6 +36,12 @@ interface IMintRedeemHop {
     function quote(address oft, bytes32 toAsBytes32, uint256 amount) external view returns (MessagingFee memory fee);
     function mintRedeem(address oft, uint256 amount) external payable;
 }
+// Tempo only (RemoteMintRedeemHopTempo): fees are paid in a TIP20, never in msg.value
+interface IMintRedeemHopTempo is IMintRedeemHop {
+    function feeTokenOf(address caller) external view returns (address);
+    function quoteUserTokenFee(address oft, bytes32 toAsBytes32, uint256 amount, address feeToken) external view returns (uint256);
+    function mintRedeem(address oft, uint256 amount, address feeToken, uint256 maxFeeTokenAmount) external;
+}
 ```
 
 ### RemoteHop
@@ -77,6 +83,35 @@ IERC20(IOFT(oft).token()).approve(mintRedeemHop, amount);
 
 // 3. Convert the frxUSD to sfrxUSD
 IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
+```
+
+### MintRedeemHop on Tempo
+Tempo's LayerZero endpoint is an `EndpointV2Alt`: message fees are charged in an ERC20 (`LZEndpointDollar`, 6 decimals), not in gas. The Tempo hop (`RemoteMintRedeemHopTempo`) therefore takes no `msg.value` — a value-carrying call reverts — and pulls the fee from the caller as a TIP20 instead. Everything else (the Fraxtal round trip, the recipient being `msg.sender`) is the same as on the other chains.
+
+- **Fee token.** A TIP20 that LayerZero whitelists (pathUSD `0x20C0…0000`, USDC.e, USDT0 today) is pulled 1:1. Any other TIP20 (e.g. frxUSD) is swapped on Tempo's StablecoinDEX into the cheapest whitelisted one, so it needs a live route there and carries a small swap headroom (default 50 bps, at least 1 unit) that is refunded in the same call; with no route the call reverts `NoSwappableWhitelistedToken`.
+- **Quote in the fee token.** `quote(oft, to, amount).nativeFee` is in LZEndpointDollar units (6 decimals). Use `quoteUserTokenFee(oft, to, amount, feeToken)` for the figure in the token you will actually pay with — it already includes the headroom and is the most the hop will debit.
+- **Two approvals.** The bridged token (`IOFT(oft).token()`) for `amount`, and the fee token for the quoted fee. If they are the same token (frxUSD paying in frxUSD), approve `amount + fee` once.
+- **Use the capped overload.** `mintRedeem(oft, amount, feeToken, maxFeeTokenAmount)` reverts `FeeAboveCap` before pulling anything if the live fee in `feeToken` exceeds the cap — the Tempo equivalent of the `msg.value` ceiling. The two-argument `mintRedeem(oft, amount)` still exists for ABI compatibility, but it pays in `feeTokenOf(caller)` (the caller's FeeManager fee token, pathUSD if unset) with no cap other than the ERC20 allowance.
+- **Decimals.** Amounts are in the OFT's own decimals: Tempo frxUSD is a 6-decimal TIP20 adapter, Tempo sfrxUSD a normal 18-decimal OFT.
+
+```Solidity
+// Tempo frxUSD => (Fraxtal) => Tempo sfrxUSD, fee paid in pathUSD
+
+address oft = 0x00000000D61733e7A393A10A5B48c311AbE8f1E5;      // frxUSD OFT on Tempo (TIP20 adapter, 6 decimals)
+address mintRedeemHop = 0xD512291495ADDBcEC271b5FF802868F5d2f7f83F; // RemoteMintRedeemHopTempo, see deployed contracts below
+address feeToken = 0x20C0000000000000000000000000000000000000; // pathUSD (LZ-whitelisted: pulled 1:1, no swap)
+uint256 amount = 1e6;                                          // 1 frxUSD
+bytes32 to = bytes32(uint256(uint160(msg.sender)));            // the hop always returns the tokens to msg.sender
+
+// 1. Quote the fee in the token you will pay with (LZ send fee + retained return-leg fee)
+uint256 maxFee = IMintRedeemHopTempo(mintRedeemHop).quoteUserTokenFee(oft, to, amount, feeToken);
+
+// 2. Approve the bridged token and the fee token
+IERC20(IOFT(oft).token()).approve(mintRedeemHop, amount);
+IERC20(feeToken).approve(mintRedeemHop, maxFee);
+
+// 3. Convert. No msg.value; reverts FeeAboveCap (nothing pulled) if the live fee exceeds maxFee
+IMintRedeemHopTempo(mintRedeemHop).mintRedeem(oft, amount, feeToken, maxFee);
 ```
 
 ## Deployed Contracts
@@ -122,6 +157,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | Monad | [`0x40f66fff44dbbee88058185f2cfe287558d7e532`](https://monadscan.com/address/0x40f66fff44dbbee88058185f2cfe287558d7e532) | [`0x92e6892706053ee85fc1178affcb3803118d2c4f`](https://monadscan.com/address/0x92e6892706053ee85fc1178affcb3803118d2c4f) |
 | Somnia | n/a | [`0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD`](https://explorer.somnia.network/address/0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD) |
 | Robinhood | n/a | [`0xEfb78823eDCB57d78975a33576A7361dBD154d64`](https://robinhoodchain.blockscout.com/address/0xEfb78823eDCB57d78975a33576A7361dBD154d64) |
+| Tempo | n/a | [`0xD512291495ADDBcEC271b5FF802868F5d2f7f83F`](https://explore.tempo.xyz/address/0xD512291495ADDBcEC271b5FF802868F5d2f7f83F) (`RemoteMintRedeemHopTempo`, TIP20 fees — see [MintRedeemHop on Tempo](#mintredeemhop-on-tempo)) |
 
 ### Testnet
 | Chain | `RemoteHop` |

@@ -17,3 +17,4 @@ ds-test/=node_modules/ds-test/src/
 @fraxfinance/layerzero-v2-upgradeable/=node_modules/@fraxfinance/layerzero-v2-upgradeable/
 src/@openzeppelin/contracts-5.4.0/=node_modules/@openzeppelin/contracts/
 src/=src/
+tempo-std/=node_modules/tempoxyz/tempo-std/src/

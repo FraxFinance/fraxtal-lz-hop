@@ -38,6 +38,9 @@ importers:
       solidity-bytes-utils:
         specifier: github:GNSPS/solidity-bytes-utils
         version: https://codeload.github.com/GNSPS/solidity-bytes-utils/tar.gz/fc502455bb2a7e26a743378df042612dd50d1eb9
+      tempoxyz/tempo-std:
+        specifier: github:tempoxyz/tempo-std#f3d50ed87155b01a965cea8d5c0ff5b91a94fb09
+        version: tempo-std#f3d50ed87155b01a965cea8d5c0ff5b91a94fb09@https://codeload.github.com/tempoxyz/tempo-std/tar.gz/f3d50ed87155b01a965cea8d5c0ff5b91a94fb09
     devDependencies:
       '@openzeppelin/contracts':
         specifier: ~5.4.0
@@ -1466,6 +1469,10 @@ packages:
   table@6.9.0:
     resolution: {integrity: sha512-9kY+CygyYM6j02t5YFHbNz2FN5QmYGv9zAjVp4lCDjlCw7amdckXlEt/bjMhUIfj4ThGRE4gCUH5+yGnNuPo5A==}
     engines: {node: '>=10.0.0'}
+
+  tempo-std#f3d50ed87155b01a965cea8d5c0ff5b91a94fb09@https://codeload.github.com/tempoxyz/tempo-std/tar.gz/f3d50ed87155b01a965cea8d5c0ff5b91a94fb09:
+    resolution: {tarball: https://codeload.github.com/tempoxyz/tempo-std/tar.gz/f3d50ed87155b01a965cea8d5c0ff5b91a94fb09}
+    version: 0.0.0
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -3284,6 +3291,8 @@ snapshots:
       slice-ansi: 4.0.0
       string-width: 4.2.3
       strip-ansi: 6.0.1
+
+  tempo-std#f3d50ed87155b01a965cea8d5c0ff5b91a94fb09@https://codeload.github.com/tempoxyz/tempo-std/tar.gz/f3d50ed87155b01a965cea8d5c0ff5b91a94fb09: {}
 
   text-table@0.2.0: {}
 

@@ -71,11 +71,11 @@ contract RemoteMintRedeemHop is Ownable2Step {
     }
 
     // Admin functions
-    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external onlyOwner {
+    function recoverERC20(address tokenAddress, address recipient, uint256 tokenAmount) external virtual onlyOwner {
         IERC20(tokenAddress).transfer(recipient, tokenAmount);
     }
 
-    function recoverETH(address recipient, uint256 tokenAmount) external onlyOwner {
+    function recoverETH(address recipient, uint256 tokenAmount) external virtual onlyOwner {
         payable(recipient).call{ value: tokenAmount }("");
     }
 
@@ -110,7 +110,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
     // receive ETH
     receive() external payable {}
 
-    function mintRedeem(address _oft, uint256 _amountLD) external payable {
+    function mintRedeem(address _oft, uint256 _amountLD) external payable virtual {
         if (paused) revert HopPaused();
         if (_oft != frxUsdOft && _oft != sfrxUsdOft) revert InvalidOFT();
 
@@ -122,7 +122,7 @@ contract RemoteMintRedeemHop is Ownable2Step {
         emit MintRedeem(_oft, msg.sender, _amountLD);
     }
 
-    function _mintRedeemViaFraxtal(address _oft, bytes32 _to, uint256 _amountLD) internal {
+    function _mintRedeemViaFraxtal(address _oft, bytes32 _to, uint256 _amountLD) internal virtual {
         // generate arguments
         SendParam memory sendParam = _generateSendParam({ _to: _to, _amountLD: _amountLD, _minAmountLD: _amountLD });
         MessagingFee memory fee = IOFT(_oft).quoteSend(sendParam, false);

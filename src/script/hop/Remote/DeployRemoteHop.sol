@@ -63,7 +63,7 @@ abstract contract DeployRemoteHop is Script {
         vm.stopBroadcast();
     }
 
-    function _validateAddrs() internal view returns (bool) {
+    function _validateAddrs() internal view virtual returns (bool) {
         require(owner != address(0), "owner unset");
         require(numDVNs > 0, "numDVNs unset");
 
@@ -74,11 +74,17 @@ abstract contract DeployRemoteHop is Script {
         require(IExecutor(EXECUTOR).localEidV2() != 0, "Invalid executor localEidV2");
         require(IDVN(DVN).vid() != 0, "Invalid DVN vid");
 
-        require(isStringEqual(IERC20Metadata(frxUsdOft).symbol(), "frxUSD"), "frxUsdOft != frxUSD");
-        require(isStringEqual(IERC20Metadata(sfrxUsdOft).symbol(), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
-        require(isStringEqual(IERC20Metadata(frxEthOft).symbol(), "frxETH"), "frxEthOft != frxETH");
-        require(isStringEqual(IERC20Metadata(sfrxEthOft).symbol(), "sfrxETH"), "sfrxEthOft != sfrxETH");
-        require(isStringEqual(IERC20Metadata(wFraxOft).symbol(), "WFRAX"), "wFraxOft != WFRAX");
+        require(isStringEqual(_oftSymbol(frxUsdOft), "frxUSD"), "frxUsdOft != frxUSD");
+        require(isStringEqual(_oftSymbol(sfrxUsdOft), "sfrxUSD"), "sfrxUsdOft != sfrxUSD");
+        require(isStringEqual(_oftSymbol(frxEthOft), "frxETH"), "frxEthOft != frxETH");
+        require(isStringEqual(_oftSymbol(sfrxEthOft), "sfrxETH"), "sfrxEthOft != sfrxETH");
+        require(isStringEqual(_oftSymbol(wFraxOft), "WFRAX"), "wFraxOft != WFRAX");
+    }
+
+    /// @dev Adapter-style OFTs do not always expose `symbol()` on the OFT itself -- Tempo's frxUSD is a
+    ///      TIP20 adapter whose `symbol()` reverts, so that chain overrides this to read the underlying.
+    function _oftSymbol(address _oft) internal view virtual returns (string memory) {
+        return IERC20Metadata(_oft).symbol();
     }
 
     function isStringEqual(string memory _a, string memory _b) public pure returns (bool) {

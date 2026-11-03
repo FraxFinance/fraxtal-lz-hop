@@ -33,6 +33,8 @@ contract ConnectFraxtalMintRedeemHop is SafeTxHelper {
         string memory outputDir = vm.envOr("OUTPUT_DIR", string("src/script/hop/Fraxtal/generated"));
         vm.createDir(outputDir, true);
 
+        // One file per eid set, so batches generated on different branches never share a path.
+        string memory filename = string.concat(outputDir, "/252-ConnectMintRedeemHop");
         SafeTx[] memory txs = new SafeTx[](eids.length);
         for (uint256 i = 0; i < eids.length; ++i) {
             uint32 eid = uint32(eids[i]);
@@ -49,9 +51,10 @@ contract ConnectFraxtalMintRedeemHop is SafeTxHelper {
                 data: abi.encodeCall(IFraxtalMintRedeemHop.setRemoteHop, (eid, bytes32(uint256(uint160(hops[i])))))
             });
             console.log("queued setRemoteHop", eids[i], hops[i]);
+            filename = string.concat(filename, "-", vm.toString(eids[i]));
         }
 
-        string memory filename = string.concat(outputDir, "/252-ConnectMintRedeemHop.json");
+        filename = string.concat(filename, ".json");
         writeTxs(txs, filename);
         console.log("Safe tx JSON written to:", filename);
         console.log("Execute from Fraxtal msig:", FRAXTAL_MSIG);

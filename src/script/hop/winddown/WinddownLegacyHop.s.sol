@@ -457,10 +457,7 @@ contract WinddownWorker is Script, HopConstants {
     function _buildFraxtalHopClearRemoteHops(string memory rpc, address hop) internal {
         for (uint256 i = 0; i < candidateEids.length; i++) {
             uint32 eid = candidateEids[i];
-            bytes32 remoteHop = abi.decode(
-                _ethCall(rpc, hop, abi.encodeCall(ILegacyHop.remoteHop, (eid))),
-                (bytes32)
-            );
+            bytes32 remoteHop = abi.decode(_ethCall(rpc, hop, abi.encodeCall(ILegacyHop.remoteHop, (eid))), (bytes32));
             if (remoteHop != bytes32(0)) {
                 _pushTx(
                     string.concat("Clear remoteHop eid ", vm.toString(eid)),
@@ -489,8 +486,7 @@ contract WinddownWorker is Script, HopConstants {
                 vm.toString(txs[i].data),
                 '"},"latest"]'
             );
-            try vm.rpc(rpc, "eth_call", params) {}
-            catch {
+            try vm.rpc(rpc, "eth_call", params) {} catch {
                 revert(string.concat("simulation failed: ", txs[i].name));
             }
         }

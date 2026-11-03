@@ -20,8 +20,8 @@
   "license": "ISC",
   "devDependencies": {
     "@openzeppelin/contracts": "~5.4.0",
-    "@openzeppelin/contracts-upgradeable": "~5.4.0",
     "@openzeppelin/contracts-4.8.1": "npm:@openzeppelin/contracts@4.8.1",
+    "@openzeppelin/contracts-upgradeable": "~5.4.0",
     "@openzeppelin/contracts-upgradeable-4.8.1": "npm:@openzeppelin/contracts-upgradeable@4.8.1",
     "husky": "^8.0.3",
     "lint-staged": "^13.3.0",
@@ -43,6 +43,7 @@
     "ds-test": "github:dapphub/ds-test",
     "forge-std": "github:foundry-rs/forge-std#60acb7aaadcce2d68e52986a0a66fe79f07d138f",
     "frax-standard-solidity": "github:FraxFinance/frax-standard-solidity#v1.1.2",
-    "solidity-bytes-utils": "github:GNSPS/solidity-bytes-utils"
+    "solidity-bytes-utils": "github:GNSPS/solidity-bytes-utils",
+    "tempoxyz/tempo-std": "github:tempoxyz/tempo-std#f3d50ed87155b01a965cea8d5c0ff5b91a94fb09"
   }
 }

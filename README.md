@@ -115,6 +115,7 @@ IMintRedeemHop(mintRedeemHop).mintRedeem{value: fee.nativeFee}(oft, amount);
 | Monad | [`0x40f66fff44dbbee88058185f2cfe287558d7e532`](https://monadscan.com/address/0x40f66fff44dbbee88058185f2cfe287558d7e532) | [`0x92e6892706053ee85fc1178affcb3803118d2c4f`](https://monadscan.com/address/0x92e6892706053ee85fc1178affcb3803118d2c4f) |
 | Somnia | n/a | [`0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD`](https://explorer.somnia.network/address/0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD) |
 | Robinhood | n/a | [`0xEfb78823eDCB57d78975a33576A7361dBD154d64`](https://robinhoodchain.blockscout.com/address/0xEfb78823eDCB57d78975a33576A7361dBD154d64) |
+| Celo | n/a | [`0x3Fe759e54D619a655650ac64622aCE94BD6b6394`](https://celoscan.io/address/0x3Fe759e54D619a655650ac64622aCE94BD6b6394) |
 
 ### Testnet
 | Chain | `RemoteHop` |

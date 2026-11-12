@@ -152,6 +152,7 @@ IMintRedeemHopTempo(mintRedeemHop).mintRedeem(oft, amount, feeToken, maxFee);
 | Somnia | n/a | [`0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD`](https://explorer.somnia.network/address/0xE9e53734D2b67Ae263089d7a5dE1F5d97ab8cBDD) |
 | Robinhood | n/a | [`0xEfb78823eDCB57d78975a33576A7361dBD154d64`](https://robinhoodchain.blockscout.com/address/0xEfb78823eDCB57d78975a33576A7361dBD154d64) |
 | Tempo | n/a | [`0xDCe111dBBc88BF5D826B4dF5105010EA77db73cB`](https://explore.tempo.xyz/address/0xDCe111dBBc88BF5D826B4dF5105010EA77db73cB) (`RemoteMintRedeemHopTempo`, TIP20 fees — see [MintRedeemHop on Tempo](#mintredeemhop-on-tempo)) |
+| Celo | n/a | [`0x3Fe759e54D619a655650ac64622aCE94BD6b6394`](https://celoscan.io/address/0x3Fe759e54D619a655650ac64622aCE94BD6b6394) |
 
 ### Testnet
 | Chain | `RemoteHop` |
